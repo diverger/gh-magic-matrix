@@ -167,7 +167,7 @@ async function fetchGitHubContributions(username: string, token: string): Promis
   try {
     // Get inputs using @actions/core
     const username = core.getInput('github_user_name', { required: true });
-    const token = process.env.GITHUB_TOKEN ?? core.getInput('github_token');
+    const token = core.getInput('github_token') || process.env.GITHUB_TOKEN;
     const outputPath = core.getInput('output_path') || 'breathing-contrib.svg';
     const cellSize = parseInt(core.getInput('cell_size') || '12');
     const cellGap = parseInt(core.getInput('cell_gap') || '2');
