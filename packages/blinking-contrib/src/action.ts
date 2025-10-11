@@ -3,6 +3,7 @@ import { dirname } from 'path';
 import * as core from '@actions/core';
 import { generateBlinkingSVG } from './index';
 import type { ContributionGrid, YearlyContribution } from './index';
+import type { FontSize } from './pixelFont';
 
 // Fetch GitHub contribution data for a specific year
 async function fetchYearContributions(
@@ -207,6 +208,10 @@ async function fetchAllYearlyContributions(
     const transitionDuration = parseFloat(core.getInput('transition_duration') || '0.8');
     const colorLevelsStr = core.getInput('color_levels') || '#161b22,#0e4429,#006d32,#26a641,#39d353';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
+    const endingText = core.getInput('ending_text') || username.toUpperCase(); // Default to username
+    const fontSizeInput = core.getInput('font_size') || '5x7'; // Default to standard 5x7 font
+    const fontSize: FontSize = fontSizeInput === '3x5' ? '3x5' : '5x7';
+    const textFrameDuration = parseFloat(core.getInput('text_frame_duration') || (frameDuration * 2).toString());
 
     if (!token) {
       throw new Error('GitHub token is required');
@@ -257,6 +262,9 @@ async function fetchAllYearlyContributions(
       frameDuration,
       transitionDuration,
       colorLevels,
+      endingText,
+      fontSize,
+      textFrameDuration,
     });
 
     // Ensure output directory exists

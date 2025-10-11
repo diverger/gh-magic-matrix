@@ -38,6 +38,18 @@ inputs:
     description: 'Duration of fade in/out transition in seconds'
     required: false
     default: '0.8'
+  ending_text:
+    description: 'Text to display at the end (pixel art style, defaults to username)'
+    required: false
+    default: ''
+  font_size:
+    description: 'Font size for ending text: 3x5 (compact, fits more chars) or 5x7 (standard, better readability)'
+    required: false
+    default: '5x7'
+  text_frame_duration:
+    description: 'Duration for ending text frame in seconds (defaults to 2x frame_duration)'
+    required: false
+    default: ''
   color_levels:
     description: 'Comma-separated color levels (empty, L1, L2, L3, L4)'
     required: false
