@@ -24,51 +24,51 @@ jobs:
         run: bun run build
 
       - name: Generate breathing contribution animation
-        run: |
-          GITHUB_USER_NAME="${{ github.repository_owner }}" \
-          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
-          OUTPUT_PATH="dist/breathing-contrib/default.svg" \
-          PERIOD="2.5" \
-          COLOR_LEVELS="#ebedf0,#9be9a8,#40c463,#30a14e,#216e39" \
-          bun dist/breathing-contrib/index.js
+        run: bun dist/breathing-contrib/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/breathing-contrib/default.svg
+          INPUT_PERIOD: "2.5"
+          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate with custom colors (dark theme)
-        run: |
-          GITHUB_USER_NAME="${{ github.repository_owner }}" \
-          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
-          OUTPUT_PATH="dist/breathing-contrib/dark.svg" \
-          PERIOD="3" \
-          COLOR_LEVELS="#161b22,#0e4429,#006d32,#26a641,#39d353" \
-          bun dist/breathing-contrib/index.js
+        run: bun dist/breathing-contrib/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/breathing-contrib/dark.svg
+          INPUT_PERIOD: "3"
+          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate with custom colors (ocean theme)
-        run: |
-          GITHUB_USER_NAME="${{ github.repository_owner }}" \
-          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
-          OUTPUT_PATH="dist/breathing-contrib/ocean.svg" \
-          PERIOD="2" \
-          COLOR_LEVELS="#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff" \
-          bun dist/breathing-contrib/index.js
+        run: bun dist/breathing-contrib/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/breathing-contrib/ocean.svg
+          INPUT_PERIOD: "2"
+          INPUT_COLOR_LEVELS: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate blinking contribution animation
-        run: |
-          GITHUB_USER_NAME="${{ github.repository_owner }}" \
-          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
-          OUTPUT_PATH="dist/blinking-contrib/default.svg" \
-          FRAME_DURATION="2" \
-          TRANSITION_DURATION="0.5" \
-          COLOR_LEVELS="#ebedf0,#9be9a8,#40c463,#30a14e,#216e39" \
-          bun dist/blinking-contrib/index.js
+        run: bun dist/blinking-contrib/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/blinking-contrib/default.svg
+          INPUT_FRAME_DURATION: "2"
+          INPUT_TRANSITION_DURATION: "0.5"
+          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate blinking with custom timing
-        run: |
-          GITHUB_USER_NAME="${{ github.repository_owner }}" \
-          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
-          OUTPUT_PATH="dist/blinking-contrib/dark.svg" \
-          FRAME_DURATION="3" \
-          TRANSITION_DURATION="1" \
-          COLOR_LEVELS="#161b22,#0e4429,#006d32,#26a641,#39d353" \
-          bun dist/blinking-contrib/index.js
+        run: bun dist/blinking-contrib/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/blinking-contrib/dark.svg
+          INPUT_FRAME_DURATION: "3"
+          INPUT_TRANSITION_DURATION: "1"
+          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify outputs
         run: |
