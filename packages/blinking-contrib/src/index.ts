@@ -98,16 +98,8 @@ export function generateBlinkingSVG(
     throw new Error(`transition_duration must be non-negative, got ${transitionDuration}`);
   }
 
-  // Ensure transition_duration doesn't equal or exceed half of frame_duration
-  // to prevent zero-length spline segments (duplicate keyTimes) and overlapping fades
-  const maxTransitionDuration = frameDuration / 2;
-  if (transitionDuration >= maxTransitionDuration) {
-    throw new Error(
-      `transition_duration (${transitionDuration}s) must be strictly less than half of frame_duration (${frameDuration / 2}s). ` +
-      `Equal values produce duplicate keyTimes entries, creating zero-length spline segments that are invalid in SMIL. ` +
-      `Please use transition_duration < ${maxTransitionDuration}s or increase frame_duration.`
-    );
-  }
+  // Note: We now allow transition_duration >= frame_duration/2 to enable overlapping fades
+  // This creates a chaotic, jittery screen effect where multiple frames are partially visible at once
 
   // Calculate canvas size based on fixed 53-week grid (GitHub standard)
   // All years display the same 7x53 grid, counting back from their end date
