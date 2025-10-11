@@ -24,13 +24,24 @@ async function fetchYearContributions(
     return null;
   }
 
-  const from = year === userCreatedAt.getFullYear()
-    ? userCreatedAt.toISOString()
-    : `${year}-01-01T00:00:00Z`;
+  // First, calculate the date range for the 53-week grid
+  const isCurrentYear = year === currentYear;
 
-  const to = year === currentYear
-    ? now.toISOString()
-    : `${year}-12-31T23:59:59Z`;
+  // End date: today for current year, Dec 31 for past years
+  const endDate = isCurrentYear ? now : new Date(year, 11, 31);  // Find the Saturday on or after the end date (grid ends on Saturday)
+  const lastSaturday = new Date(endDate);
+  const endWeekday = endDate.getDay();
+  if (endWeekday < 6) {
+    lastSaturday.setDate(lastSaturday.getDate() + (6 - endWeekday));
+  }
+
+  // Calculate start date: 53 weeks (371 days) before the last Saturday
+  const firstSunday = new Date(lastSaturday);
+  firstSunday.setDate(firstSunday.getDate() - (53 * 7 - 1));
+
+  // Query API from the calculated start date (may be in previous year) to end date
+  const from = firstSunday.toISOString();
+  const to = lastSaturday.toISOString();
 
   const query = `
     query($userName:String!, $from:DateTime!, $to:DateTime!) {
@@ -84,25 +95,7 @@ async function fetchYearContributions(
     });
   });
 
-  // Generate a fixed 53-week grid counting back from the year's end date
-  // This matches GitHub's contribution graph layout (7 rows x 53 weeks)
-  const isCurrentYear = year === currentYear;
-
-  // End date: today for current year, Dec 31 for past years
-  const endDate = isCurrentYear ? now : new Date(year, 11, 31);
-
-  // Find the Saturday on or after the end date (grid ends on Saturday)
-  const lastSaturday = new Date(endDate);
-  const endWeekday = endDate.getDay();
-  if (endWeekday < 6) {
-    lastSaturday.setDate(lastSaturday.getDate() + (6 - endWeekday));
-  }
-
-  // Calculate start date: 53 weeks (371 days) before the last Saturday
-  const firstSunday = new Date(lastSaturday);
-  firstSunday.setDate(firstSunday.getDate() - (53 * 7 - 1));
-
-  // Build exactly 53 weeks
+  // Build exactly 53 weeks from firstSunday (already calculated above)
   const weeks: any[][] = [];
   let currentDate = new Date(firstSunday);
   let maxCount = 0;
