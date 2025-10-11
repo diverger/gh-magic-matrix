@@ -15,7 +15,7 @@ A collection of GitHub Actions for creating various animations and visualization
 - uses: diverger/gh-magic-matrix/blinking-contrib@main
   with:
     github_user_name: ${{ github.repository_owner }}
-    output_path: dist/blinking-contrib/default.svg
+    output_path: dist/blinking-contrib/dark.svg
 ```
 
 ## Actions
