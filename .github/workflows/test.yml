@@ -13,40 +13,62 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
-      - name: Test published action from main
+      # Test breathing-contrib action
+      - name: Test breathing action from main
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ inputs.test_user || github.repository_owner }}
-          output_path: dist/test/breathing.svg
+          output_path: dist/test/breathing-contrib/default.svg
           period: "3"
           color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
 
-      - name: Test with dark theme
+      - name: Test breathing with dark theme
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ inputs.test_user || github.repository_owner }}
-          output_path: dist/test/breathing-dark.svg
+          output_path: dist/test/breathing-contrib/dark.svg
           period: "3"
           color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
-      - name: Test with custom colors
+      - name: Test breathing with custom colors
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ inputs.test_user || github.repository_owner }}
-          output_path: dist/test/breathing-ocean.svg
+          output_path: dist/test/breathing-contrib/ocean.svg
           period: "2.5"
           color_levels: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
           cell_size: "15"
 
+      # Test blinking-contrib action
+      - name: Test blinking action from main
+        uses: diverger/gh-magic-matrix/blinking-contrib@main
+        with:
+          github_user_name: ${{ inputs.test_user || github.repository_owner }}
+          output_path: dist/test/blinking-contrib/default.svg
+          frame_duration: "2"
+          transition_duration: "0.5"
+          color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+
+      - name: Test blinking with dark theme
+        uses: diverger/gh-magic-matrix/blinking-contrib@main
+        with:
+          github_user_name: ${{ inputs.test_user || github.repository_owner }}
+          output_path: dist/test/blinking-contrib/dark.svg
+          frame_duration: "3"
+          transition_duration: "1"
+          color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+
       - name: Verify all outputs exist
         run: |
-          ls dist/test
-          test -f dist/test/breathing.svg
-          test -f dist/test/breathing-dark.svg
-          test -f dist/test/breathing-ocean.svg
+          ls -R dist/test
+          test -f dist/test/breathing-contrib/default.svg
+          test -f dist/test/breathing-contrib/dark.svg
+          test -f dist/test/breathing-contrib/ocean.svg
+          test -f dist/test/blinking-contrib/default.svg
+          test -f dist/test/blinking-contrib/dark.svg
           echo "✅ All outputs generated successfully"
 
       - name: Publish to test-output branch
