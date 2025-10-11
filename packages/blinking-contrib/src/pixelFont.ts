@@ -1,12 +1,337 @@
 /**
- * 5x7 pixel font for rendering text on contribution grid
- * Each character is represented as a 2D array where 1 = filled cell, 0 = empty
+ * Pixel fonts for rendering text on contribution grid
+ * Supports multiple font sizes for different use cases
  */
 
 export type PixelChar = number[][];
 
-// 5 columns x 7 rows per character
-export const PIXEL_FONT: Record<string, PixelChar> = {
+export type FontSize = '3x5' | '5x7';
+
+export interface FontMetrics {
+  width: number;
+  height: number;
+  name: string;
+  description: string;
+}
+
+export const FONT_METRICS: Record<FontSize, FontMetrics> = {
+  '3x5': {
+    width: 3,
+    height: 5,
+    name: 'Tom Thumb',
+    description: 'Compact 3x5 font, fits more characters (8-10 chars)',
+  },
+  '5x7': {
+    width: 5,
+    height: 7,
+    name: 'Standard',
+    description: 'Standard 5x7 font, better readability (4-6 chars)',
+  },
+};
+
+// Tom Thumb 3x5 Font - Compact and highly readable
+// Based on the popular open-source Tom Thumb font (MIT License)
+export const FONT_3X5: Record<string, PixelChar> = {
+  // Numbers
+  '0': [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+  ],
+  '1': [
+    [0, 1, 0],
+    [1, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [1, 1, 1],
+  ],
+  '2': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 1],
+  ],
+  '3': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [0, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+  ],
+  '4': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+  ],
+  '5': [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+  ],
+  '6': [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+  ],
+  '7': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+  ],
+  '8': [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+  ],
+  '9': [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+  ],
+  // Letters
+  'A': [
+    [0, 1, 0],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+  ],
+  'B': [
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 1, 0],
+  ],
+  'C': [
+    [0, 1, 1],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+    [0, 1, 1],
+  ],
+  'D': [
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 0],
+  ],
+  'E': [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 0],
+    [1, 0, 0],
+    [1, 1, 1],
+  ],
+  'F': [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+  ],
+  'G': [
+    [0, 1, 1],
+    [1, 0, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 1],
+  ],
+  'H': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+  ],
+  'I': [
+    [1, 1, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [1, 1, 1],
+  ],
+  'J': [
+    [0, 0, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+  ],
+  'K': [
+    [1, 0, 1],
+    [1, 1, 0],
+    [1, 0, 0],
+    [1, 1, 0],
+    [1, 0, 1],
+  ],
+  'L': [
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 1, 1],
+  ],
+  'M': [
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+  ],
+  'N': [
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+  ],
+  'O': [
+    [0, 1, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+  ],
+  'P': [
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 1, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+  ],
+  'Q': [
+    [0, 1, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 0],
+    [0, 1, 1],
+  ],
+  'R': [
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 1, 0],
+    [1, 1, 0],
+    [1, 0, 1],
+  ],
+  'S': [
+    [0, 1, 1],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [1, 1, 0],
+  ],
+  'T': [
+    [1, 1, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+  ],
+  'U': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+  ],
+  'V': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+  ],
+  'W': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+  ],
+  'X': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+  ],
+  'Y': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+  ],
+  'Z': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [0, 1, 0],
+    [1, 0, 0],
+    [1, 1, 1],
+  ],
+  ' ': [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ],
+  '-': [
+    [0, 0, 0],
+    [0, 0, 0],
+    [1, 1, 1],
+    [0, 0, 0],
+    [0, 0, 0],
+  ],
+  '!': [
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 0, 0],
+    [0, 1, 0],
+  ],
+  '?': [
+    [1, 1, 0],
+    [0, 0, 1],
+    [0, 1, 0],
+    [0, 0, 0],
+    [0, 1, 0],
+  ],
+  '.': [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 1, 0],
+  ],
+  ':': [
+    [0, 0, 0],
+    [0, 1, 0],
+    [0, 0, 0],
+    [0, 1, 0],
+    [0, 0, 0],
+  ],
+};
+
+// Standard 5x7 Font - Better readability for shorter text
+export const FONT_5X7: Record<string, PixelChar> = {
   // Numbers
   '0': [
     [0, 1, 1, 1, 0],
@@ -356,74 +681,121 @@ export const PIXEL_FONT: Record<string, PixelChar> = {
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
   ],
+
+  // Punctuation
+  '!': [
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+  ],
+  '?': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+  ],
+  '.': [
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 1, 1, 0, 0],
+  ],
+  ':': [
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+  ],
 };
 
 /**
+ * Get the appropriate font for the given size
+ */
+export function getFont(fontSize: FontSize): Record<string, PixelChar> {
+  return fontSize === '3x5' ? FONT_3X5 : FONT_5X7;
+}
+
+/**
  * Render text as pixel coordinates on a 7x53 grid
- * Returns array of {weekIdx, dayIdx} coordinates for filled cells
+ * @param text Text to render (will be converted to uppercase)
+ * @param fontSize Font size to use ('3x5' or '5x7')
+ * @param centerHorizontally Whether to center the text horizontally on the grid
+ * @param centerVertically Whether to center the text vertically on the grid
+ * @param charSpacing Space between characters (in grid cells)
+ * @returns Array of {weekIdx, dayIdx} coordinates for filled pixels
  */
 export function renderPixelText(
   text: string,
-  options: {
-    centerHorizontally?: boolean;
-    centerVertically?: boolean;
-    charSpacing?: number; // Spacing between characters (in cells)
-  } = {}
-): Array<{ weekIdx: number; dayIdx: number }> {
-  const {
-    centerHorizontally = true,
-    centerVertically = true,
-    charSpacing = 1,
-  } = options;
+  fontSize: FontSize = '5x7',
+  centerHorizontally = true,
+  centerVertically = true,
+  charSpacing = 1,
+): { weekIdx: number; dayIdx: number }[] {
+  const font = getFont(fontSize);
+  const metrics = FONT_METRICS[fontSize];
+  const charWidth = metrics.width;
+  const charHeight = metrics.height;
 
-  const normalizedText = text.toUpperCase();
-  const chars = normalizedText.split('');
+  const upperText = text.toUpperCase();
+  const chars = upperText.split('').filter((c) => font[c]); // Only keep supported characters
 
-  // Filter out unsupported characters
-  const supportedChars = chars.filter(char => PIXEL_FONT[char]);
-
-  if (supportedChars.length === 0) {
+  if (chars.length === 0) {
     return [];
   }
 
   // Calculate total width needed
-  const charWidth = 5; // Each character is 5 cells wide
-  const charHeight = 7; // Each character is 7 cells tall
-  const totalWidth = supportedChars.length * charWidth + (supportedChars.length - 1) * charSpacing;
+  const totalWidth = chars.length * charWidth + (chars.length - 1) * charSpacing;
 
-  // GitHub contribution grid is 7 rows (days) x 53 columns (weeks)
-  const gridWidth = 53;
-  const gridHeight = 7;
+  // Grid dimensions (GitHub contribution grid standard)
+  const gridWeeks = 53;
+  const gridDays = 7;
 
   // Calculate starting position for centering
-  const startWeek = centerHorizontally ? Math.floor((gridWidth - totalWidth) / 2) : 0;
-  const startDay = centerVertically ? 0 : 0; // Vertically it's already 7 rows, so it fills naturally
+  let startWeek = centerHorizontally ? Math.floor((gridWeeks - totalWidth) / 2) : 0;
+  let startDay = centerVertically ? Math.floor((gridDays - charHeight) / 2) : 0;
 
-  const pixels: Array<{ weekIdx: number; dayIdx: number }> = [];
+  // Ensure we don't go out of bounds
+  startWeek = Math.max(0, Math.min(startWeek, gridWeeks - totalWidth));
+  startDay = Math.max(0, Math.min(startDay, gridDays - charHeight));
 
-  let currentWeekOffset = startWeek;
+  const pixels: { weekIdx: number; dayIdx: number }[] = [];
 
-  supportedChars.forEach((char, charIndex) => {
-    const charPattern = PIXEL_FONT[char];
+  // Render each character
+  let currentWeek = startWeek;
+  for (const char of chars) {
+    const charData = font[char];
+    if (!charData) continue;
 
-    // Render each character
+    // Render character pixels
     for (let row = 0; row < charHeight; row++) {
       for (let col = 0; col < charWidth; col++) {
-        if (charPattern[row][col] === 1) {
-          const weekIdx = currentWeekOffset + col;
+        if (charData[row][col] === 1) {
+          const weekIdx = currentWeek + col;
           const dayIdx = startDay + row;
 
           // Only add if within grid bounds
-          if (weekIdx >= 0 && weekIdx < gridWidth && dayIdx >= 0 && dayIdx < gridHeight) {
+          if (weekIdx >= 0 && weekIdx < gridWeeks && dayIdx >= 0 && dayIdx < gridDays) {
             pixels.push({ weekIdx, dayIdx });
           }
         }
       }
     }
 
-    // Move to next character position
-    currentWeekOffset += charWidth + charSpacing;
-  });
+    currentWeek += charWidth + charSpacing;
+  }
 
   return pixels;
 }

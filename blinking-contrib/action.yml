@@ -42,6 +42,10 @@ inputs:
     description: 'Text to display at the end (pixel art style, defaults to username)'
     required: false
     default: ''
+  font_size:
+    description: 'Font size for ending text: 3x5 (compact, fits more chars) or 5x7 (standard, better readability)'
+    required: false
+    default: '5x7'
   color_levels:
     description: 'Comma-separated color levels (empty, L1, L2, L3, L4)'
     required: false

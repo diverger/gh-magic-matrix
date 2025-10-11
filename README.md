@@ -74,6 +74,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
     frame_duration: "3"    # Each year visible for 3 seconds
     transition_duration: "0.8"  # 0.8s fade transitions
     ending_text: "THANKS"  # Optional: pixel art text at end (default: username)
+    font_size: "3x5"       # Compact font for longer text (or "5x7" for standard)
 ```
 
 See [blinking-contrib documentation](./packages/blinking-contrib/README.md) for full options.
@@ -198,8 +199,27 @@ Or for simple display without theme switching:
 | `cell_radius` | Border radius in pixels | `2` |
 | `frame_duration` | How long each year stays visible (seconds) | `3` |
 | `transition_duration` | Fade in/out duration (seconds) | `0.8` |
-| `ending_text` | Pixel art text at end (A-Z, 0-9, space, dash) | username |
+| `ending_text` | Pixel art text at end (A-Z, 0-9, space, dash, !?.:) | username |
+| `font_size` | Font for ending text: `3x5` (compact) or `5x7` (standard) | `5x7` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub dark theme colors |
+
+### Font Size Options
+
+The `font_size` parameter controls how text is rendered in the ending frame:
+
+- **`5x7` (Standard)**: Better readability, suitable for short text (4-6 characters like usernames)
+  ```yaml
+  ending_text: "JOHN"
+  font_size: "5x7"
+  ```
+
+- **`3x5` (Compact)**: Fits more characters, ideal for longer messages (8-10 characters)
+  ```yaml
+  ending_text: "THANKS 2024"
+  font_size: "3x5"
+  ```
+
+Based on the popular **Tom Thumb** font for the compact option.
 
 ### Color Customization
 

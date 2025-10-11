@@ -1,4 +1,4 @@
-import { renderPixelText } from './pixelFont';
+import { renderPixelText, FontSize } from './pixelFont';
 
 export interface ContributionDay {
   date: string;
@@ -24,6 +24,7 @@ export interface BlinkingSVGOptions {
   transitionDuration?: number; // Duration of fade transition (seconds)
   colorLevels?: string[];
   endingText?: string; // Optional text to display at the end (pixel art style)
+  fontSize?: FontSize; // Font size for ending text: '3x5' (compact) or '5x7' (standard)
 }
 
 /**
@@ -41,6 +42,7 @@ export function generateBlinkingSVG(
   const frameDuration = options.frameDuration ?? 3; // Show each year for 3 seconds (more visible)
   const transitionDuration = options.transitionDuration ?? 0.8; // 0.8s fade transition (smoother)
   const endingText = options.endingText; // Optional ending text frame
+  const fontSize = options.fontSize ?? '5x7'; // Default to standard 5x7 font
   const colorLevels = options.colorLevels ?? [
     '#161b22', // Dark background (empty)
     '#0e4429', // Level 1 (low)
@@ -168,11 +170,13 @@ export function generateBlinkingSVG(
     ];
 
     // Render text as pixel coordinates
-    const textPixels = renderPixelText(endingText, {
-      centerHorizontally: true,
-      centerVertically: true,
-      charSpacing: 1,
-    });
+    const textPixels = renderPixelText(
+      endingText,
+      fontSize,
+      true, // centerHorizontally
+      true, // centerVertically
+      1,    // charSpacing
+    );
 
     // Use the highest contribution color for text
     const textColor = colorLevels[colorLevels.length - 1];
