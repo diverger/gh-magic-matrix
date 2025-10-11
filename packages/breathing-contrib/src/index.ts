@@ -28,7 +28,7 @@ export function generateBreathingSVG(
   const cellSize = options.cellSize ?? 12;
   const cellGap = options.cellGap ?? 2;
   const cellRadius = options.cellRadius ?? 2;
-  const period = options.period ?? 3;
+  const period = options.period ?? 6; // Longer breathing period for more relaxed effect
   const colorLevels = options.colorLevels ?? [
     '#ebedf0',
     '#9be9a8',
@@ -65,11 +65,12 @@ export function generateBreathingSVG(
         const level = Math.min(Math.ceil((day.count / grid.maxCount) * 4), 4);
         const color = colorLevels[level] || colorLevels[colorLevels.length - 1];
 
-        // Calculate opacity animation range based on contribution count
-        // Higher counts = brighter animation
+        // Calculate opacity animation range with deeper fade
+        // Fade nearly to zero (0.05) for dramatic breathing effect
+        // Higher counts still breathe to higher peak opacity
         const normalizedCount = day.count / grid.maxCount;
-        const minOpacity = 0.3 + normalizedCount * 0.2;
-        const maxOpacity = 0.7 + normalizedCount * 0.3;
+        const minOpacity = 0.05 + normalizedCount * 0.15; // Range: 0.05-0.20
+        const maxOpacity = 0.7 + normalizedCount * 0.3;    // Range: 0.7-1.0
 
         cells += `\n  <rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="${cellRadius}" fill="${color}" opacity="${minOpacity}">
     <animate

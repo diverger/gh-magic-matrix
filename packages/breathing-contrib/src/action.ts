@@ -172,7 +172,7 @@ async function fetchGitHubContributions(username: string, token: string): Promis
     const cellSize = parseInt(core.getInput('cell_size') || '12');
     const cellGap = parseInt(core.getInput('cell_gap') || '2');
     const cellRadius = parseInt(core.getInput('cell_radius') || '2');
-    const period = parseFloat(core.getInput('period') || '3');
+    const period = parseFloat(core.getInput('period') || '6'); // Longer default for deeper breathing effect
     const colorLevelsStr = core.getInput('color_levels') || '#ebedf0,#9be9a8,#40c463,#30a14e,#216e39';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
 
