@@ -71,8 +71,8 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
   with:
     github_user_name: ${{ github.repository_owner }}
     output_path: dist/blinking-contrib/dark.svg
-    frame_duration: "1.5"    # Each year visible for 1.5 seconds
-    transition_duration: "0.3"  # 0.3s fade transitions
+    frame_duration: "3"    # Each year visible for 3 seconds
+    transition_duration: "0.8"  # 0.8s fade transitions
 ```
 
 See [blinking-contrib documentation](./packages/blinking-contrib/README.md) for full options.
@@ -128,8 +128,8 @@ jobs:
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/blinking-contrib/dark.svg
-          frame_duration: "1.5"
-          transition_duration: "0.3"
+          frame_duration: "3"
+          transition_duration: "0.8"
 
       - name: Deploy to GitHub Pages
         uses: crazy-max/ghaction-github-pages@v4
@@ -195,8 +195,8 @@ Or for simple display without theme switching:
 | `cell_size` | Cell size in pixels | `12` |
 | `cell_gap` | Gap between cells in pixels | `2` |
 | `cell_radius` | Border radius in pixels | `2` |
-| `frame_duration` | How long each year stays visible (seconds) | `1.5` |
-| `transition_duration` | Fade in/out duration (seconds) | `0.3` |
+| `frame_duration` | How long each year stays visible (seconds) | `3` |
+| `transition_duration` | Fade in/out duration (seconds) | `0.8` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub dark theme colors |
 
 ### Color Customization

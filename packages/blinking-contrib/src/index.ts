@@ -35,8 +35,8 @@ export function generateBlinkingSVG(
   const cellSize = options.cellSize ?? 12;
   const cellGap = options.cellGap ?? 2;
   const cellRadius = options.cellRadius ?? 2;
-  const frameDuration = options.frameDuration ?? 1.5; // Show each year for 1.5 seconds (faster)
-  const transitionDuration = options.transitionDuration ?? 0.3; // 0.3s fade transition (faster, smoother)
+  const frameDuration = options.frameDuration ?? 3; // Show each year for 3 seconds (more visible)
+  const transitionDuration = options.transitionDuration ?? 0.8; // 0.8s fade transition (smoother)
   const colorLevels = options.colorLevels ?? [
     '#161b22', // Dark background (empty)
     '#0e4429', // Level 1 (low)
