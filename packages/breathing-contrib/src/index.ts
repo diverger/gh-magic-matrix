@@ -38,7 +38,8 @@ export function generateBreathingSVG(
   ];
 
   const weeks = grid.weeks.length;
-  const days = grid.weeks[0]?.length ?? 7;
+  // GitHub contribution grid always has 7 rows (one per day of week)
+  const days = 7;
   const width = weeks * (cellSize + cellGap) - cellGap;
   const height = days * (cellSize + cellGap) - cellGap;
 

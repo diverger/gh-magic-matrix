@@ -143,7 +143,9 @@ async function fetchGitHubContributions(username: string, token: string): Promis
     const grid = await fetchGitHubContributions(username, token);
 
     console.log(`📊 Fetched ${grid.weeks.length} weeks of data`);
-    console.log(`📈 Max contribution count: ${grid.maxCount}`);
+    console.log(`� First week has ${grid.weeks[0]?.length ?? 0} days`);
+    console.log(`📊 Last week has ${grid.weeks[grid.weeks.length - 1]?.length ?? 0} days`);
+    console.log(`�📈 Max contribution count: ${grid.maxCount}`);
 
     // Generate SVG
     console.log(`🖌 Generating breathing SVG...`);
