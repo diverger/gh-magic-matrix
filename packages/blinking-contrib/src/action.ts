@@ -211,6 +211,7 @@ async function fetchAllYearlyContributions(
     const endingText = core.getInput('ending_text') || username.toUpperCase(); // Default to username
     const fontSizeInput = core.getInput('font_size') || '5x7'; // Default to standard 5x7 font
     const fontSize: FontSize = fontSizeInput === '3x5' ? '3x5' : '5x7';
+    const textFrameDuration = parseFloat(core.getInput('text_frame_duration') || (frameDuration * 2).toString());
 
     if (!token) {
       throw new Error('GitHub token is required');
@@ -263,6 +264,7 @@ async function fetchAllYearlyContributions(
       colorLevels,
       endingText,
       fontSize,
+      textFrameDuration,
     });
 
     // Ensure output directory exists

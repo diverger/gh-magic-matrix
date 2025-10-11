@@ -25,6 +25,7 @@ export interface BlinkingSVGOptions {
   colorLevels?: string[];
   endingText?: string; // Optional text to display at the end (pixel art style)
   fontSize?: FontSize; // Font size for ending text: '3x5' (compact) or '5x7' (standard)
+  textFrameDuration?: number; // Duration for ending text frame (if different from frameDuration)
 }
 
 /**
@@ -57,10 +58,9 @@ function calculateFrameTiming(
     fadeOutStart,
     fadeOutEnd,
     keyTimes: [0, start, ki1, ki2, ki3, 1],
+    keySplines: '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1',
   };
-}
-
-/**
+}/**
  * Generate a blinking SVG animation that displays GitHub contributions year by year.
  * Each year fades in, displays for a period, then fades out to the next year,
  * creating a starry sky blinking effect.
@@ -76,6 +76,7 @@ export function generateBlinkingSVG(
   const transitionDuration = options.transitionDuration ?? 0.8; // 0.8s fade transition (smoother)
   const endingText = options.endingText; // Optional ending text frame
   const fontSize = options.fontSize ?? '5x7'; // Default to standard 5x7 font
+  const textFrameDuration = options.textFrameDuration ?? frameDuration * 2; // Text shows 2x longer by default
   const colorLevels = options.colorLevels ?? [
     '#161b22', // Dark background (empty)
     '#0e4429', // Level 1 (low)
@@ -117,8 +118,8 @@ export function generateBlinkingSVG(
 
   // Calculate total animation cycle duration (including optional ending text frame)
   const hasEndingFrame = endingText && endingText.trim().length > 0;
-  const totalFrames = yearlyContributions.length + (hasEndingFrame ? 1 : 0);
-  const cycleDuration = totalFrames * frameDuration;
+  const yearFramesDuration = yearlyContributions.length * frameDuration;
+  const cycleDuration = yearFramesDuration + (hasEndingFrame ? textFrameDuration : 0);
 
   let yearGroups = '';
 
@@ -162,17 +163,26 @@ export function generateBlinkingSVG(
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
-      keySplines="0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1"
+      keySplines="${timing.keySplines}"
     />${cells}
   </g>`;
   });
 
   // Add optional ending text frame
   if (hasEndingFrame && endingText) {
-    const textFrameIndex = yearlyContributions.length;
+    // Text frame starts after all year frames complete
+    const textFrameStart = yearFramesDuration / cycleDuration;
 
-    // Calculate animation timing for text frame
-    const timing = calculateFrameTiming(textFrameIndex, frameDuration, transitionDuration, cycleDuration);
+    // Text frame always uses smooth fade (even in fast blink mode) for better readability
+    const textFadeIn = transitionDuration / cycleDuration;
+    const textFadeOut = transitionDuration / cycleDuration;
+
+    const textEnd = (yearFramesDuration + textFrameDuration) / cycleDuration;
+    const fadeInEnd = (yearFramesDuration + transitionDuration) / cycleDuration;
+    const fadeOutStart = (yearFramesDuration + textFrameDuration - transitionDuration) / cycleDuration;
+
+    const textKeyTimes = [0, textFrameStart, fadeInEnd, fadeOutStart, textEnd, 1];
+    const textKeySplines = '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1';
 
     // Render text as pixel coordinates
     const textPixels = renderPixelText(
@@ -197,11 +207,11 @@ export function generateBlinkingSVG(
     <animate
       attributeName="opacity"
       values="0;0;1;1;0;0"
-      keyTimes="${timing.keyTimes.join(';')}"
+      keyTimes="${textKeyTimes.join(';')}"
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
-      keySplines="0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1"
+      keySplines="${textKeySplines}"
     />${textCells}
   </g>`;
   }

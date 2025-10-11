@@ -65,16 +65,31 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
 
 #### Usage
 
+**Smooth transitions (default):**
 ```yaml
 - name: Generate blinking contribution timeline
   uses: diverger/gh-magic-matrix/blinking-contrib@main
   with:
     github_user_name: ${{ github.repository_owner }}
-    output_path: dist/blinking-contrib/dark.svg
-    frame_duration: "3"    # Each year visible for 3 seconds
-    transition_duration: "0.8"  # 0.8s fade transitions
-    ending_text: "THANKS"  # Optional: pixel art text at end (default: username)
-    font_size: "3x5"       # Compact font for longer text (or "5x7" for standard)
+    output_path: dist/blinking-contrib/smooth.svg
+    frame_duration: "3"             # Each year visible for 3 seconds
+    transition_duration: "0.8"      # 0.8s fade transitions
+    ending_text: "THANKS"           # Optional: pixel art text at end (default: username)
+    font_size: "3x5"                # Compact font for longer text (or "5x7" for standard)
+```
+
+**Fast blinking effect:**
+```yaml
+- name: Generate fast blinking timeline
+  uses: diverger/gh-magic-matrix/blinking-contrib@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    output_path: dist/blinking-contrib/fast.svg
+    frame_duration: "0.5"           # Fast! Each year shows 0.5s
+    transition_duration: "0"        # Instant on/off (no fade)
+    text_frame_duration: "3"        # Text shows longer (3s)
+    ending_text: "HELLO WORLD"
+    font_size: "3x5"                # Compact font fits more text
 ```
 
 See [blinking-contrib documentation](./packages/blinking-contrib/README.md) for full options.
@@ -198,10 +213,32 @@ Or for simple display without theme switching:
 | `cell_gap` | Gap between cells in pixels | `2` |
 | `cell_radius` | Border radius in pixels | `2` |
 | `frame_duration` | How long each year stays visible (seconds) | `3` |
-| `transition_duration` | Fade in/out duration (seconds) | `0.8` |
+| `transition_duration` | Fade in/out duration (seconds). Use `0` for instant blink! | `0.8` |
+| `text_frame_duration` | Duration for ending text frame (seconds) | `2 × frame_duration` |
 | `ending_text` | Pixel art text at end (A-Z, 0-9, space, dash, !?.:) | username |
 | `font_size` | Font for ending text: `3x5` (compact) or `5x7` (standard) | `5x7` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub dark theme colors |
+
+### Animation Effects
+
+Control the blinking effect using existing parameters:
+
+**Smooth transitions (fade in/out):**
+- `frame_duration`: `2-5` seconds (slower)
+- `transition_duration`: `0.5-1` second (visible fade)
+
+**Fast blinking (instant on/off):**
+- `frame_duration`: `0.3-0.8` seconds (faster)
+- `transition_duration`: `0` or `0.01` (instant/minimal fade)
+- `text_frame_duration`: `3-5` seconds (text lingers longer)
+
+Example:
+```yaml
+# Fast blink years, slow text
+frame_duration: "0.5"           # Years flash quickly
+transition_duration: "0"        # No fade = instant blink
+text_frame_duration: "4"        # Text stays 4 seconds
+```
 
 ### Font Size Options
 
