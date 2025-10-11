@@ -1,0 +1,60 @@
+name: Test Published Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_user:
+        description: "GitHub username to test with"
+        required: false
+        default: ""
+
+jobs:
+  test-published:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test published action from main
+        uses: ${{ github.repository }}@main
+        with:
+          github_user_name: ${{ github.event.inputs.test_user || github.repository_owner }}
+          output_path: validation/breathing.svg
+          period: "3"
+          color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+
+      - name: Verify output
+        run: |
+          ls -la validation/
+          test -f validation/breathing.svg
+          echo "✅ Published action works correctly"
+
+      - name: Upload validation result
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-output
+          path: validation/breathing.svg
+          retention-days: 7
+
+  test-with-custom-colors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test with custom color scheme
+        uses: ${{ github.repository }}@main
+        with:
+          github_user_name: ${{ github.event.inputs.test_user || github.repository_owner }}
+          output_path: validation/breathing-custom.svg
+          period: "2.5"
+          color_levels: "#f0f0f0,#ffb3ba,#ffdfba,#ffffba,#baffc9"
+          cell_size: "15"
+
+      - name: Verify custom output
+        run: |
+          test -f validation/breathing-custom.svg
+          echo "✅ Custom colors work correctly"
+
+      - name: Upload custom result
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-custom-colors
+          path: validation/breathing-custom.svg
+          retention-days: 7

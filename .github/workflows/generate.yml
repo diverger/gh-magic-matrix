@@ -1,0 +1,57 @@
+name: Generate Example
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Run daily at midnight
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate breathing contribution animation
+        uses: ./ # Use local action (for development)
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          output_path: dist/breathing-contrib.svg
+          period: "2.5"
+          color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+
+      - name: Generate with custom colors (dark theme)
+        uses: ./
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          output_path: dist/breathing-contrib-dark.svg
+          period: "3"
+          color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+
+      - name: Generate with custom colors (ocean theme)
+        uses: ./
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          output_path: dist/breathing-contrib-ocean.svg
+          period: "2"
+          color_levels: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
+
+      - name: Verify outputs
+        run: |
+          ls -la dist/
+          test -f dist/breathing-contrib.svg
+          test -f dist/breathing-contrib-dark.svg
+          test -f dist/breathing-contrib-ocean.svg
+          echo "✅ All example files generated successfully"
+
+      - name: Publish to examples branch
+        uses: crazy-max/ghaction-github-pages@v4.1.0
+        with:
+          target_branch: examples
+          build_dir: dist
+          commit_message: "Update examples [skip ci]"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
