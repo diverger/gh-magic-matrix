@@ -4,12 +4,11 @@ WORKDIR /app
 
 COPY package.json ./
 
-COPY packages/*/package.json ./packages/
-
-RUN bun install --frozen-lockfile
-
 COPY tsconfig.json ./
+
 COPY packages packages
+
+RUN bun install --no-cache
 
 RUN bun run build
 
