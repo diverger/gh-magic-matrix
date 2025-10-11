@@ -1,0 +1,18 @@
+{
+  "name": "@gh-magic-matrix/led-billboard",
+  "version": "1.0.0",
+  "description": "Convert SVG pictures to animated LED billboard pixel display",
+  "main": "../../dist/led-billboard/index.js",
+  "types": "../../dist/led-billboard/index.d.ts",
+  "scripts": {
+    "build": "ncc build src/action.ts -o ../../dist/led-billboard --minify && tsc --emitDeclarationOnly --declaration --outDir ../../dist/led-billboard"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vercel/ncc": "^0.38.0",
+    "typescript": "^5.0.0"
+  }
+}

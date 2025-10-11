@@ -1,0 +1,64 @@
+name: 'LED Billboard Generator'
+description: 'Convert SVG images to animated pixel-style LED billboard display'
+author: 'diverger'
+
+branding:
+  icon: 'grid'
+  color: 'green'
+
+inputs:
+  input_path:
+    description: 'Path to SVG file(s) - supports glob patterns like "images/*.svg" or directory path'
+    required: true
+  output_path:
+    description: 'Output path for the LED billboard SVG'
+    required: false
+    default: 'led-billboard.svg'
+  matrix_width:
+    description: 'LED matrix width in pixels (0 = auto-infer from SVG)'
+    required: false
+    default: '0'
+  matrix_height:
+    description: 'LED matrix height in pixels (0 = auto-infer from SVG)'
+    required: false
+    default: '0'
+  cell_size:
+    description: 'Size of each LED cell in pixels'
+    required: false
+    default: '8'
+  cell_gap:
+    description: 'Gap between LED cells in pixels'
+    required: false
+    default: '2'
+  cell_radius:
+    description: 'Border radius of LED cells'
+    required: false
+    default: '1'
+  background_color:
+    description: 'Background color (hex format)'
+    required: false
+    default: '#000000'
+  led_on_color:
+    description: 'Color when LED is on (hex format)'
+    required: false
+    default: '#00ff00'
+  led_off_color:
+    description: 'Color when LED is off (hex format)'
+    required: false
+    default: '#003300'
+  stretch:
+    description: 'Whether to stretch SVG to fill matrix (true) or maintain aspect ratio (false)'
+    required: false
+    default: 'false'
+  frame_durations:
+    description: 'Comma-separated frame durations in seconds (e.g., "1,0.5,2"). If not set, defaults to 1s per frame'
+    required: false
+    default: ''
+
+outputs:
+  output_path:
+    description: 'Path to the generated LED billboard SVG'
+
+runs:
+  using: 'node20'
+  main: '../dist/led-billboard/index.js'

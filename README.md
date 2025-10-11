@@ -16,6 +16,14 @@ A collection of GitHub Actions for creating various animations and visualization
   with:
     github_user_name: ${{ github.repository_owner }}
     output_path: dist/blinking-contrib/dark.svg
+
+# LED Billboard - convert SVG images to animated pixel display
+- uses: diverger/gh-magic-matrix/led-billboard@main
+  with:
+    input_path: 'images/*.svg'
+    output_path: 'billboard.svg'
+    matrix_width: '64'
+    matrix_height: '32'
 ```
 
 ## Actions
@@ -275,3 +283,75 @@ The colors represent:
 3. Level 2 (medium-low)
 4. Level 3 (medium-high)
 5. Level 4 (high contributions)
+
+---
+
+### 💡 LED Billboard
+
+Convert SVG images to animated pixel-style LED billboard display with customizable matrix size and colors.
+
+**Use cases:**
+- Animated logos and branding
+- Scrolling text displays
+- Retro-style pixel animations
+- Custom matrix visualizations
+
+```yaml
+- name: Generate LED Billboard
+  uses: diverger/gh-magic-matrix/led-billboard@main
+  with:
+    input_path: 'images/*.svg'        # SVG files to animate
+    output_path: 'billboard.svg'
+    matrix_width: '64'                # 64 LEDs wide
+    matrix_height: '32'               # 32 LEDs tall
+    cell_size: '10'                   # LED size
+    cell_gap: '3'                     # Gap between LEDs
+    background_color: '#000000'       # Black background
+    led_on_color: '#00ff00'           # Green when on
+    led_off_color: '#003300'          # Dark green when off
+    frame_durations: '0.5,0.5,1'      # Frame timing in seconds
+```
+
+#### Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `input_path` | Path to SVG file(s) - glob or directory | **Required** |
+| `output_path` | Output billboard SVG path | `led-billboard.svg` |
+| `matrix_width` | LED matrix width (0 = auto) | `0` |
+| `matrix_height` | LED matrix height (0 = auto) | `0` |
+| `cell_size` | LED cell size in pixels | `8` |
+| `cell_gap` | Gap between LEDs | `2` |
+| `cell_radius` | LED border radius | `1` |
+| `background_color` | Background hex color | `#000000` |
+| `led_on_color` | LED on state color | `#00ff00` |
+| `led_off_color` | LED off state color | `#003300` |
+| `stretch` | Fill matrix (true) or maintain aspect ratio (false) | `false` |
+| `frame_durations` | Frame timings (comma-separated seconds) | `1s` per frame |
+
+#### Color Presets
+
+**Classic Green LED:**
+```yaml
+background_color: '#000000'
+led_on_color: '#00ff00'
+led_off_color: '#003300'
+```
+
+**Red Alert:**
+```yaml
+background_color: '#1a0000'
+led_on_color: '#ff0000'
+led_off_color: '#330000'
+```
+
+**Blue Digital:**
+```yaml
+background_color: '#00000a'
+led_on_color: '#00aaff'
+led_off_color: '#002233'
+```
+
+See [LED Billboard documentation](packages/led-billboard/README.md) for more examples and advanced usage.
+
+---

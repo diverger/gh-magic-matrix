@@ -31,6 +31,18 @@
         "typescript": "^5.0.0",
       },
     },
+    "packages/led-billboard": {
+      "name": "@gh-magic-matrix/led-billboard",
+      "version": "1.0.0",
+      "dependencies": {
+        "@actions/core": "^1.10.0",
+      },
+      "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@vercel/ncc": "^0.38.0",
+        "typescript": "^5.0.0",
+      },
+    },
   },
   "packages": {
     "@actions/core": ["@actions/core@1.11.1", "", { "dependencies": { "@actions/exec": "^1.1.1", "@actions/http-client": "^2.0.1" } }, "sha512-hXJCSrkwfA46Vd9Z3q4cpEpHB1rL5NG04+/rbqW9d3+CSvtB1tYe8UTpAlixa1vj0m/ULglfEK2UKxMGxCxv5A=="],
@@ -46,6 +58,8 @@
     "@gh-magic-matrix/blinking-contrib": ["@gh-magic-matrix/blinking-contrib@workspace:packages/blinking-contrib"],
 
     "@gh-magic-matrix/breathing-contrib": ["@gh-magic-matrix/breathing-contrib@workspace:packages/breathing-contrib"],
+
+    "@gh-magic-matrix/led-billboard": ["@gh-magic-matrix/led-billboard@workspace:packages/led-billboard"],
 
     "@types/node": ["@types/node@20.19.20", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-2Q7WS25j4pS1cS8yw3d6buNCVJukOTeQ39bAnwR6sOJbaxvyCGebzTMypDFN82CxBLnl+lSWVdCCWbRY6y9yZQ=="],
 

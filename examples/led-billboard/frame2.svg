@@ -1,0 +1,6 @@
+<svg width="320" height="320" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+  <!-- Frame 2: Winking face -->
+  <circle cx="100" cy="100" r="10" fill="black"/>
+  <line x1="200" y1="100" x2="240" y2="100" stroke="black" stroke-width="8"/>
+  <path d="M 80 180 Q 160 240 240 180" stroke="black" stroke-width="8" fill="none"/>
+</svg>
