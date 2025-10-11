@@ -1,20 +1,16 @@
+# Import the pre-built breathing-contrib stage from root Dockerfile
+# We build from root context to access all files
+FROM scratch AS context
+COPY . /workspace
+
 FROM oven/bun:1.2.2-slim AS builder
-
-WORKDIR /build
-
-# Copy from parent directory
-COPY ../package.json ../tsconfig.json ./
-COPY ../packages ./packages
-
+WORKDIR /app
+COPY --from=context /workspace/package.json /workspace/tsconfig.json ./
+COPY --from=context /workspace/packages ./packages
 RUN bun install --no-cache
 RUN bun run build
 
-# Final image
 FROM oven/bun:1.2.2-slim
-
 WORKDIR /action
-
-# Only copy the breathing-contrib action
-COPY --from=builder /build/dist/breathing-contrib/ ./
-
+COPY --from=builder /app/dist/breathing-contrib/ ./
 ENTRYPOINT ["bun", "index.js"]

@@ -2,22 +2,7 @@ FROM oven/bun:1.2.2-slim AS builder
 
 WORKDIR /app
 
-COPY package.json ./
-
-COPY tsconfig.json ./
-
-COPY packages packages
-
-RUN bun install --no-cache
-
-RUN bun run build
-
-FROM oven/bun:1.2.2-slim AS builder
-
-WORKDIR /app
-
-COPY package.json ./
-COPY tsconfig.json ./
+COPY package.json tsconfig.json ./
 COPY packages packages
 
 RUN bun install --no-cache
@@ -28,15 +13,15 @@ FROM oven/bun:1.2.2-slim AS breathing-contrib
 
 WORKDIR /action
 
-COPY --from=builder /app/dist/breathing-contrib/ /action/
+COPY --from=builder /app/dist/breathing-contrib/ ./
 
-ENTRYPOINT ["bun", "/action/index.js"]
+ENTRYPOINT ["bun", "index.js"]
 
 # Blinking contrib image
 FROM oven/bun:1.2.2-slim AS blinking-contrib
 
 WORKDIR /action
 
-COPY --from=builder /app/dist/blinking-contrib/ /action/
+COPY --from=builder /app/dist/blinking-contrib/ ./
 
-ENTRYPOINT ["bun", "/action/index.js"]
+ENTRYPOINT ["bun", "index.js"]
