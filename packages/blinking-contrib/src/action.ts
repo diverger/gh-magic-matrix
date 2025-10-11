@@ -84,34 +84,30 @@ async function fetchYearContributions(
     });
   });
 
-  // Generate grid from year start to current date (or year end for past years)
-  // Right-align all years to "today" for better visual comparison
-  const yearStart = new Date(year, 0, 1); // January 1st
+  // Generate a fixed 53-week grid counting back from the year's end date
+  // This matches GitHub's contribution graph layout (7 rows x 53 weeks)
   const isCurrentYear = year === currentYear;
-  
+
   // End date: today for current year, Dec 31 for past years
-  const yearEnd = isCurrentYear ? now : new Date(year, 11, 31);
+  const endDate = isCurrentYear ? now : new Date(year, 11, 31);
 
-  // Find the Sunday before or on Jan 1 (GitHub grids start on Sunday)
-  const firstSunday = new Date(yearStart);
-  const jan1Weekday = yearStart.getDay(); // 0 = Sunday, 6 = Saturday
-  if (jan1Weekday > 0) {
-    firstSunday.setDate(firstSunday.getDate() - jan1Weekday);
-  }
-
-  // Find the Saturday after or on the end date
-  const lastSaturday = new Date(yearEnd);
-  const endWeekday = yearEnd.getDay();
+  // Find the Saturday on or after the end date (grid ends on Saturday)
+  const lastSaturday = new Date(endDate);
+  const endWeekday = endDate.getDay();
   if (endWeekday < 6) {
     lastSaturday.setDate(lastSaturday.getDate() + (6 - endWeekday));
   }
 
-  // Build weeks array
+  // Calculate start date: 53 weeks (371 days) before the last Saturday
+  const firstSunday = new Date(lastSaturday);
+  firstSunday.setDate(firstSunday.getDate() - (53 * 7 - 1));
+
+  // Build exactly 53 weeks
   const weeks: any[][] = [];
   let currentDate = new Date(firstSunday);
   let maxCount = 0;
 
-  while (currentDate <= lastSaturday) {
+  for (let weekIdx = 0; weekIdx < 53; weekIdx++) {
     const week: any[] = [];
 
     // Build one week (7 days)
@@ -133,7 +129,7 @@ async function fetchYearContributions(
     weeks.push(week);
   }
 
-  // weekOffset will be calculated later for right-alignment
+  // All frames are same size (53 weeks), no offset needed
   const weekOffset = 0;
 
   return {
@@ -197,26 +193,14 @@ async function fetchAllYearlyContributions(
       yearlyContributions.push({
         year,
         grid: { weeks: gridData.weeks, maxCount: gridData.maxCount },
-        weekOffset: 0 // Will be recalculated for right-alignment
+        weekOffset: 0 // All frames are 53 weeks, no offset needed
       });
-      console.log("  ✓ Year " + year + ": " + gridData.weeks.length + " weeks, max count: " + gridData.maxCount);
+      console.log("  ✓ Year " + year + ": " + gridData.weeks.length + " weeks (fixed 53-week grid), max count: " + gridData.maxCount);
     }
   }
 
-  // Calculate weekOffset for right-alignment (align all years to current week)
-  // Find the maximum number of weeks across all years
-  const maxWeeks = Math.max(...yearlyContributions.map(yc => yc.grid.weeks.length));
-  
-  // Set weekOffset so all years' last week aligns to the same position
-  yearlyContributions.forEach(yc => {
-    yc.weekOffset = maxWeeks - yc.grid.weeks.length;
-    console.log(`  📍 Year ${yc.year}: ${yc.grid.weeks.length} weeks, offset: ${yc.weekOffset} (right-aligned)`);
-  });
-
   return yearlyContributions;
-}
-
-// Main action logic
+}// Main action logic
 (async () => {
   try {
     // Get inputs using @actions/core

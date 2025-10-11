@@ -64,14 +64,6 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
   />
 </picture>
 
-#### Features
-
-- 🎬 Each year appears sequentially
-- 🌟 Smooth fade-in and fade-out transitions
-- 📅 Year labels sync with animations
-- ♾️ Continuous loop through all years
-- ⏱️ Customizable timing and transitions
-
 #### Usage
 
 ```yaml

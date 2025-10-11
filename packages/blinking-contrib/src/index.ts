@@ -69,12 +69,11 @@ export function generateBlinkingSVG(
     );
   }
 
-  // Calculate canvas size based on the full year grid
-  // All years now have the same structure (Jan 1 - Dec 31 with padding to full weeks)
-  // so we can use any year's week count (they should all be 53 or 54)
-  const maxWeeks = Math.max(...yearlyContributions.map(yc => yc.grid.weeks.length));
+  // Calculate canvas size based on fixed 53-week grid (GitHub standard)
+  // All years display the same 7x53 grid, counting back from their end date
+  const weeksPerFrame = 53;
   const days = 7; // Always 7 days per week
-  const width = maxWeeks * (cellSize + cellGap) - cellGap;
+  const width = weeksPerFrame * (cellSize + cellGap) - cellGap;
   const height = days * (cellSize + cellGap) - cellGap;
 
   // Calculate total animation cycle duration
@@ -113,8 +112,8 @@ export function generateBlinkingSVG(
       const week = grid.weeks[weekIdx];
       for (let dayIdx = 0; dayIdx < week.length; dayIdx++) {
         const day = week[dayIdx];
-        // Apply weekOffset for right-alignment (all years' last week aligns)
-        const x = (weekIdx + yearContrib.weekOffset) * (cellSize + cellGap);
+        // All frames are same size (53 weeks), no offset needed
+        const x = weekIdx * (cellSize + cellGap);
         const y = dayIdx * (cellSize + cellGap);
 
         // Calculate color level based on contribution count
