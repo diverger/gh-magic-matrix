@@ -169,7 +169,7 @@ async function fetchAllYearlyContributions(
     const cellRadius = parseInt(core.getInput('cell_radius') || '2');
     const frameDuration = parseFloat(core.getInput('frame_duration') || '1.5');
     const transitionDuration = parseFloat(core.getInput('transition_duration') || '0.3');
-    const colorLevelsStr = core.getInput('color_levels') || '#ebedf0,#9be9a8,#40c463,#30a14e,#216e39';
+    const colorLevelsStr = core.getInput('color_levels') || '#161b22,#0e4429,#006d32,#26a641,#39d353';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
 
     if (!token) {

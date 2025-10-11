@@ -12,11 +12,11 @@ This action creates a mesmerizing animation where:
 
 ## 📸 Examples
 
-### Default Theme
+### Default (Dark Theme)
 ![Blinking Contribution - Default](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
 
-### Dark Theme
-![Blinking Contribution - Dark](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg)
+### Light Theme
+![Blinking Contribution - Light](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg)
 
 ## 🚀 Quick Start
 
@@ -39,7 +39,7 @@ This action creates a mesmerizing animation where:
 | `cell_radius` | Border radius of cells (pixels) | No | `2` |
 | `frame_duration` | How long each year stays visible (seconds) | No | `1.5` |
 | `transition_duration` | Duration of fade in/out transition (seconds) | No | `0.3` |
-| `color_levels` | Comma-separated color levels (empty, L1-L4) | No | `#ebedf0,#9be9a8,#40c463,#30a14e,#216e39` |
+| `color_levels` | Comma-separated color levels (empty, L1-L4) | No | `#161b22,#0e4429,#006d32,#26a641,#39d353` (dark theme) |
 
 ## 📤 Outputs
 
@@ -118,14 +118,14 @@ jobs:
     transition_duration: 0.8 # Slower, 0.8-second fade transitions
 ```
 
-### Custom Colors (Dark Theme)
+### Custom Colors (Light Theme)
 
 ```yaml
 - uses: diverger/gh-magic-matrix/blinking-contrib@main
   with:
     github_user_name: diverger
-    output_path: dist/blinking-contrib/dark.svg
-    color_levels: '#161b22,#0e4429,#006d32,#26a641,#39d353'
+    output_path: dist/blinking-contrib/light.svg
+    color_levels: '#ebedf0,#9be9a8,#40c463,#30a14e,#216e39'
 ```
 
 ### Larger Cells

@@ -57,17 +57,17 @@ jobs:
           INPUT_OUTPUT_PATH: dist/blinking-contrib/default.svg
           INPUT_FRAME_DURATION: "1.5"
           INPUT_TRANSITION_DURATION: "0.3"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate blinking with custom timing
+      - name: Generate blinking with light theme
         run: bun dist/blinking-contrib/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/blinking-contrib/dark.svg
+          INPUT_OUTPUT_PATH: dist/blinking-contrib/light.svg
           INPUT_FRAME_DURATION: "1.5"
           INPUT_TRANSITION_DURATION: "0.3"
-          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify outputs
@@ -79,7 +79,7 @@ jobs:
           test -f dist/breathing-contrib/dark.svg
           test -f dist/breathing-contrib/ocean.svg
           test -f dist/blinking-contrib/default.svg
-          test -f dist/blinking-contrib/dark.svg
+          test -f dist/blinking-contrib/light.svg
           echo "✅ All example files generated successfully"
 
       - name: Publish to output branch

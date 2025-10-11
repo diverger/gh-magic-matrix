@@ -37,11 +37,11 @@ export function generateBlinkingSVG(
   const frameDuration = options.frameDuration ?? 1.5; // Show each year for 1.5 seconds (faster)
   const transitionDuration = options.transitionDuration ?? 0.3; // 0.3s fade transition (faster, smoother)
   const colorLevels = options.colorLevels ?? [
-    '#ebedf0',
-    '#9be9a8',
-    '#40c463',
-    '#30a14e',
-    '#216e39',
+    '#161b22', // Dark background (empty)
+    '#0e4429', // Level 1 (low)
+    '#006d32', // Level 2 (medium-low)
+    '#26a641', // Level 3 (medium-high)
+    '#39d353', // Level 4 (high)
   ];
 
   if (yearlyContributions.length === 0) {
