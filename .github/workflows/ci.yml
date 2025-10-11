@@ -82,6 +82,7 @@ jobs:
           INPUT_FRAME_DURATION: "0.8"
           INPUT_FADE_IN_DURATION: "0.2"
           INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_ENDING_TEXT: "diverger"  # Will use username by default
           INPUT_TEXT_FRAME_DURATION: "2.0"
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
