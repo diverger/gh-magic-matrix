@@ -47,7 +47,6 @@ function calculateFrameTiming(
   const fadeOutStart = startTime + frameDuration - transitionDuration;
   const fadeOutEnd = startTime + frameDuration;
 
-  const start = startTime / cycleDuration;
   const ki1 = fadeInEnd / cycleDuration;
   const ki2 = fadeOutStart / cycleDuration;
   const ki3 = fadeOutEnd / cycleDuration;
@@ -57,8 +56,8 @@ function calculateFrameTiming(
     fadeInEnd,
     fadeOutStart,
     fadeOutEnd,
-    keyTimes: [0, start, ki1, ki2, ki3, 1],
-    keySplines: '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1',
+    keyTimes: [0, ki1, ki2, ki3, 1],
+    keySplines: '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1',
   };
 }/**
  * Generate a blinking SVG animation that displays GitHub contributions year by year.
@@ -122,8 +121,9 @@ export function generateBlinkingSVG(
     // Calculate animation timing for this year
     const timing = calculateFrameTiming(yearIndex, frameDuration, transitionDuration, cycleDuration);
 
-    // Opacity values: stay hidden (0) until startTime, then fade in (0→1), stay visible (1), fade out (1→0), stay hidden (0)
-    const opacityValues = '0;0;1;1;0;0';
+    // Opacity values: fade in (0→1), stay visible (1), fade out (1→0), stay hidden (0)
+    // All years animate simultaneously with overlapping timing
+    const opacityValues = '0;1;1;0;0';
 
     let cells = '';
 
