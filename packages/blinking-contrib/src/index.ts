@@ -28,6 +28,39 @@ export interface BlinkingSVGOptions {
 }
 
 /**
+ * Calculate animation timing for a frame in the blinking animation
+ * @param frameIndex Index of the frame (0-based)
+ * @param frameDuration Duration each frame stays visible (seconds)
+ * @param transitionDuration Duration of fade in/out transitions (seconds)
+ * @param cycleDuration Total animation cycle duration (seconds)
+ * @returns Timing values and normalized keyTimes for SMIL animation
+ */
+function calculateFrameTiming(
+  frameIndex: number,
+  frameDuration: number,
+  transitionDuration: number,
+  cycleDuration: number
+) {
+  const startTime = frameIndex * frameDuration;
+  const fadeInEnd = startTime + transitionDuration;
+  const fadeOutStart = startTime + frameDuration - transitionDuration;
+  const fadeOutEnd = startTime + frameDuration;
+
+  const start = startTime / cycleDuration;
+  const ki1 = fadeInEnd / cycleDuration;
+  const ki2 = fadeOutStart / cycleDuration;
+  const ki3 = fadeOutEnd / cycleDuration;
+
+  return {
+    startTime,
+    fadeInEnd,
+    fadeOutStart,
+    fadeOutEnd,
+    keyTimes: [0, start, ki1, ki2, ki3, 1],
+  };
+}
+
+/**
  * Generate a blinking SVG animation that displays GitHub contributions year by year.
  * Each year fades in, displays for a period, then fades out to the next year,
  * creating a starry sky blinking effect.
@@ -94,19 +127,7 @@ export function generateBlinkingSVG(
     const weeks = grid.weeks.length;
 
     // Calculate animation timing for this year
-    // Each year appears, stays visible, then fades out
-    const startTime = yearIndex * frameDuration;
-    const fadeInEnd = startTime + transitionDuration;
-    const fadeOutStart = startTime + frameDuration - transitionDuration;
-    const fadeOutEnd = startTime + frameDuration;
-
-    // Calculate key times (normalized to 0-1 range)
-    // Include startTime to keep year hidden until its designated window
-    const start = startTime / cycleDuration;
-    const ki1 = fadeInEnd / cycleDuration;
-    const ki2 = fadeOutStart / cycleDuration;
-    const ki3 = fadeOutEnd / cycleDuration;
-    const keyTimes = [0, start, ki1, ki2, ki3, 1];
+    const timing = calculateFrameTiming(yearIndex, frameDuration, transitionDuration, cycleDuration);
 
     // Opacity values: stay hidden (0) until startTime, then fade in (0→1), stay visible (1), fade out (1→0), stay hidden (0)
     const opacityValues = '0;0;1;1;0;0';
@@ -137,7 +158,7 @@ export function generateBlinkingSVG(
     <animate
       attributeName="opacity"
       values="${opacityValues}"
-      keyTimes="${keyTimes.join(';')}"
+      keyTimes="${timing.keyTimes.join(';')}"
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
@@ -149,18 +170,9 @@ export function generateBlinkingSVG(
   // Add optional ending text frame
   if (hasEndingFrame && endingText) {
     const textFrameIndex = yearlyContributions.length;
-    const startTime = textFrameIndex * frameDuration;
-    const fadeInEnd = startTime + transitionDuration;
-    const fadeOutStart = startTime + frameDuration - transitionDuration;
-    const fadeOutEnd = startTime + frameDuration;
 
-    // Calculate key times for text frame
-    // Include startTime to keep text hidden until its designated window
-    const start = startTime / cycleDuration;
-    const ki1 = fadeInEnd / cycleDuration;
-    const ki2 = fadeOutStart / cycleDuration;
-    const ki3 = fadeOutEnd / cycleDuration;
-    const keyTimes = [0, start, ki1, ki2, ki3, 1];
+    // Calculate animation timing for text frame
+    const timing = calculateFrameTiming(textFrameIndex, frameDuration, transitionDuration, cycleDuration);
 
     // Render text as pixel coordinates
     const textPixels = renderPixelText(
@@ -185,7 +197,7 @@ export function generateBlinkingSVG(
     <animate
       attributeName="opacity"
       values="0;0;1;1;0;0"
-      keyTimes="${keyTimes.join(';')}"
+      keyTimes="${timing.keyTimes.join(';')}"
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
