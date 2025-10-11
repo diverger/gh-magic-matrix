@@ -41,7 +41,7 @@ jobs:
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate blinking contribution animation
+      - name: Generate blinking with dark theme
         run: bun dist/blinking-contrib/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
@@ -49,6 +49,7 @@ jobs:
           INPUT_FRAME_DURATION: "0.8"
           INPUT_FADE_IN_DURATION: "0.2"
           INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_FONT_SIZE: "3x5"  # Use 3x5 for lowercase support
           INPUT_TEXT_FRAME_DURATION: "2.0"
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           INPUT_ENDING_TEXT: ""  # Will use username by default
@@ -62,6 +63,7 @@ jobs:
           INPUT_FRAME_DURATION: "0.8"
           INPUT_FADE_IN_DURATION: "0.2"
           INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_FONT_SIZE: "3x5"  # Use 3x5 for lowercase support
           INPUT_TEXT_FRAME_DURATION: "2.0"
           INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
           INPUT_ENDING_TEXT: ""  # Will use username by default

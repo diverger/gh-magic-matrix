@@ -209,8 +209,8 @@ async function fetchAllYearlyContributions(
     const fadeOutDuration = parseFloat(core.getInput('fade_out_duration') || '0.5');
     const colorLevelsStr = core.getInput('color_levels') || '#161b22,#0e4429,#006d32,#26a641,#39d353';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
-    const endingText = core.getInput('ending_text') || username.toUpperCase(); // Default to username
-    const fontSizeInput = core.getInput('font_size') || '5x7'; // Default to standard 5x7 font
+    const endingText = core.getInput('ending_text') || username; // Default to username (will be auto-uppercased for 5x7 font)
+    const fontSizeInput = core.getInput('font_size') || '3x5'; // Default to compact 3x5 font (full character support)
     const fontSize: FontSize = fontSizeInput === '3x5' ? '3x5' : '5x7';
     const textFrameDuration = parseFloat(core.getInput('text_frame_duration') || (frameDuration * 2).toString());
 

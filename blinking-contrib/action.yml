@@ -47,9 +47,9 @@ inputs:
     required: false
     default: ''
   font_size:
-    description: 'Font size for ending text: 3x5 (compact, fits more chars) or 5x7 (standard, better readability)'
+    description: 'Font size for ending text: 3x5 (compact, full a-z support) or 5x7 (uppercase A-Z only)'
     required: false
-    default: '5x7'
+    default: '3x5'
   text_frame_duration:
     description: 'Duration for ending text frame in seconds (defaults to 2x frame_duration)'
     required: false
