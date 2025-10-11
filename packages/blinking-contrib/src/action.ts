@@ -190,10 +190,11 @@ async function fetchAllYearlyContributions(
     }
 
     const maxTransitionDuration = frameDuration / 2;
-    if (transitionDuration > maxTransitionDuration) {
+    if (transitionDuration >= maxTransitionDuration) {
       throw new Error(
-        `Invalid timing: transition_duration (${transitionDuration}s) exceeds half of frame_duration (${maxTransitionDuration}s). ` +
-        `This would cause overlapping fade effects. Please use transition_duration ≤ ${maxTransitionDuration}s or increase frame_duration.`
+        `Invalid timing: transition_duration (${transitionDuration}s) must be strictly less than half of frame_duration (${maxTransitionDuration}s). ` +
+        `Equal values create zero-length spline segments with duplicate keyTimes, which are invalid in SMIL animations. ` +
+        `Please use transition_duration < ${maxTransitionDuration}s or increase frame_duration.`
       );
     }
 

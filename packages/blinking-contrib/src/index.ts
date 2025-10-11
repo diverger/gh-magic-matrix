@@ -57,13 +57,14 @@ export function generateBlinkingSVG(
     throw new Error(`transition_duration must be non-negative, got ${transitionDuration}`);
   }
 
-  // Ensure transition_duration doesn't exceed half of frame_duration
-  // to prevent overlapping fade-in and fade-out (non-monotonic keyTimes)
+  // Ensure transition_duration doesn't equal or exceed half of frame_duration
+  // to prevent zero-length spline segments (duplicate keyTimes) and overlapping fades
   const maxTransitionDuration = frameDuration / 2;
-  if (transitionDuration > maxTransitionDuration) {
+  if (transitionDuration >= maxTransitionDuration) {
     throw new Error(
-      `transition_duration (${transitionDuration}s) cannot exceed half of frame_duration (${frameDuration / 2}s). ` +
-      `This would cause fade-out to start before fade-in completes, creating invalid animation timing.`
+      `transition_duration (${transitionDuration}s) must be strictly less than half of frame_duration (${frameDuration / 2}s). ` +
+      `Equal values produce duplicate keyTimes entries, creating zero-length spline segments that are invalid in SMIL. ` +
+      `Please use transition_duration < ${maxTransitionDuration}s or increase frame_duration.`
     );
   }
 
