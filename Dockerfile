@@ -19,4 +19,4 @@ WORKDIR /action
 
 COPY --from=builder /app/packages/breathing-contrib/dist/ /action/
 
-CMD ["bun", "/action/index.js"]
+CMD ["bun", "/action/action.js"]

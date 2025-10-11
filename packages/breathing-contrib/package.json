@@ -6,11 +6,15 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "ncc build --out dist ./src/action.ts && tsc",
     "test": "bun test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@types/node": "^20.0.0"
+  },
   "devDependencies": {
+    "@vercel/ncc": "^0.38.3",
     "typescript": "^5.0.0"
   }
 }
