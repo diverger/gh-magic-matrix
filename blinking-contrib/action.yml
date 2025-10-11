@@ -33,11 +33,11 @@ inputs:
   frame_duration:
     description: 'How long each year stays visible in seconds'
     required: false
-    default: '2'
+    default: '1.5'
   transition_duration:
     description: 'Duration of fade in/out transition in seconds'
     required: false
-    default: '0.5'
+    default: '0.3'
   color_levels:
     description: 'Comma-separated color levels (empty, L1, L2, L3, L4)'
     required: false

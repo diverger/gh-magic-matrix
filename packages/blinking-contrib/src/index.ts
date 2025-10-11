@@ -34,8 +34,8 @@ export function generateBlinkingSVG(
   const cellSize = options.cellSize ?? 12;
   const cellGap = options.cellGap ?? 2;
   const cellRadius = options.cellRadius ?? 2;
-  const frameDuration = options.frameDuration ?? 2; // Show each year for 2 seconds
-  const transitionDuration = options.transitionDuration ?? 0.5; // 0.5s fade transition
+  const frameDuration = options.frameDuration ?? 1.5; // Show each year for 1.5 seconds (faster)
+  const transitionDuration = options.transitionDuration ?? 0.3; // 0.3s fade transition (faster, smoother)
   const colorLevels = options.colorLevels ?? [
     '#ebedf0',
     '#9be9a8',
@@ -152,7 +152,7 @@ export function generateBlinkingSVG(
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
-      keySplines="0.4 0 0.2 1;0 0 0 0;0.4 0 0.2 1;0 0 0 0"
+      keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
     />${cells}
   </g>`;
   });
