@@ -72,7 +72,16 @@ jobs:
           test -f dist/breathing-contrib-ocean.svg
           echo "✅ All SVG files generated successfully"
 
+      - name: Upload PR preview artifacts
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: breathing-contrib-preview
+          path: dist/*.svg
+          retention-days: 7
+
       - name: Publish to output branch
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
         uses: crazy-max/ghaction-github-pages@v4.1.0
         with:
           target_branch: output
