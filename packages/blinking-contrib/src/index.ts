@@ -21,7 +21,6 @@ export interface BlinkingSVGOptions {
   cellGap?: number;
   cellRadius?: number;
   frameDuration?: number; // Duration to show each year (seconds)
-  transitionDuration?: number; // Duration of fade transition (seconds) - used if fadeInDuration/fadeOutDuration not specified
   fadeInDuration?: number; // Duration of fade in transition (seconds)
   fadeOutDuration?: number; // Duration of fade out transition (seconds)
   colorLevels?: string[];
@@ -76,9 +75,8 @@ export function generateBlinkingSVG(
   const cellGap = options.cellGap ?? 2;
   const cellRadius = options.cellRadius ?? 2;
   const frameDuration = options.frameDuration ?? 3; // Show each year for 3 seconds (more visible)
-  const transitionDuration = options.transitionDuration ?? 0.8; // 0.8s fade transition (smoother)
-  const fadeInDuration = options.fadeInDuration ?? transitionDuration; // Default to transitionDuration
-  const fadeOutDuration = options.fadeOutDuration ?? transitionDuration; // Default to transitionDuration
+  const fadeInDuration = options.fadeInDuration ?? 0.5; // Default 0.5s fade in
+  const fadeOutDuration = options.fadeOutDuration ?? 0.5; // Default 0.5s fade out
   const endingText = options.endingText; // Optional ending text frame
   const fontSize = options.fontSize ?? '5x7'; // Default to standard 5x7 font
   const textFrameDuration = options.textFrameDuration ?? frameDuration * 2; // Text shows 2x longer by default

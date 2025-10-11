@@ -205,9 +205,8 @@ async function fetchAllYearlyContributions(
     const cellGap = parseInt(core.getInput('cell_gap') || '2');
     const cellRadius = parseInt(core.getInput('cell_radius') || '2');
     const frameDuration = parseFloat(core.getInput('frame_duration') || '3');
-    const transitionDuration = parseFloat(core.getInput('transition_duration') || '0.8');
-    const fadeInDuration = parseFloat(core.getInput('fade_in_duration') || transitionDuration.toString());
-    const fadeOutDuration = parseFloat(core.getInput('fade_out_duration') || transitionDuration.toString());
+    const fadeInDuration = parseFloat(core.getInput('fade_in_duration') || '0.5');
+    const fadeOutDuration = parseFloat(core.getInput('fade_out_duration') || '0.5');
     const colorLevelsStr = core.getInput('color_levels') || '#161b22,#0e4429,#006d32,#26a641,#39d353';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
     const endingText = core.getInput('ending_text') || username.toUpperCase(); // Default to username
@@ -241,7 +240,7 @@ async function fetchAllYearlyContributions(
 
     console.log("✨ Blinking Contribution Generator");
     console.log("👤 User: " + username);
-    console.log("⏱️  Frame duration: " + frameDuration + "s, Transition: " + transitionDuration + "s");
+    console.log("⏱️  Frame duration: " + frameDuration + "s, Fade in: " + fadeInDuration + "s, Fade out: " + fadeOutDuration + "s");
 
     // Fetch all yearly contribution data
     console.log("🎣 Fetching all yearly contributions...");
