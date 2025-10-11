@@ -4,27 +4,18 @@ import * as core from '@actions/core';
 import { generateBreathingSVG } from './index';
 import type { ContributionGrid } from './index';
 
-// Fetch GitHub contribution data
+// Fetch GitHub contribution data for all years since registration
 async function fetchGitHubContributions(username: string, token: string): Promise<ContributionGrid> {
-  const query = `
+  // First, get the user's creation date
+  const userQuery = `
     query($userName:String!) {
       user(login: $userName){
-        contributionsCollection {
-          contributionCalendar {
-            totalContributions
-            weeks {
-              contributionDays {
-                contributionCount
-                date
-              }
-            }
-          }
-        }
+        createdAt
       }
     }
   `;
 
-  const response = await fetch('https://api.github.com/graphql', {
+  const userResponse = await fetch('https://api.github.com/graphql', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -32,33 +23,100 @@ async function fetchGitHubContributions(username: string, token: string): Promis
       'User-Agent': 'gh-magic-matrix',
     },
     body: JSON.stringify({
-      query,
+      query: userQuery,
       variables: { userName: username },
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`GitHub API request failed: ${response.statusText}`);
+  if (!userResponse.ok) {
+    throw new Error(`GitHub API request failed: ${userResponse.statusText}`);
   }
 
-  const data = await response.json() as any;
+  const userData = await userResponse.json() as any;
 
-  if (data.errors) {
-    throw new Error(`GitHub API errors: ${JSON.stringify(data.errors)}`);
+  if (userData.errors) {
+    throw new Error(`GitHub API errors: ${JSON.stringify(userData.errors)}`);
   }
 
-  const calendar = data.data.user.contributionsCollection.contributionCalendar;
+  const createdAt = new Date(userData.data.user.createdAt);
+  const now = new Date();
 
-  const weeks = calendar.weeks.map((week: any) =>
-    week.contributionDays.map((day: any) => ({
-      date: day.date,
-      count: day.contributionCount,
-    }))
-  );
+  // Fetch contributions year by year
+  const allWeeks: any[] = [];
+  let maxCount = 0;
 
-  const maxCount = Math.max(...weeks.flat().map((d: any) => d.count), 1);
+  // Start from creation year to current year
+  const startYear = createdAt.getFullYear();
+  const currentYear = now.getFullYear();
 
-  return { weeks, maxCount };
+  for (let year = startYear; year <= currentYear; year++) {
+    const from = year === startYear
+      ? createdAt.toISOString().split('T')[0]
+      : `${year}-01-01`;
+    const to = year === currentYear
+      ? now.toISOString().split('T')[0]
+      : `${year}-12-31`;
+
+    const query = `
+      query($userName:String!, $from:DateTime!, $to:DateTime!) {
+        user(login: $userName){
+          contributionsCollection(from: $from, to: $to) {
+            contributionCalendar {
+              totalContributions
+              weeks {
+                contributionDays {
+                  contributionCount
+                  date
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'gh-magic-matrix',
+      },
+      body: JSON.stringify({
+        query,
+        variables: { userName: username, from, to },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API request failed for year ${year}: ${response.statusText}`);
+    }
+
+    const data = await response.json() as any;
+
+    if (data.errors) {
+      throw new Error(`GitHub API errors for year ${year}: ${JSON.stringify(data.errors)}`);
+    }
+
+    const calendar = data.data.user.contributionsCollection.contributionCalendar;
+
+    // Process weeks and days
+    calendar.weeks.forEach((week: any) => {
+      const days = week.contributionDays.map((day: any) => {
+        maxCount = Math.max(maxCount, day.contributionCount);
+        return {
+          date: day.date,
+          count: day.contributionCount,
+        };
+      });
+
+      if (days.length > 0) {
+        allWeeks.push(days);
+      }
+    });
+  }
+
+  return { weeks: allWeeks, maxCount: Math.max(maxCount, 1) };
 }
 
 // Main action logic
