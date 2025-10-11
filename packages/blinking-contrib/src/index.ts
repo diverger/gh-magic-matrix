@@ -11,6 +11,7 @@ export interface ContributionGrid {
 export interface YearlyContribution {
   year: number;
   grid: ContributionGrid;
+  weekOffset: number; // Number of weeks from year start (for alignment)
 }
 
 export interface BlinkingSVGOptions {
@@ -68,7 +69,9 @@ export function generateBlinkingSVG(
     );
   }
 
-  // Calculate max weeks across all years to ensure consistent canvas size
+  // Calculate canvas size based on the full year grid
+  // All years now have the same structure (Jan 1 - Dec 31 with padding to full weeks)
+  // so we can use any year's week count (they should all be 53 or 54)
   const maxWeeks = Math.max(...yearlyContributions.map(yc => yc.grid.weeks.length));
   const days = 7; // Always 7 days per week
   const width = maxWeeks * (cellSize + cellGap) - cellGap;
@@ -111,6 +114,7 @@ export function generateBlinkingSVG(
       const week = grid.weeks[weekIdx];
       for (let dayIdx = 0; dayIdx < week.length; dayIdx++) {
         const day = week[dayIdx];
+        // All years are now aligned from Jan 1, no offset needed
         const x = weekIdx * (cellSize + cellGap);
         const y = dayIdx * (cellSize + cellGap);
 
