@@ -113,8 +113,8 @@ export function generateBlinkingSVG(
       const week = grid.weeks[weekIdx];
       for (let dayIdx = 0; dayIdx < week.length; dayIdx++) {
         const day = week[dayIdx];
-        // All years are now aligned from Jan 1, no offset needed
-        const x = weekIdx * (cellSize + cellGap);
+        // Apply weekOffset for right-alignment (all years' last week aligns)
+        const x = (weekIdx + yearContrib.weekOffset) * (cellSize + cellGap);
         const y = dayIdx * (cellSize + cellGap);
 
         // Calculate color level based on contribution count
