@@ -81,7 +81,6 @@ export function generateBlinkingSVG(
   const cycleDuration = yearlyContributions.length * frameDuration;
 
   let yearGroups = '';
-  let yearLabels = '';
 
   yearlyContributions.forEach((yearContrib, yearIndex) => {
     const { year, grid } = yearContrib;
@@ -132,22 +131,6 @@ export function generateBlinkingSVG(
       }
     }
 
-    // Add year label
-    const labelX = width / 2;
-    const labelY = height + 20;
-
-    yearLabels += `\n  <text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#586069" opacity="0">
-    ${year}
-    <animate
-      attributeName="opacity"
-      values="${opacityValues}"
-      keyTimes="${keyTimes.join(';')}"
-      dur="${cycleDuration}s"
-      repeatCount="indefinite"
-      calcMode="linear"
-    />
-  </text>`;
-
     // Create a group for each year with fade animation
     yearGroups += `\n  <g id="year-${year}" opacity="0">
     <animate
@@ -162,17 +145,14 @@ export function generateBlinkingSVG(
   </g>`;
   });
 
-  // Add extra padding for year label
-  const totalHeight = height + 30;
-
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalHeight}" viewBox="0 0 ${width} ${totalHeight}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <style>
     @keyframes twinkle {
       0%, 100% { opacity: 0.7; }
       50% { opacity: 1; }
     }
   </style>
-  <rect width="${width}" height="${totalHeight}" fill="transparent"/>${yearGroups}${yearLabels}
+  <rect width="${width}" height="${height}" fill="transparent"/>${yearGroups}
 </svg>`;
 }
