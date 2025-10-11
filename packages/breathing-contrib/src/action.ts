@@ -2,7 +2,7 @@ import { writeFileSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import * as core from '@actions/core';
 import { generateBreathingSVG } from './index';
-import type { ContributionGrid } from './index';
+import type { ContributionGrid, ContributionDay } from './index';
 
 // Fetch GitHub contribution data and aggregate by day of year (MM-DD) across all years
 async function fetchGitHubContributions(username: string, token: string): Promise<ContributionGrid> {
@@ -180,18 +180,18 @@ async function fetchGitHubContributions(username: string, token: string): Promis
       throw new Error('GitHub token is required');
     }
 
-    console.log(`妫ｅ啫瑕� Fetching contributions for user: ${username}`);
+    console.log("🎣 Fetching contributions for user: " + username);
 
     // Fetch contribution data
     const grid = await fetchGitHubContributions(username, token);
 
-    console.log(`妫ｅ啯鎯� Fetched ${grid.weeks.length} weeks of data`);
-    console.log(`闁跨噦鎷� First week has ${grid.weeks[0]?.length ?? 0} days`);
-    console.log(`妫ｅ啯鎯� Last week has ${grid.weeks[grid.weeks.length - 1]?.length ?? 0} days`);
-    console.log(`闁跨喖鍣鹃悡瀣舵嫹 Max contribution count: ${grid.maxCount}`);
+    console.log("📊 Fetched " + grid.weeks.length + " weeks of data");
+    console.log("📊 First week has " + (grid.weeks[0]?.length ?? 0) + " days");
+    console.log("📊 Last week has " + (grid.weeks[grid.weeks.length - 1]?.length ?? 0) + " days");
+    console.log("📈 Max contribution count: " + grid.maxCount);
 
     // Generate SVG
-    console.log(`妫ｅ啯鐎� Generating breathing SVG...`);
+    console.log("🖌 Generating breathing SVG...");
     const svg = generateBreathingSVG(grid, {
       cellSize,
       cellGap,
@@ -205,11 +205,11 @@ async function fetchGitHubContributions(username: string, token: string): Promis
     mkdirSync(dir, { recursive: true });
 
     // Write output file
-    console.log(`妫ｅ啯宕� Writing to ${outputPath}`);
+    console.log("💾 Writing to " + outputPath);
     writeFileSync(outputPath, svg, 'utf-8');
 
-    console.log(`闁翠緤鎷� SVG generated successfully!`);
-    console.log(`妫ｅ啯鎲� SVG size: ${(svg.length / 1024).toFixed(2)} KB`);
+    console.log("✅ SVG generated successfully!");
+    console.log("📦 SVG size: " + (svg.length / 1024).toFixed(2) + " KB");
 
     // Set output for GitHub Actions
     core.setOutput('svg_path', outputPath);
