@@ -37,6 +37,11 @@ export function generateBreathingSVG(
     '#216e39',
   ];
 
+  // Validate period to prevent division by zero or invalid animations
+  if (period <= 0) {
+    throw new Error(`period must be positive, got ${period}`);
+  }
+
   const weeks = grid.weeks.length;
   // GitHub contribution grid always has 7 rows (one per day of week)
   const days = 7;

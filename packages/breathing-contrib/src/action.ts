@@ -180,6 +180,13 @@ async function fetchGitHubContributions(username: string, token: string): Promis
       throw new Error('GitHub token is required');
     }
 
+    // Validate period parameter
+    if (period <= 0) {
+      throw new Error(
+        `Invalid period: ${period}. Must be a positive number (e.g., 3 for a 3-second breathing cycle).`
+      );
+    }
+
     console.log("🎣 Fetching contributions for user: " + username);
 
     // Fetch contribution data

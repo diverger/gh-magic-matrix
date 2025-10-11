@@ -10,15 +10,21 @@ This action creates a mesmerizing animation where:
 - Creates a "movie" of your GitHub journey through time
 - Perfect for showcasing contribution evolution over the years
 
-## 📸 Example
+## 📸 Examples
+
+### Default Theme
+![Blinking Contribution - Default](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+
+### Dark Theme
+![Blinking Contribution - Dark](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg)
+
+## 🚀 Quick Start
 
 ```yaml
 - uses: diverger/gh-magic-matrix/blinking-contrib@main
   with:
     github_user_name: diverger
     output_path: dist/blinking-contrib/default.svg
-    frame_duration: 2
-    transition_duration: 0.5
 ```
 
 ## 📥 Inputs
@@ -31,8 +37,8 @@ This action creates a mesmerizing animation where:
 | `cell_size` | Size of each contribution cell (pixels) | No | `12` |
 | `cell_gap` | Gap between cells (pixels) | No | `2` |
 | `cell_radius` | Border radius of cells (pixels) | No | `2` |
-| `frame_duration` | How long each year stays visible (seconds) | No | `2` |
-| `transition_duration` | Duration of fade in/out transition (seconds) | No | `0.5` |
+| `frame_duration` | How long each year stays visible (seconds) | No | `1.5` |
+| `transition_duration` | Duration of fade in/out transition (seconds) | No | `0.3` |
 | `color_levels` | Comma-separated color levels (empty, L1-L4) | No | `#ebedf0,#9be9a8,#40c463,#30a14e,#216e39` |
 
 ## 📤 Outputs
@@ -90,7 +96,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Custom Timing
+### Fast Blinking (More Dynamic)
+
+```yaml
+- uses: diverger/gh-magic-matrix/blinking-contrib@main
+  with:
+    github_user_name: diverger
+    output_path: dist/blinking-contrib/fast.svg
+    frame_duration: 1        # Each year visible for 1 second
+    transition_duration: 0.2 # Quick, 0.2-second fade transitions
+```
+
+### Slow & Smooth (More Cinematic)
 
 ```yaml
 - uses: diverger/gh-magic-matrix/blinking-contrib@main
@@ -98,7 +115,7 @@ jobs:
     github_user_name: diverger
     output_path: dist/blinking-contrib/slow.svg
     frame_duration: 3        # Each year visible for 3 seconds
-    transition_duration: 1   # Slower, 1-second fade transitions
+    transition_duration: 0.8 # Slower, 0.8-second fade transitions
 ```
 
 ### Custom Colors (Dark Theme)

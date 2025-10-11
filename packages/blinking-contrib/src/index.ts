@@ -34,8 +34,8 @@ export function generateBlinkingSVG(
   const cellSize = options.cellSize ?? 12;
   const cellGap = options.cellGap ?? 2;
   const cellRadius = options.cellRadius ?? 2;
-  const frameDuration = options.frameDuration ?? 2; // Show each year for 2 seconds
-  const transitionDuration = options.transitionDuration ?? 0.5; // 0.5s fade transition
+  const frameDuration = options.frameDuration ?? 1.5; // Show each year for 1.5 seconds (faster)
+  const transitionDuration = options.transitionDuration ?? 0.3; // 0.3s fade transition (faster, smoother)
   const colorLevels = options.colorLevels ?? [
     '#ebedf0',
     '#9be9a8',
@@ -46,6 +46,25 @@ export function generateBlinkingSVG(
 
   if (yearlyContributions.length === 0) {
     throw new Error('No contribution data provided');
+  }
+
+  // Validate timing parameters to prevent invalid SVG animations
+  if (frameDuration <= 0) {
+    throw new Error(`frame_duration must be positive, got ${frameDuration}`);
+  }
+
+  if (transitionDuration < 0) {
+    throw new Error(`transition_duration must be non-negative, got ${transitionDuration}`);
+  }
+
+  // Ensure transition_duration doesn't exceed half of frame_duration
+  // to prevent overlapping fade-in and fade-out (non-monotonic keyTimes)
+  const maxTransitionDuration = frameDuration / 2;
+  if (transitionDuration > maxTransitionDuration) {
+    throw new Error(
+      `transition_duration (${transitionDuration}s) cannot exceed half of frame_duration (${frameDuration / 2}s). ` +
+      `This would cause fade-out to start before fade-in completes, creating invalid animation timing.`
+    );
   }
 
   // Calculate max weeks across all years to ensure consistent canvas size
@@ -133,7 +152,7 @@ export function generateBlinkingSVG(
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
-      keySplines="0.4 0 0.2 1;0 0 0 0;0.4 0 0.2 1;0 0 0 0"
+      keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
     />${cells}
   </g>`;
   });
