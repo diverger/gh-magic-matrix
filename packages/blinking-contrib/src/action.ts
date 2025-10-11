@@ -207,6 +207,7 @@ async function fetchAllYearlyContributions(
     const transitionDuration = parseFloat(core.getInput('transition_duration') || '0.8');
     const colorLevelsStr = core.getInput('color_levels') || '#161b22,#0e4429,#006d32,#26a641,#39d353';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
+    const endingText = core.getInput('ending_text') || username.toUpperCase(); // Default to username
 
     if (!token) {
       throw new Error('GitHub token is required');
@@ -257,6 +258,7 @@ async function fetchAllYearlyContributions(
       frameDuration,
       transitionDuration,
       colorLevels,
+      endingText,
     });
 
     // Ensure output directory exists

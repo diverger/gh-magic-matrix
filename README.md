@@ -73,6 +73,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
     output_path: dist/blinking-contrib/dark.svg
     frame_duration: "3"    # Each year visible for 3 seconds
     transition_duration: "0.8"  # 0.8s fade transitions
+    ending_text: "THANKS"  # Optional: pixel art text at end (default: username)
 ```
 
 See [blinking-contrib documentation](./packages/blinking-contrib/README.md) for full options.
@@ -197,6 +198,7 @@ Or for simple display without theme switching:
 | `cell_radius` | Border radius in pixels | `2` |
 | `frame_duration` | How long each year stays visible (seconds) | `3` |
 | `transition_duration` | Fade in/out duration (seconds) | `0.8` |
+| `ending_text` | Pixel art text at end (A-Z, 0-9, space, dash) | username |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub dark theme colors |
 
 ### Color Customization

@@ -1,3 +1,5 @@
+import { renderPixelText } from './pixelFont';
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -21,6 +23,7 @@ export interface BlinkingSVGOptions {
   frameDuration?: number; // Duration to show each year (seconds)
   transitionDuration?: number; // Duration of fade transition (seconds)
   colorLevels?: string[];
+  endingText?: string; // Optional text to display at the end (pixel art style)
 }
 
 /**
@@ -37,6 +40,7 @@ export function generateBlinkingSVG(
   const cellRadius = options.cellRadius ?? 2;
   const frameDuration = options.frameDuration ?? 3; // Show each year for 3 seconds (more visible)
   const transitionDuration = options.transitionDuration ?? 0.8; // 0.8s fade transition (smoother)
+  const endingText = options.endingText; // Optional ending text frame
   const colorLevels = options.colorLevels ?? [
     '#161b22', // Dark background (empty)
     '#0e4429', // Level 1 (low)
@@ -76,8 +80,10 @@ export function generateBlinkingSVG(
   const width = weeksPerFrame * (cellSize + cellGap) - cellGap;
   const height = days * (cellSize + cellGap) - cellGap;
 
-  // Calculate total animation cycle duration
-  const cycleDuration = yearlyContributions.length * frameDuration;
+  // Calculate total animation cycle duration (including optional ending text frame)
+  const hasEndingFrame = endingText && endingText.trim().length > 0;
+  const totalFrames = yearlyContributions.length + (hasEndingFrame ? 1 : 0);
+  const cycleDuration = totalFrames * frameDuration;
 
   let yearGroups = '';
 
@@ -143,6 +149,53 @@ export function generateBlinkingSVG(
     />${cells}
   </g>`;
   });
+
+  // Add optional ending text frame
+  if (hasEndingFrame && endingText) {
+    const textFrameIndex = yearlyContributions.length;
+    const startTime = textFrameIndex * frameDuration;
+    const fadeInEnd = startTime + transitionDuration;
+    const fadeOutStart = startTime + frameDuration - transitionDuration;
+    const fadeOutEnd = startTime + frameDuration;
+
+    // Calculate key times for text frame
+    const keyTimes = [
+      0,
+      fadeInEnd / cycleDuration,
+      fadeOutStart / cycleDuration,
+      fadeOutEnd / cycleDuration,
+      1,
+    ];
+
+    // Render text as pixel coordinates
+    const textPixels = renderPixelText(endingText, {
+      centerHorizontally: true,
+      centerVertically: true,
+      charSpacing: 1,
+    });
+
+    // Use the highest contribution color for text
+    const textColor = colorLevels[colorLevels.length - 1];
+
+    let textCells = '';
+    textPixels.forEach(({ weekIdx, dayIdx }) => {
+      const x = weekIdx * (cellSize + cellGap);
+      const y = dayIdx * (cellSize + cellGap);
+      textCells += `\n    <rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="${cellRadius}" fill="${textColor}" />`;
+    });
+
+    yearGroups += `\n  <g id="text-frame" opacity="0">
+    <animate
+      attributeName="opacity"
+      values="0;1;1;0;0"
+      keyTimes="${keyTimes.join(';')}"
+      dur="${cycleDuration}s"
+      repeatCount="indefinite"
+      calcMode="spline"
+      keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
+    />${textCells}
+  </g>`;
+  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">

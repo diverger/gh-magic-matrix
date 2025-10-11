@@ -49,6 +49,7 @@ jobs:
           INPUT_FRAME_DURATION: "3"
           INPUT_TRANSITION_DURATION: "0.8"
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          INPUT_ENDING_TEXT: ""  # Will use username by default
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate blinking with light theme
@@ -59,6 +60,7 @@ jobs:
           INPUT_FRAME_DURATION: "3"
           INPUT_TRANSITION_DURATION: "0.8"
           INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          INPUT_ENDING_TEXT: ""  # Will use username by default
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify outputs

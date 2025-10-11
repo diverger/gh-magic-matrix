@@ -38,6 +38,10 @@ inputs:
     description: 'Duration of fade in/out transition in seconds'
     required: false
     default: '0.8'
+  ending_text:
+    description: 'Text to display at the end (pixel art style, defaults to username)'
+    required: false
+    default: ''
   color_levels:
     description: 'Comma-separated color levels (empty, L1, L2, L3, L4)'
     required: false
