@@ -230,14 +230,8 @@ async function fetchAllYearlyContributions(
       );
     }
 
-    const maxTransitionDuration = frameDuration / 2;
-    if (transitionDuration >= maxTransitionDuration) {
-      throw new Error(
-        `Invalid timing: transition_duration (${transitionDuration}s) must be strictly less than half of frame_duration (${maxTransitionDuration}s). ` +
-        `Equal values create zero-length spline segments with duplicate keyTimes, which are invalid in SMIL animations. ` +
-        `Please use transition_duration < ${maxTransitionDuration}s or increase frame_duration.`
-      );
-    }
+    // Note: We now allow transition_duration >= frame_duration/2 to enable overlapping fades
+    // This creates a chaotic, jittery screen effect where multiple frames are partially visible at once
 
     console.log("✨ Blinking Contribution Generator");
     console.log("👤 User: " + username);
