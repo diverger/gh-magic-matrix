@@ -47,11 +47,11 @@ jobs:
           test -f dist/breathing-contrib-ocean.svg
           echo "✅ All example files generated successfully"
 
-      - name: Publish to examples branch
+      - name: Publish to output branch
         uses: crazy-max/ghaction-github-pages@v4.1.0
         with:
-          target_branch: examples
+          target_branch: output
           build_dir: dist
-          commit_message: "Update examples [skip ci]"
+          commit_message: "Update output [skip ci]"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

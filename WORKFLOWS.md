@@ -37,11 +37,11 @@
    - Default GitHub colors
    - Dark theme
    - Ocean theme
-2. ✅ Publishes to `examples` branch (not main)
+2. ✅ Publishes to `output` branch (not main)
 3. ✅ Users can view live examples
 4. ✅ No commits to main branch
 
-**View examples**: Check the `examples` branch
+**View examples**: Check the `output` branch
 
 ---
 

@@ -8,18 +8,28 @@ A collection of GitHub Actions for creating various animations and visualization
 
 Generate a breathing light effect animation from your GitHub contribution grid. Each cell breathes with intensity based on contribution count.
 
-#### Examples
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib-dark.svg"
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib.svg"
+  />
+  <img
+    alt="breathing contribution grid animation"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib.svg"
+  />
+</picture>
 
-Default theme:
-![Breathing Contribution Animation](https://raw.githubusercontent.com/YOUR_USERNAME/gh-magic-matrix/examples/breathing-contrib.svg)
+#### More Examples
 
-Dark theme:
-![Breathing Dark](https://raw.githubusercontent.com/YOUR_USERNAME/gh-magic-matrix/examples/breathing-contrib-dark.svg)
+- [Default theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib.svg)
+- [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib-dark.svg)
+- [Ocean theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib-ocean.svg)
 
-Ocean theme:
-![Breathing Ocean](https://raw.githubusercontent.com/YOUR_USERNAME/gh-magic-matrix/examples/breathing-contrib-ocean.svg)
-
-> 💡 **Live examples** are automatically generated daily and available in the [`examples` branch](../../tree/examples)
+> 💡 **Live examples** are automatically generated daily and available in the [`output` branch](../../tree/output)
 
 ## Usage
 
@@ -43,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate breathing contribution animation
-        uses: YOUR_USERNAME/gh-magic-matrix@main
+        uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: breathing-contrib.svg
