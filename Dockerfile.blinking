@@ -2,7 +2,7 @@ FROM oven/bun:1.2.2-slim AS builder
 
 WORKDIR /app
 
-COPY package.json bun.lockb tsconfig.json ./
+COPY package.json bun.lock tsconfig.json ./
 COPY packages packages
 
 RUN bun install
