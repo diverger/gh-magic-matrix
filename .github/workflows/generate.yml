@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Generate breathing contribution animation
-        uses: ./ # Use local action (for development)
+        uses: ./breathing-contrib
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/breathing-contrib/default.svg
@@ -24,7 +24,7 @@ jobs:
           color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
 
       - name: Generate with custom colors (dark theme)
-        uses: ./
+        uses: ./breathing-contrib
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/breathing-contrib/dark.svg
@@ -32,7 +32,7 @@ jobs:
           color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
       - name: Generate with custom colors (ocean theme)
-        uses: ./
+        uses: ./breathing-contrib
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/breathing-contrib/ocean.svg

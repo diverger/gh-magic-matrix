@@ -38,10 +38,11 @@ jobs:
 
       - name: Update action.yml to use local Dockerfile
         run: |
-          sed -i "s|image: .*|image: Dockerfile|" action.yml
+          sed -i "s|image: .*|image: Dockerfile|" breathing-contrib/action.yml
+          sed -i "s|image: .*|image: Dockerfile|" blinking-contrib/action.yml
 
       - name: Generate breathing contribution (default)
-        uses: ./
+        uses: ./breathing-contrib
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/breathing-contrib/default.svg
@@ -49,7 +50,7 @@ jobs:
           color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
 
       - name: Generate breathing contribution (dark theme)
-        uses: ./
+        uses: ./breathing-contrib
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/breathing-contrib/dark.svg
@@ -57,7 +58,7 @@ jobs:
           color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
       - name: Generate breathing contribution (ocean theme)
-        uses: ./
+        uses: ./breathing-contrib
         with:
           github_user_name: ${{ github.repository_owner }}
           output_path: dist/breathing-contrib/ocean.svg
