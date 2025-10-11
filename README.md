@@ -74,7 +74,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
     output_path: dist/blinking-contrib/smooth.svg
     frame_duration: "3"             # Each year visible for 3 seconds
     transition_duration: "0.8"      # 0.8s fade transitions
-    ending_text: "THANKS"           # Optional: pixel art text at end (default: username)
+    ending_text: "Thanks"           # Optional: pixel art text at end (default: username)
     font_size: "3x5"                # Compact font for longer text (or "5x7" for standard)
 ```
 
@@ -88,7 +88,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
     frame_duration: "0.5"           # Fast! Each year shows 0.5s
     transition_duration: "0"        # Instant on/off (no fade)
     text_frame_duration: "3"        # Text shows longer (3s)
-    ending_text: "HELLO WORLD"
+    ending_text: "Hello World"
     font_size: "3x5"                # Compact font fits more text
 ```
 
@@ -215,7 +215,7 @@ Or for simple display without theme switching:
 | `frame_duration` | How long each year stays visible (seconds) | `3` |
 | `transition_duration` | Fade in/out duration (seconds). Use `0` for instant blink! | `0.8` |
 | `text_frame_duration` | Duration for ending text frame (seconds) | `2 × frame_duration` |
-| `ending_text` | Pixel art text at end (A-Z, 0-9, space, dash, !?.:) | username |
+| `ending_text` | Pixel art text at end (A-Z, a-z, 0-9, space, -!?.:) | username |
 | `font_size` | Font for ending text: `3x5` (compact) or `5x7` (standard) | `5x7` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub dark theme colors |
 
@@ -246,16 +246,17 @@ The `font_size` parameter controls how text is rendered in the ending frame:
 
 - **`5x7` (Standard)**: Better readability, suitable for short text (4-6 characters like usernames)
   ```yaml
-  ending_text: "JOHN"
+  ending_text: "John"
   font_size: "5x7"
   ```
 
 - **`3x5` (Compact)**: Fits more characters, ideal for longer messages (8-10 characters)
   ```yaml
-  ending_text: "THANKS 2024"
+  ending_text: "Thanks 2024"
   font_size: "3x5"
   ```
 
+Both fonts support **uppercase, lowercase, numbers, and punctuation** (A-Z, a-z, 0-9, space, -!?.:).
 Based on the popular **Tom Thumb** font for the compact option.
 
 ### Color Customization
