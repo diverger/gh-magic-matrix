@@ -2,6 +2,22 @@
 
 A collection of GitHub Actions for creating various animations and visualizations from contribution matrices.
 
+## 🚀 Quick Start
+
+```yaml
+# Breathing animation - aggregates all history, cells breathe
+- uses: diverger/gh-magic-matrix@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    output_path: dist/breathing-contrib/default.svg
+
+# Blinking animation - shows years sequentially with fade transitions
+- uses: diverger/gh-magic-matrix/blinking-contrib@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    output_path: dist/blinking-contrib/default.svg
+```
+
 ## Actions
 
 ### 🌊 Breathing Contribution Grid
@@ -11,34 +27,76 @@ Generate a breathing light effect animation from your GitHub contribution grid. 
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib-dark.svg"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/dark.svg"
   />
   <source
     media="(prefers-color-scheme: light)"
-    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib.svg"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/default.svg"
   />
   <img
     alt="breathing contribution grid animation"
-    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib.svg"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/default.svg"
   />
 </picture>
 
 #### More Examples
 
-- [Default theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib.svg)
-- [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib-dark.svg)
-- [Ocean theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib-ocean.svg)
+- [Default theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/default.svg)
+- [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/dark.svg)
+- [Ocean theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/ocean.svg)
+
+### ✨ Blinking Contribution Timeline
+
+Generate an animated SVG that displays your GitHub contributions **year by year** with smooth fade transitions, creating a **starry sky blinking effect**. Like watching a movie of your GitHub journey through time!
+
+![Blinking Contribution Timeline](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+
+#### Features
+
+- 🎬 Each year appears sequentially
+- 🌟 Smooth fade-in and fade-out transitions
+- 📅 Year labels sync with animations
+- ♾️ Continuous loop through all years
+- ⏱️ Customizable timing and transitions
+
+#### Usage
+
+```yaml
+- name: Generate blinking contribution timeline
+  uses: diverger/gh-magic-matrix/blinking-contrib@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    output_path: blinking-contrib.svg
+    frame_duration: "2"      # Each year visible for 2 seconds
+    transition_duration: "0.5"  # 0.5s fade transitions
+```
+
+See [blinking-contrib documentation](./packages/blinking-contrib/README.md) for full options.
 
 > 💡 **Live examples** are automatically generated daily and available in the [`output` branch](../../tree/output)
 
 ## Usage
 
-### As a GitHub Action
+### Calling Actions from This Repo
 
-Create a workflow file (e.g., `.github/workflows/breathing-grid.yml`):
+This repository contains **two GitHub Actions** that can be used independently:
+
+1. **Breathing Contribution Grid** (default action):
+   ```yaml
+   uses: diverger/gh-magic-matrix@main
+   ```
+
+2. **Blinking Contribution Timeline** (subdirectory action):
+   ```yaml
+   uses: diverger/gh-magic-matrix/blinking-contrib@main
+   ```
+
+### Complete Workflow Example
+
+Create a workflow file (e.g., `.github/workflows/contrib-animations.yml`):
 
 ```yaml
-name: Generate Breathing Grid
+name: Generate Contribution Animations
 
 on:
   schedule:
@@ -52,32 +110,57 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Generate breathing animation (default action)
       - name: Generate breathing contribution animation
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: breathing-contrib.svg
+          output_path: dist/breathing-contrib/default.svg
           period: "3"
-          color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
 
-      - name: Commit and push
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
-          git add breathing-contrib.svg
-          git commit -m "Update breathing grid" || exit 0
-          git push
+      # Generate blinking animation (subdirectory action)
+      - name: Generate blinking contribution timeline
+        uses: diverger/gh-magic-matrix/blinking-contrib@main
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          output_path: dist/blinking-contrib/default.svg
+          frame_duration: "2"
+          transition_duration: "0.5"
+
+      - name: Deploy to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Display in Your README
 
-Add the generated SVG to your profile README:
+Add the generated SVGs to your profile README:
 
 ```markdown
-![Breathing Contribution Grid](./breathing-contrib.svg)
+<!-- Breathing animation -->
+![Breathing Contribution Grid](https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg)
+
+<!-- Blinking animation -->
+![Blinking Contribution Timeline](https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg)
 ```
 
-### Configuration Options
+For dark mode support, use the `<picture>` element:
+
+```html
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="breathing-contrib/dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="breathing-contrib/default.svg" />
+  <img alt="contribution animation" src="breathing-contrib/default.svg" />
+</picture>
+```
+
+## Configuration Options
+
+### Breathing Contribution Grid (`diverger/gh-magic-matrix@main`)
 
 | Option | Description | Default |
 |--------|-------------|---------|
@@ -88,6 +171,20 @@ Add the generated SVG to your profile README:
 | `cell_gap` | Gap between cells in pixels | `2` |
 | `cell_radius` | Border radius in pixels | `2` |
 | `period` | Breathing cycle duration (seconds) | `3` |
+| `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub default colors |
+
+### Blinking Contribution Timeline (`diverger/gh-magic-matrix/blinking-contrib@main`)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `github_user_name` | GitHub username | (required) |
+| `github_token` | GitHub token for API access | `${{ github.token }}` |
+| `output_path` | Output SVG file path | `blinking-contrib.svg` |
+| `cell_size` | Cell size in pixels | `12` |
+| `cell_gap` | Gap between cells in pixels | `2` |
+| `cell_radius` | Border radius in pixels | `2` |
+| `frame_duration` | How long each year stays visible (seconds) | `2` |
+| `transition_duration` | Fade in/out duration (seconds) | `0.5` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub default colors |
 
 ### Color Customization

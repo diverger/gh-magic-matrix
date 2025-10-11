@@ -19,7 +19,7 @@ jobs:
         uses: ./ # Use local action (for development)
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/breathing-contrib.svg
+          output_path: dist/breathing-contrib/default.svg
           period: "2.5"
           color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
 
@@ -27,7 +27,7 @@ jobs:
         uses: ./
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/breathing-contrib-dark.svg
+          output_path: dist/breathing-contrib/dark.svg
           period: "3"
           color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
@@ -35,16 +35,38 @@ jobs:
         uses: ./
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/breathing-contrib-ocean.svg
+          output_path: dist/breathing-contrib/ocean.svg
           period: "2"
           color_levels: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
+
+      - name: Generate blinking contribution animation
+        uses: ./blinking-contrib
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          output_path: dist/blinking-contrib/default.svg
+          frame_duration: "2"
+          transition_duration: "0.5"
+          color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+
+      - name: Generate blinking with custom timing
+        uses: ./blinking-contrib
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          output_path: dist/blinking-contrib/dark.svg
+          frame_duration: "3"
+          transition_duration: "1"
+          color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
       - name: Verify outputs
         run: |
           ls -la dist/
-          test -f dist/breathing-contrib.svg
-          test -f dist/breathing-contrib-dark.svg
-          test -f dist/breathing-contrib-ocean.svg
+          ls -la dist/breathing-contrib/
+          ls -la dist/blinking-contrib/
+          test -f dist/breathing-contrib/default.svg
+          test -f dist/breathing-contrib/dark.svg
+          test -f dist/breathing-contrib/ocean.svg
+          test -f dist/blinking-contrib/default.svg
+          test -f dist/blinking-contrib/dark.svg
           echo "✅ All example files generated successfully"
 
       - name: Publish to output branch

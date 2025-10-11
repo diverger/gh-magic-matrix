@@ -71,5 +71,8 @@ build/
 .DS_Store
 Thumbs.db
 
-RELEASE.md
-WORKFLOWS.md
+# Documentation files - ignore all markdown except READMEs and specific docs
+*.md
+!README.md
+!DOCKER_SETUP.md
+!packages/**/README.md
