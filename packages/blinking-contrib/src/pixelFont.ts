@@ -12,7 +12,6 @@ export interface FontMetrics {
   height: number;
   name: string;
   description: string;
-  baseline?: number; // For 3x5, the baseline row position (descenders go below this)
 }
 
 export const FONT_METRICS: Record<FontSize, FontMetrics> = {
@@ -21,7 +20,6 @@ export const FONT_METRICS: Record<FontSize, FontMetrics> = {
     height: 5,
     name: 'Tom Thumb',
     description: 'Compact 3x5 font, fits more characters (8-10 chars)',
-    baseline: 5, // Row 5 (0-indexed) is the baseline for proper lowercase alignment
   },
   '5x7': {
     width: 5,
@@ -31,24 +29,6 @@ export const FONT_METRICS: Record<FontSize, FontMetrics> = {
   },
 };
 
-/**
- * Baseline offsets for 3x5 font characters (vertical position adjustment)
- * - Ascenders (b,d,f,h,k,l,t): 0 (start from top)
- * - Regular x-height (a,c,e,m,n,o,r,s,u,v,w,x,z): 2 (align at x-height)
- * - Descenders (g,j,p,q,y): 1 (align at x-height with descender below)
- * - Uppercase/numbers: 1 (centered for mixed case compatibility)
- */
-const BASELINE_OFFSETS_3X5: Record<string, number> = {
-  // Ascenders - start from top (row 0)
-  'b': 0, 'd': 0, 'f': 0, 'h': 0, 'k': 0, 'l': 0, 't': 0, 'i': 0,
-
-  // Descenders - align at x-height (row 2-3), extend to row 6
-  'g': 1, 'j': 1, 'p': 1, 'q': 1, 'y': 1,
-
-  // Regular lowercase - align at x-height (row 2-5)
-  'a': 2, 'c': 2, 'e': 2, 'm': 2, 'n': 2, 'o': 2, 'r': 2, 's': 2,
-  'u': 2, 'v': 2, 'w': 2, 'x': 2, 'z': 2,
-};
 
 // Tom Thumb 3x5 Font - Compact and highly readable
 // Based on the popular open-source Tom Thumb font (MIT License)
@@ -348,177 +328,6 @@ export const FONT_3X5: Record<string, PixelChar> = {
     [0, 0, 0],
     [0, 1, 0],
     [0, 0, 0],
-  ],
-  // Lowercase letters (Tom Thumb original)
-  'a': [
-    [1, 1, 0],
-    [0, 1, 1],
-    [1, 0, 1],
-    [1, 1, 1],
-  ],
-  'b': [
-    [1, 0, 0],
-    [1, 1, 0],
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 1, 0],
-  ],
-  'c': [
-    [0, 1, 1],
-    [1, 0, 0],
-    [1, 0, 0],
-    [0, 1, 1],
-  ],
-  'd': [
-    [0, 0, 1],
-    [0, 1, 1],
-    [1, 0, 1],
-    [1, 0, 1],
-    [0, 1, 1],
-  ],
-  'e': [
-    [0, 1, 1],
-    [1, 0, 1],
-    [1, 1, 0],
-    [0, 1, 1],
-  ],
-  'f': [
-    [0, 0, 1],
-    [0, 1, 0],
-    [1, 1, 1],
-    [0, 1, 0],
-    [0, 1, 0],
-  ],
-  'g': [
-    [0, 1, 1],
-    [1, 0, 1],
-    [1, 1, 1],
-    [0, 0, 1],
-    [0, 1, 0],
-  ],
-  'h': [
-    [1, 0, 0],
-    [1, 1, 0],
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 0, 1],
-  ],
-  'i': [
-    [1, 0, 0],
-    [0, 0, 0],
-    [1, 0, 0],
-    [1, 0, 0],
-    [1, 0, 0],
-  ],
-  'j': [
-    [0, 0, 1],
-    [0, 0, 0],
-    [0, 0, 1],
-    [0, 0, 1],
-    [1, 0, 1],
-    [0, 1, 0],
-  ],
-  'k': [
-    [1, 0, 0],
-    [1, 0, 1],
-    [1, 1, 0],
-    [1, 1, 0],
-    [1, 0, 1],
-  ],
-  'l': [
-    [1, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0],
-    [1, 1, 1],
-  ],
-  'm': [
-    [1, 1, 1],
-    [1, 1, 1],
-    [1, 1, 1],
-    [1, 0, 1],
-  ],
-  'n': [
-    [1, 1, 0],
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 0, 1],
-  ],
-  'o': [
-    [0, 1, 0],
-    [1, 0, 1],
-    [1, 0, 1],
-    [0, 1, 0],
-  ],
-  'p': [
-    [1, 1, 0],
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 1, 0],
-    [1, 0, 0],
-  ],
-  'q': [
-    [0, 1, 1],
-    [1, 0, 1],
-    [1, 0, 1],
-    [0, 1, 1],
-    [0, 0, 1],
-  ],
-  'r': [
-    [0, 1, 1],
-    [1, 0, 0],
-    [1, 0, 0],
-    [1, 0, 0],
-  ],
-  's': [
-    [0, 1, 1],
-    [1, 1, 0],
-    [0, 1, 1],
-    [1, 1, 0],
-  ],
-  't': [
-    [0, 1, 0],
-    [1, 1, 1],
-    [0, 1, 0],
-    [0, 1, 0],
-    [0, 1, 1],
-  ],
-  'u': [
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 0, 1],
-    [0, 1, 1],
-  ],
-  'v': [
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 1, 1],
-    [0, 1, 0],
-  ],
-  'w': [
-    [1, 0, 1],
-    [1, 1, 1],
-    [1, 1, 1],
-    [1, 1, 1],
-  ],
-  'x': [
-    [1, 0, 1],
-    [0, 1, 0],
-    [0, 1, 0],
-    [1, 0, 1],
-  ],
-  'y': [
-    [1, 0, 1],
-    [1, 0, 1],
-    [0, 1, 1],
-    [0, 0, 1],
-    [0, 1, 0],
-  ],
-  'z': [
-    [1, 1, 1],
-    [0, 1, 1],
-    [1, 1, 0],
-    [1, 1, 1],
   ],
 };
 
@@ -923,7 +732,7 @@ export function getFont(fontSize: FontSize): Record<string, PixelChar> {
 /**
  * Render text as pixel coordinates on a 7x53 grid
  * @param text Text to render (supports A-Z, 0-9, and punctuation: space -!?.:; unsupported characters are filtered out)
- * @param fontSize Font size to use ('3x5' supports lowercase a-z, '5x7' is uppercase only)
+ * @param fontSize Font size to use ('3x5' compact or '5x7' standard, both uppercase only)
  * @param centerHorizontally Whether to center the text horizontally on the grid
  * @param centerVertically Whether to center the text vertically (useful for 3x5 font: centers in 7 rows)
  * @param charSpacing Space between characters (in grid cells)
@@ -941,8 +750,8 @@ export function renderPixelText(
   const charWidth = metrics.width;
   const charHeight = metrics.height;
 
-  // For 5x7 font, convert to uppercase (no lowercase support due to ascender/descender conflicts)
-  const processedText = fontSize === '5x7' ? text.toUpperCase() : text;
+  // Convert to uppercase (both fonts are uppercase only)
+  const processedText = text.toUpperCase();
   const chars = processedText.split('').filter((c) => font[c]); // Only keep supported characters
 
   if (chars.length === 0) {
@@ -972,9 +781,6 @@ export function renderPixelText(
     const charData = font[char];
     if (!charData) continue;
 
-    // Get baseline offset for 3x5 font to align lowercase properly
-    const baselineOffset = fontSize === '3x5' ? (BASELINE_OFFSETS_3X5[char] ?? 1) : 0;
-
     // Render character pixels
     const actualCharHeight = charData.length;
     for (let row = 0; row < actualCharHeight; row++) {
@@ -984,7 +790,7 @@ export function renderPixelText(
       for (let col = 0; col < charWidth; col++) {
         if (rowData[col] === 1) {
           const weekIdx = currentWeek + col;
-          const dayIdx = startDay + baselineOffset + row;
+          const dayIdx = startDay + row;
 
           // Only add if within grid bounds
           if (weekIdx >= 0 && weekIdx < gridWeeks && dayIdx >= 0 && dayIdx < gridDays) {

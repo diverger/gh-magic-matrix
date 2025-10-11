@@ -216,8 +216,8 @@ Or for simple display without theme switching:
 | `fade_in_duration` | Fade in duration (seconds) | `0.5` |
 | `fade_out_duration` | Fade out duration (seconds) | `0.5` |
 | `text_frame_duration` | Duration for ending text frame (seconds) | `2 × frame_duration` |
-| `ending_text` | Pixel art text at end (see Font Size section for supported characters) | username |
-| `font_size` | Font for ending text: `3x5` (a-z supported) or `5x7` (A-Z only) | `3x5` |
+| `ending_text` | Pixel art text at end (A-Z, 0-9, space, -!?.:, auto-uppercase) | username |
+| `font_size` | Font for ending text: `3x5` (compact) or `5x7` (standard) | `3x5` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub dark theme colors |
 
 ### Animation Effects
@@ -245,22 +245,21 @@ text_frame_duration: "4"        # Text stays 4 seconds
 
 The `font_size` parameter controls how text is rendered in the ending frame:
 
+- **`3x5` (Compact)**: Fits more characters, ideal for longer messages (8-10 characters)
+  - **Uppercase only** (A-Z, 0-9, space, -!?.:) - lowercase automatically converted
+  ```yaml
+  ending_text: "THANKS 2024"
+  font_size: "3x5"
+  ```
+
 - **`5x7` (Standard)**: Better readability, suitable for short text (4-6 characters like usernames)
-  - **Uppercase only** (A-Z, 0-9, space, -!?.:) - lowercase automatically converted to uppercase
+  - **Uppercase only** (A-Z, 0-9, space, -!?.:) - lowercase automatically converted
   ```yaml
   ending_text: "JOHN"
   font_size: "5x7"
   ```
 
-- **`3x5` (Compact)**: Fits more characters, ideal for longer messages (8-10 characters)
-  - **Full character support** (A-Z, a-z, 0-9, space, -!?.:)
-  ```yaml
-  ending_text: "Thanks 2024"
-  font_size: "3x5"
-  ```
-
-**Note**: The 5x7 font doesn't support lowercase letters due to height constraints with ascenders (b, d, f, h, k, l) and descenders (g, j, p, q, y). Use the 3x5 font for mixed-case text.
-Based on the popular **Tom Thumb** font for the compact option.
+**Note**: Both fonts support uppercase letters only. Lowercase text will be automatically converted to uppercase. The compact 3x5 font is based on the popular **Tom Thumb** font.
 
 ### Color Customization
 
