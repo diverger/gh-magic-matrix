@@ -182,7 +182,7 @@ Or for simple display without theme switching:
 | `cell_size` | Cell size in pixels | `12` |
 | `cell_gap` | Gap between cells in pixels | `2` |
 | `cell_radius` | Border radius in pixels | `2` |
-| `period` | Breathing cycle duration (seconds) | `3` |
+| `period` | Breathing cycle duration (seconds) | `6` |
 | `color_levels` | 5 colors: empty,low,med-low,med-high,high | GitHub default colors |
 
 ### Blinking Contribution Timeline (`diverger/gh-magic-matrix/blinking-contrib@main`)
