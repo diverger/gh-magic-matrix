@@ -70,3 +70,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+RELEASE.md
+WORKFLOWS.md
