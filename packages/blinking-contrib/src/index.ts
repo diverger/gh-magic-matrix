@@ -101,18 +101,15 @@ export function generateBlinkingSVG(
     const fadeOutEnd = startTime + frameDuration;
 
     // Calculate key times (normalized to 0-1 range)
-    const keyTimes = [
-      0,
-      fadeInEnd / cycleDuration,
-      fadeOutStart / cycleDuration,
-      fadeOutEnd / cycleDuration,
-      1,
-    ];
+    // Include startTime to keep year hidden until its designated window
+    const start = startTime / cycleDuration;
+    const ki1 = fadeInEnd / cycleDuration;
+    const ki2 = fadeOutStart / cycleDuration;
+    const ki3 = fadeOutEnd / cycleDuration;
+    const keyTimes = [0, start, ki1, ki2, ki3, 1];
 
-    // Opacity values: 0 (hidden) -> 1 (visible) -> 1 (visible) -> 0 (hidden) -> 0 (stay hidden)
-    const opacityValues = yearIndex === yearlyContributions.length - 1
-      ? '0;1;1;0;0' // Last year loops back to start
-      : '0;1;1;0;0';
+    // Opacity values: stay hidden (0) until startTime, then fade in (0→1), stay visible (1), fade out (1→0), stay hidden (0)
+    const opacityValues = '0;0;1;1;0;0';
 
     let cells = '';
 
@@ -131,9 +128,6 @@ export function generateBlinkingSVG(
           color = colorLevels[level] || colorLevels[colorLevels.length - 1];
         }
 
-        // Add slight random delay to each cell for more organic blinking effect
-        const cellDelay = (weekIdx * 0.01 + dayIdx * 0.005) % transitionDuration;
-
         cells += `\n    <rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="${cellRadius}" fill="${color}" />`;
       }
     }
@@ -147,7 +141,7 @@ export function generateBlinkingSVG(
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
-      keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
+      keySplines="0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1"
     />${cells}
   </g>`;
   });
@@ -161,13 +155,12 @@ export function generateBlinkingSVG(
     const fadeOutEnd = startTime + frameDuration;
 
     // Calculate key times for text frame
-    const keyTimes = [
-      0,
-      fadeInEnd / cycleDuration,
-      fadeOutStart / cycleDuration,
-      fadeOutEnd / cycleDuration,
-      1,
-    ];
+    // Include startTime to keep text hidden until its designated window
+    const start = startTime / cycleDuration;
+    const ki1 = fadeInEnd / cycleDuration;
+    const ki2 = fadeOutStart / cycleDuration;
+    const ki3 = fadeOutEnd / cycleDuration;
+    const keyTimes = [0, start, ki1, ki2, ki3, 1];
 
     // Render text as pixel coordinates
     const textPixels = renderPixelText(
@@ -191,24 +184,18 @@ export function generateBlinkingSVG(
     yearGroups += `\n  <g id="text-frame" opacity="0">
     <animate
       attributeName="opacity"
-      values="0;1;1;0;0"
+      values="0;0;1;1;0;0"
       keyTimes="${keyTimes.join(';')}"
       dur="${cycleDuration}s"
       repeatCount="indefinite"
       calcMode="spline"
-      keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
+      keySplines="0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1"
     />${textCells}
   </g>`;
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <style>
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
-  </style>
   <rect width="${width}" height="${height}" fill="transparent"/>${yearGroups}
 </svg>`;
 }

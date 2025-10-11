@@ -3,7 +3,7 @@
  * Supports multiple font sizes for different use cases
  */
 
-export type PixelChar = number[][];
+export type PixelChar = (0 | 1)[][];
 
 export type FontSize = '3x5' | '5x7';
 
@@ -730,12 +730,12 @@ export function getFont(fontSize: FontSize): Record<string, PixelChar> {
 
 /**
  * Render text as pixel coordinates on a 7x53 grid
- * @param text Text to render (will be converted to uppercase)
+ * @param text Text to render (will be converted to uppercase; unsupported characters are filtered out)
  * @param fontSize Font size to use ('3x5' or '5x7')
  * @param centerHorizontally Whether to center the text horizontally on the grid
- * @param centerVertically Whether to center the text vertically on the grid
+ * @param centerVertically Whether to center the text vertically (useful for 3x5 font: centers in 7 rows)
  * @param charSpacing Space between characters (in grid cells)
- * @returns Array of {weekIdx, dayIdx} coordinates for filled pixels
+ * @returns Array of {weekIdx, dayIdx} coordinates for filled pixels; returns empty array if no supported characters
  */
 export function renderPixelText(
   text: string,
