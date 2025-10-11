@@ -44,12 +44,12 @@ jobs:
       - name: Build actions
         run: bun run build
 
-      - name: Generate breathing contribution (default)
+      - name: Generate breathing contribution (light theme)
         run: bun dist/breathing-contrib/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/breathing-contrib/default.svg
-          INPUT_PERIOD: "2.5"
+          INPUT_OUTPUT_PATH: dist/breathing-contrib/light.svg
+          INPUT_PERIOD: "6"
           INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -58,17 +58,8 @@ jobs:
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUT_PATH: dist/breathing-contrib/dark.svg
-          INPUT_PERIOD: "3"
+          INPUT_PERIOD: "6"
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate breathing contribution (ocean theme)
-        run: bun dist/breathing-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/breathing-contrib/ocean.svg
-          INPUT_PERIOD: "2"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate blinking contribution (light theme)
@@ -96,7 +87,7 @@ jobs:
           ls -la dist/
           ls -la dist/breathing-contrib/
           ls -la dist/blinking-contrib/
-          test -f dist/breathing-contrib/default.svg
+          test -f dist/breathing-contrib/light.svg
           test -f dist/breathing-contrib/dark.svg
           test -f dist/blinking-contrib/light.svg
           test -f dist/blinking-contrib/dark.svg

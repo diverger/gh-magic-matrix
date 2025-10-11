@@ -43,7 +43,6 @@ Generate a breathing light effect animation from your GitHub contribution grid. 
 
 - [Light theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/light.svg)
 - [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/dark.svg)
-- [Ocean theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/ocean.svg)
 
 ### ✨ Blinking Contribution Timeline
 
@@ -120,8 +119,8 @@ jobs:
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/breathing-contrib/default.svg
-          period: "3"
+          output_path: dist/breathing-contrib/light.svg
+          period: "6"
 
       # Generate blinking animation (subdirectory action)
       - name: Generate blinking contribution timeline
@@ -149,8 +148,8 @@ Add the generated SVGs to your profile README:
 <!-- Breathing animation with theme support -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg" />
-  <img alt="Breathing Contribution Grid" src="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/light.svg" />
+  <img alt="Breathing Contribution Grid" src="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/light.svg" />
 </picture>
 
 <!-- Blinking animation with theme support -->
@@ -165,7 +164,7 @@ Or for simple display without theme switching:
 
 ```markdown
 <!-- Breathing animation -->
-![Breathing Contribution Grid](https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg)
+![Breathing Contribution Grid](https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/light.svg)
 
 <!-- Blinking animation -->
 ![Blinking Contribution Timeline](https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/dark.svg)
