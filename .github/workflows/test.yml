@@ -10,51 +10,50 @@ on:
 
 jobs:
   test-published:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Test published action from main
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ inputs.test_user || github.repository_owner }}
-          output_path: validation/breathing.svg
+          output_path: dist/test/breathing.svg
           period: "3"
           color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
 
-      - name: Verify output
-        run: |
-          ls -la validation/
-          test -f validation/breathing.svg
-          echo "✅ Published action works correctly"
-
-      - name: Upload validation result
-        uses: actions/upload-artifact@v4
-        with:
-          name: validation-output
-          path: validation/breathing.svg
-          retention-days: 7
-
-  test-with-custom-colors:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Test with custom color scheme
+      - name: Test with dark theme
         uses: diverger/gh-magic-matrix@main
         with:
           github_user_name: ${{ inputs.test_user || github.repository_owner }}
-          output_path: validation/breathing-custom.svg
+          output_path: dist/test/breathing-dark.svg
+          period: "3"
+          color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+
+      - name: Test with custom colors
+        uses: diverger/gh-magic-matrix@main
+        with:
+          github_user_name: ${{ inputs.test_user || github.repository_owner }}
+          output_path: dist/test/breathing-ocean.svg
           period: "2.5"
-          color_levels: "#f0f0f0,#ffb3ba,#ffdfba,#ffffba,#baffc9"
+          color_levels: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
           cell_size: "15"
 
-      - name: Verify custom output
+      - name: Verify all outputs exist
         run: |
-          test -f validation/breathing-custom.svg
-          echo "✅ Custom colors work correctly"
+          ls dist/test
+          test -f dist/test/breathing.svg
+          test -f dist/test/breathing-dark.svg
+          test -f dist/test/breathing-ocean.svg
+          echo "✅ All outputs generated successfully"
 
-      - name: Upload custom result
-        uses: actions/upload-artifact@v4
+      - name: Publish to test-output branch
+        uses: crazy-max/ghaction-github-pages@v4.1.0
         with:
-          name: validation-custom-colors
-          path: validation/breathing-custom.svg
-          retention-days: 7
+          target_branch: test-output
+          build_dir: dist/test
+          commit_message: "Update test output [skip ci]"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
