@@ -4,7 +4,7 @@ author: "gh-magic-matrix"
 
 runs:
   using: docker
-  image: docker://diverger/gh-magic-matrix@sha256:8eac10dd387a9f48954b27257c18a6575f98dbbe918384025177a52c1c02b61f
+  image: docker://diverger/gh-magic-matrix@sha256:baa5d78c2115973bd104ffd7facd3708b7869b241f57489138df4e0a134582b9
 
 inputs:
   github_user_name:
