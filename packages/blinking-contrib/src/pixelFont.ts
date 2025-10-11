@@ -334,7 +334,7 @@ export const PIXEL_FONT: Record<string, PixelChar> = {
     [1, 0, 0, 0, 0],
     [1, 1, 1, 1, 1],
   ],
-  
+
   // Space
   ' ': [
     [0, 0, 0, 0, 0],
@@ -345,7 +345,7 @@ export const PIXEL_FONT: Record<string, PixelChar> = {
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
   ],
-  
+
   // Hyphen/Dash
   '-': [
     [0, 0, 0, 0, 0],
@@ -378,10 +378,10 @@ export function renderPixelText(
 
   const normalizedText = text.toUpperCase();
   const chars = normalizedText.split('');
-  
+
   // Filter out unsupported characters
   const supportedChars = chars.filter(char => PIXEL_FONT[char]);
-  
+
   if (supportedChars.length === 0) {
     return [];
   }
@@ -390,29 +390,29 @@ export function renderPixelText(
   const charWidth = 5; // Each character is 5 cells wide
   const charHeight = 7; // Each character is 7 cells tall
   const totalWidth = supportedChars.length * charWidth + (supportedChars.length - 1) * charSpacing;
-  
+
   // GitHub contribution grid is 7 rows (days) x 53 columns (weeks)
   const gridWidth = 53;
   const gridHeight = 7;
-  
+
   // Calculate starting position for centering
   const startWeek = centerHorizontally ? Math.floor((gridWidth - totalWidth) / 2) : 0;
   const startDay = centerVertically ? 0 : 0; // Vertically it's already 7 rows, so it fills naturally
-  
+
   const pixels: Array<{ weekIdx: number; dayIdx: number }> = [];
-  
+
   let currentWeekOffset = startWeek;
-  
+
   supportedChars.forEach((char, charIndex) => {
     const charPattern = PIXEL_FONT[char];
-    
+
     // Render each character
     for (let row = 0; row < charHeight; row++) {
       for (let col = 0; col < charWidth; col++) {
         if (charPattern[row][col] === 1) {
           const weekIdx = currentWeekOffset + col;
           const dayIdx = startDay + row;
-          
+
           // Only add if within grid bounds
           if (weekIdx >= 0 && weekIdx < gridWidth && dayIdx >= 0 && dayIdx < gridHeight) {
             pixels.push({ weekIdx, dayIdx });
@@ -420,10 +420,10 @@ export function renderPixelText(
         }
       }
     }
-    
+
     // Move to next character position
     currentWeekOffset += charWidth + charSpacing;
   });
-  
+
   return pixels;
 }
