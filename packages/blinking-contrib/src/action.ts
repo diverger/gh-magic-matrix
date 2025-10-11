@@ -78,7 +78,7 @@ async function fetchYearContributions(
 
   // Create a full year grid (Jan 1 - Dec 31) with 0 for missing data
   // This ensures all years have the same structure for proper alignment
-  
+
   // Build a map of all actual contribution data by date
   const contributionMap = new Map<string, number>();
   calendar.weeks.forEach((week: any) => {
@@ -90,45 +90,45 @@ async function fetchYearContributions(
   // Generate full year grid starting from Jan 1
   const yearStart = new Date(year, 0, 1); // January 1st
   const yearEnd = new Date(year, 11, 31); // December 31st
-  
+
   // Find the Sunday before or on Jan 1 (GitHub grids start on Sunday)
   const firstSunday = new Date(yearStart);
   const jan1Weekday = yearStart.getDay(); // 0 = Sunday, 6 = Saturday
   if (jan1Weekday > 0) {
     firstSunday.setDate(firstSunday.getDate() - jan1Weekday);
   }
-  
+
   // Find the Saturday after or on Dec 31
   const lastSaturday = new Date(yearEnd);
   const dec31Weekday = yearEnd.getDay();
   if (dec31Weekday < 6) {
     lastSaturday.setDate(lastSaturday.getDate() + (6 - dec31Weekday));
   }
-  
+
   // Build weeks array with full year coverage
   const weeks: any[][] = [];
   let currentDate = new Date(firstSunday);
   let maxCount = 0;
-  
+
   while (currentDate <= lastSaturday) {
     const week: any[] = [];
-    
+
     // Build one week (7 days)
     for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
       const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
       const count = contributionMap.get(dateStr) || 0;
-      
+
       week.push({
         date: dateStr,
         count: count,
       });
-      
+
       maxCount = Math.max(maxCount, count);
-      
+
       // Move to next day
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     weeks.push(week);
   }
 
@@ -193,10 +193,10 @@ async function fetchAllYearlyContributions(
     const gridData = await fetchYearContributions(username, token, year, createdAt);
 
     if (gridData) {
-      yearlyContributions.push({ 
-        year, 
+      yearlyContributions.push({
+        year,
         grid: { weeks: gridData.weeks, maxCount: gridData.maxCount },
-        weekOffset: gridData.weekOffset 
+        weekOffset: gridData.weekOffset
       });
       console.log("  ✓ Year " + year + ": " + gridData.weeks.length + " weeks, weekOffset: " + gridData.weekOffset + ", max count: " + gridData.maxCount);
     }

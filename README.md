@@ -9,7 +9,7 @@ A collection of GitHub Actions for creating various animations and visualization
 - uses: diverger/gh-magic-matrix@main
   with:
     github_user_name: ${{ github.repository_owner }}
-    output_path: dist/breathing-contrib/default.svg
+    output_path: dist/breathing-contrib/dark.svg
 
 # Blinking animation - shows years sequentially with fade transitions
 - uses: diverger/gh-magic-matrix/blinking-contrib@main
@@ -31,17 +31,17 @@ Generate a breathing light effect animation from your GitHub contribution grid. 
   />
   <source
     media="(prefers-color-scheme: light)"
-    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/default.svg"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/light.svg"
   />
   <img
     alt="breathing contribution grid animation"
-    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/default.svg"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/dark.svg"
   />
 </picture>
 
 #### More Examples
 
-- [Default theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/default.svg)
+- [Light theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/light.svg)
 - [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/dark.svg)
 - [Ocean theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/ocean.svg)
 
