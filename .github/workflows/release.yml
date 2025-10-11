@@ -25,20 +25,11 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      # Option 1: Publish to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DCKR_USR }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # Option 2: Publish to GitHub Container Registry (ghcr.io)
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.DCKR_PAT }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -47,15 +38,13 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ github.repository_owner }}/magic-matrix:${{ github.sha }}
-            ${{ github.repository_owner }}/magic-matrix:${{ github.event.inputs.version }}
-            ${{ github.repository_owner }}/magic-matrix:latest
-            ghcr.io/${{ github.repository_owner }}/magic-matrix:${{ github.event.inputs.version }}
-            ghcr.io/${{ github.repository_owner }}/magic-matrix:latest
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix:${{ github.event.inputs.version }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix:latest
 
       - name: Update action.yml with new image digest
         run: |
-          sed -i "s|image: .*|image: docker://${{ github.repository_owner }}/magic-matrix@${{ steps.docker-build.outputs.digest }}|" action.yml
+          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix@${{ steps.docker-build.outputs.digest }}|" action.yml
 
       - uses: oven-sh/setup-bun@v1
 
@@ -71,12 +60,21 @@ jobs:
 
       - name: Commit and tag release
         run: |
+          VERSION=${{ github.event.inputs.version }}
+
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add action.yml package.json
-          git commit -m "🚀 Release v${{ github.event.inputs.version }}"
-          git tag v${{ github.event.inputs.version }}
+          git commit -m "🚀 Release v$VERSION"
+          git tag v$VERSION
           git push origin main --tags
+
+          # Also create major and major.minor tags for easy references (e.g., v1, v1.0)
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            git tag v$( echo $VERSION | cut -d. -f 1-1 ) -f
+            git tag v$( echo $VERSION | cut -d. -f 1-2 ) -f
+            git push origin --tags --force
+          fi
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
