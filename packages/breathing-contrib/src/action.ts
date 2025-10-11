@@ -51,11 +51,11 @@ async function fetchGitHubContributions(username: string, token: string): Promis
 
   for (let year = startYear; year <= currentYear; year++) {
     const from = year === startYear
-      ? createdAt.toISOString().split('T')[0]
-      : `${year}-01-01`;
+      ? createdAt.toISOString()
+      : `${year}-01-01T00:00:00Z`;
     const to = year === currentYear
-      ? now.toISOString().split('T')[0]
-      : `${year}-12-31`;
+      ? now.toISOString()
+      : `${year}-12-31T23:59:59Z`;
 
     const query = `
       query($userName:String!, $from:DateTime!, $to:DateTime!) {
