@@ -76,9 +76,6 @@ async function fetchYearContributions(
 
   const calendar = data.data.user.contributionsCollection.contributionCalendar;
 
-  // Create a full year grid (Jan 1 - Dec 31) with 0 for missing data
-  // This ensures all years have the same structure for proper alignment
-
   // Build a map of all actual contribution data by date
   const contributionMap = new Map<string, number>();
   calendar.weeks.forEach((week: any) => {
@@ -87,9 +84,13 @@ async function fetchYearContributions(
     });
   });
 
-  // Generate full year grid starting from Jan 1
+  // Generate grid from year start to current date (or year end for past years)
+  // Right-align all years to "today" for better visual comparison
   const yearStart = new Date(year, 0, 1); // January 1st
-  const yearEnd = new Date(year, 11, 31); // December 31st
+  const isCurrentYear = year === currentYear;
+  
+  // End date: today for current year, Dec 31 for past years
+  const yearEnd = isCurrentYear ? now : new Date(year, 11, 31);
 
   // Find the Sunday before or on Jan 1 (GitHub grids start on Sunday)
   const firstSunday = new Date(yearStart);
@@ -98,14 +99,14 @@ async function fetchYearContributions(
     firstSunday.setDate(firstSunday.getDate() - jan1Weekday);
   }
 
-  // Find the Saturday after or on Dec 31
+  // Find the Saturday after or on the end date
   const lastSaturday = new Date(yearEnd);
-  const dec31Weekday = yearEnd.getDay();
-  if (dec31Weekday < 6) {
-    lastSaturday.setDate(lastSaturday.getDate() + (6 - dec31Weekday));
+  const endWeekday = yearEnd.getDay();
+  if (endWeekday < 6) {
+    lastSaturday.setDate(lastSaturday.getDate() + (6 - endWeekday));
   }
 
-  // Build weeks array with full year coverage
+  // Build weeks array
   const weeks: any[][] = [];
   let currentDate = new Date(firstSunday);
   let maxCount = 0;
@@ -132,7 +133,7 @@ async function fetchYearContributions(
     weeks.push(week);
   }
 
-  // weekOffset is always 0 now since all years start from the week containing Jan 1
+  // weekOffset will be calculated later for right-alignment
   const weekOffset = 0;
 
   return {
@@ -196,11 +197,21 @@ async function fetchAllYearlyContributions(
       yearlyContributions.push({
         year,
         grid: { weeks: gridData.weeks, maxCount: gridData.maxCount },
-        weekOffset: gridData.weekOffset
+        weekOffset: 0 // Will be recalculated for right-alignment
       });
-      console.log("  ✓ Year " + year + ": " + gridData.weeks.length + " weeks, weekOffset: " + gridData.weekOffset + ", max count: " + gridData.maxCount);
+      console.log("  ✓ Year " + year + ": " + gridData.weeks.length + " weeks, max count: " + gridData.maxCount);
     }
   }
+
+  // Calculate weekOffset for right-alignment (align all years to current week)
+  // Find the maximum number of weeks across all years
+  const maxWeeks = Math.max(...yearlyContributions.map(yc => yc.grid.weeks.length));
+  
+  // Set weekOffset so all years' last week aligns to the same position
+  yearlyContributions.forEach(yc => {
+    yc.weekOffset = maxWeeks - yc.grid.weeks.length;
+    console.log(`  📍 Year ${yc.year}: ${yc.grid.weeks.length} weeks, offset: ${yc.weekOffset} (right-aligned)`);
+  });
 
   return yearlyContributions;
 }
