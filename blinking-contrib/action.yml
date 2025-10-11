@@ -51,6 +51,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ACTION=blinking-contrib
+  image: 'docker://diverger/gh-magic-matrix-blinking:latest'
