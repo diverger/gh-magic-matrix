@@ -952,9 +952,13 @@ export function renderPixelText(
     if (!charData) continue;
 
     // Render character pixels
-    for (let row = 0; row < charHeight; row++) {
+    const actualCharHeight = charData.length;
+    for (let row = 0; row < actualCharHeight; row++) {
+      const rowData = charData[row];
+      if (!rowData) continue;
+
       for (let col = 0; col < charWidth; col++) {
-        if (charData[row][col] === 1) {
+        if (rowData[col] === 1) {
           const weekIdx = currentWeek + col;
           const dayIdx = startDay + row;
 
