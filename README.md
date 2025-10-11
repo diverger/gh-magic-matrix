@@ -49,7 +49,20 @@ Generate a breathing light effect animation from your GitHub contribution grid. 
 
 Generate an animated SVG that displays your GitHub contributions **year by year** with smooth fade transitions, creating a **starry sky blinking effect**. Like watching a movie of your GitHub journey through time!
 
-![Blinking Contribution Timeline](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg"
+  />
+  <img
+    alt="blinking contribution timeline animation"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+  />
+</picture>
 
 #### Features
 
@@ -141,21 +154,29 @@ jobs:
 Add the generated SVGs to your profile README:
 
 ```markdown
+<!-- Breathing animation with theme support -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg" />
+  <img alt="Breathing Contribution Grid" src="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg" />
+</picture>
+
+<!-- Blinking animation with theme support -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/light.svg" />
+  <img alt="Blinking Contribution Timeline" src="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg" />
+</picture>
+```
+
+Or for simple display without theme switching:
+
+```markdown
 <!-- Breathing animation -->
 ![Breathing Contribution Grid](https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg)
 
 <!-- Blinking animation -->
 ![Blinking Contribution Timeline](https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg)
-```
-
-For dark mode support, use the `<picture>` element:
-
-```html
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="breathing-contrib/dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="breathing-contrib/default.svg" />
-  <img alt="contribution animation" src="breathing-contrib/default.svg" />
-</picture>
 ```
 
 ## Configuration Options

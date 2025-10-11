@@ -12,11 +12,25 @@ This action creates a mesmerizing animation where:
 
 ## 📸 Examples
 
-### Default (Dark Theme)
-![Blinking Contribution - Default](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg"
+  />
+  <img
+    alt="Blinking Contribution Animation"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+  />
+</picture>
 
-### Light Theme
-![Blinking Contribution - Light](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg)
+### More Examples
+
+- [Default (Dark Theme)](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+- [Light Theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg)
 
 ## 🚀 Quick Start
 
@@ -153,7 +167,17 @@ Each year transitions smoothly to the next, creating a continuous "movie" of you
 
 ## 🔗 Embedding
 
-Add the generated SVG to your README:
+Add the generated SVG to your README with automatic theme switching:
+
+```markdown
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg" />
+  <img alt="Blinking Contribution Graph" src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg" />
+</picture>
+```
+
+Or for simple display without theme switching:
 
 ```markdown
 ![Blinking Contribution Graph](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
