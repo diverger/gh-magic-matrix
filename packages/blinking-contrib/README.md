@@ -15,7 +15,7 @@ This action creates a mesmerizing animation where:
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg"
   />
   <source
     media="(prefers-color-scheme: light)"
@@ -23,13 +23,13 @@ This action creates a mesmerizing animation where:
   />
   <img
     alt="Blinking Contribution Animation"
-    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg"
   />
 </picture>
 
 ### More Examples
 
-- [Default (Dark Theme)](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+- [Dark Theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg)
 - [Light Theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg)
 
 ## 🚀 Quick Start
@@ -38,7 +38,7 @@ This action creates a mesmerizing animation where:
 - uses: diverger/gh-magic-matrix/blinking-contrib@main
   with:
     github_user_name: diverger
-    output_path: dist/blinking-contrib/default.svg
+    output_path: dist/blinking-contrib/dark.svg
 ```
 
 ## 📥 Inputs
@@ -99,7 +99,7 @@ jobs:
         uses: diverger/gh-magic-matrix/blinking-contrib@main
         with:
           github_user_name: diverger
-          output_path: dist/blinking-contrib/default.svg
+          output_path: dist/blinking-contrib/dark.svg
 
       - name: Deploy to GitHub Pages
         uses: crazy-max/ghaction-github-pages@v4
@@ -171,16 +171,16 @@ Add the generated SVG to your README with automatic theme switching:
 
 ```markdown
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg" />
-  <img alt="Blinking Contribution Graph" src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg" />
+  <img alt="Blinking Contribution Graph" src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg" />
 </picture>
 ```
 
 Or for simple display without theme switching:
 
 ```markdown
-![Blinking Contribution Graph](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg)
+![Blinking Contribution Graph](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg)
 ```
 
 ## 📊 Comparison with Other Actions

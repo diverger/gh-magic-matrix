@@ -52,7 +52,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg"
   />
   <source
     media="(prefers-color-scheme: light)"
@@ -60,7 +60,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
   />
   <img
     alt="blinking contribution timeline animation"
-    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/default.svg"
+    src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg"
   />
 </picture>
 
@@ -79,7 +79,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
   uses: diverger/gh-magic-matrix/blinking-contrib@main
   with:
     github_user_name: ${{ github.repository_owner }}
-    output_path: blinking-contrib.svg
+    output_path: dist/blinking-contrib/dark.svg
     frame_duration: "1.5"    # Each year visible for 1.5 seconds
     transition_duration: "0.3"  # 0.3s fade transitions
 ```
@@ -136,7 +136,7 @@ jobs:
         uses: diverger/gh-magic-matrix/blinking-contrib@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/blinking-contrib/default.svg
+          output_path: dist/blinking-contrib/dark.svg
           frame_duration: "1.5"
           transition_duration: "0.3"
 
@@ -163,9 +163,9 @@ Add the generated SVGs to your profile README:
 
 <!-- Blinking animation with theme support -->
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/dark.svg" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/light.svg" />
-  <img alt="Blinking Contribution Timeline" src="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg" />
+  <img alt="Blinking Contribution Timeline" src="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/dark.svg" />
 </picture>
 ```
 
@@ -176,7 +176,7 @@ Or for simple display without theme switching:
 ![Breathing Contribution Grid](https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/default.svg)
 
 <!-- Blinking animation -->
-![Blinking Contribution Timeline](https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/default.svg)
+![Blinking Contribution Timeline](https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/dark.svg)
 ```
 
 ## Configuration Options
