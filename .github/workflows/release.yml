@@ -72,9 +72,16 @@ jobs:
         run: |
           echo "Checking built distributions..."
           ls -la dist/
-          test -f dist/breathing-contrib/index.js || echo "⚠️  breathing-contrib build not found"
-          test -f dist/blinking-contrib/index.js || echo "⚠️  blinking-contrib build not found"
-          echo "✅ Build verification complete"
+          
+          echo "Verifying breathing-contrib build..."
+          test -f dist/breathing-contrib/index.js || { echo "❌ ERROR: breathing-contrib build not found at dist/breathing-contrib/index.js"; exit 1; }
+          echo "✅ breathing-contrib build verified"
+          
+          echo "Verifying blinking-contrib build..."
+          test -f dist/blinking-contrib/index.js || { echo "❌ ERROR: blinking-contrib build not found at dist/blinking-contrib/index.js"; exit 1; }
+          echo "✅ blinking-contrib build verified"
+          
+          echo "✅ All build artifacts verified successfully"
 
       - name: Bump package version
         run: |
