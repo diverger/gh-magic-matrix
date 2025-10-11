@@ -33,7 +33,7 @@ inputs:
   period:
     description: 'Duration of one breathing cycle in seconds'
     required: false
-    default: '3'
+    default: '6'
   color_levels:
     description: 'Comma-separated list of 5 colors (empty, level1-4)'
     required: false
