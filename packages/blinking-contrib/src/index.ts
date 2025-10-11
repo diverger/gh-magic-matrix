@@ -48,6 +48,25 @@ export function generateBlinkingSVG(
     throw new Error('No contribution data provided');
   }
 
+  // Validate timing parameters to prevent invalid SVG animations
+  if (frameDuration <= 0) {
+    throw new Error(`frame_duration must be positive, got ${frameDuration}`);
+  }
+
+  if (transitionDuration < 0) {
+    throw new Error(`transition_duration must be non-negative, got ${transitionDuration}`);
+  }
+
+  // Ensure transition_duration doesn't exceed half of frame_duration
+  // to prevent overlapping fade-in and fade-out (non-monotonic keyTimes)
+  const maxTransitionDuration = frameDuration / 2;
+  if (transitionDuration > maxTransitionDuration) {
+    throw new Error(
+      `transition_duration (${transitionDuration}s) cannot exceed half of frame_duration (${frameDuration / 2}s). ` +
+      `This would cause fade-out to start before fade-in completes, creating invalid animation timing.`
+    );
+  }
+
   // Calculate max weeks across all years to ensure consistent canvas size
   const maxWeeks = Math.max(...yearlyContributions.map(yc => yc.grid.weeks.length));
   const days = 7; // Always 7 days per week

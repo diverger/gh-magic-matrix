@@ -176,8 +176,30 @@ async function fetchAllYearlyContributions(
       throw new Error('GitHub token is required');
     }
 
+    // Validate timing parameters early
+    if (frameDuration <= 0) {
+      throw new Error(
+        `Invalid frame_duration: ${frameDuration}. Must be a positive number (e.g., 2 for 2 seconds per year).`
+      );
+    }
+
+    if (transitionDuration < 0) {
+      throw new Error(
+        `Invalid transition_duration: ${transitionDuration}. Must be non-negative (e.g., 0.5 for 0.5 second fade).`
+      );
+    }
+
+    const maxTransitionDuration = frameDuration / 2;
+    if (transitionDuration > maxTransitionDuration) {
+      throw new Error(
+        `Invalid timing: transition_duration (${transitionDuration}s) exceeds half of frame_duration (${maxTransitionDuration}s). ` +
+        `This would cause overlapping fade effects. Please use transition_duration ≤ ${maxTransitionDuration}s or increase frame_duration.`
+      );
+    }
+
     console.log("✨ Blinking Contribution Generator");
     console.log("👤 User: " + username);
+    console.log("⏱️  Frame duration: " + frameDuration + "s, Transition: " + transitionDuration + "s");
 
     // Fetch all yearly contribution data
     console.log("🎣 Fetching all yearly contributions...");
