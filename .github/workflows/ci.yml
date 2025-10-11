@@ -71,11 +71,11 @@ jobs:
           INPUT_COLOR_LEVELS: "#ebedf0,#9fc9ff,#6eb7ff,#3d9eff,#0d7fff"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate blinking contribution (default)
+      - name: Generate blinking contribution (light theme)
         run: bun dist/blinking-contrib/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/blinking-contrib/default.svg
+          INPUT_OUTPUT_PATH: dist/blinking-contrib/light.svg
           INPUT_FRAME_DURATION: "1.5"
           INPUT_TRANSITION_DURATION: "0.3"
           INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
@@ -98,10 +98,9 @@ jobs:
           ls -la dist/blinking-contrib/
           test -f dist/breathing-contrib/default.svg
           test -f dist/breathing-contrib/dark.svg
-          test -f dist/breathing-contrib/ocean.svg
-          test -f dist/blinking-contrib/default.svg
+          test -f dist/blinking-contrib/light.svg
           test -f dist/blinking-contrib/dark.svg
-          echo "✅ All SVG files generated successfully"
+          echo "✅ All output files generated successfully"
 
       - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true

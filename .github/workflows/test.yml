@@ -43,11 +43,11 @@ jobs:
           cell_size: "15"
 
       # Test blinking-contrib action
-      - name: Test blinking action from main
+      - name: Test blinking action with light theme
         uses: diverger/gh-magic-matrix/blinking-contrib@main
         with:
           github_user_name: ${{ inputs.test_user || github.repository_owner }}
-          output_path: dist/test/blinking-contrib/default.svg
+          output_path: dist/test/blinking-contrib/light.svg
           frame_duration: "2"
           transition_duration: "0.5"
           color_levels: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
@@ -67,7 +67,7 @@ jobs:
           test -f dist/test/breathing-contrib/default.svg
           test -f dist/test/breathing-contrib/dark.svg
           test -f dist/test/breathing-contrib/ocean.svg
-          test -f dist/test/blinking-contrib/default.svg
+          test -f dist/test/blinking-contrib/light.svg
           test -f dist/test/blinking-contrib/dark.svg
           echo "✅ All outputs generated successfully"
 
