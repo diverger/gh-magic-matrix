@@ -206,6 +206,8 @@ async function fetchAllYearlyContributions(
     const cellRadius = parseInt(core.getInput('cell_radius') || '2');
     const frameDuration = parseFloat(core.getInput('frame_duration') || '3');
     const transitionDuration = parseFloat(core.getInput('transition_duration') || '0.8');
+    const fadeInDuration = parseFloat(core.getInput('fade_in_duration') || transitionDuration.toString());
+    const fadeOutDuration = parseFloat(core.getInput('fade_out_duration') || transitionDuration.toString());
     const colorLevelsStr = core.getInput('color_levels') || '#161b22,#0e4429,#006d32,#26a641,#39d353';
     const colorLevels = colorLevelsStr.split(',').map(c => c.trim());
     const endingText = core.getInput('ending_text') || username.toUpperCase(); // Default to username
@@ -224,13 +226,17 @@ async function fetchAllYearlyContributions(
       );
     }
 
-    if (transitionDuration < 0) {
+    if (fadeInDuration < 0) {
       throw new Error(
-        `Invalid transition_duration: ${transitionDuration}. Must be non-negative (e.g., 0.5 for 0.5 second fade).`
+        `Invalid fade_in_duration: ${fadeInDuration}. Must be non-negative (e.g., 0.5 for 0.5 second fade in).`
       );
     }
 
-    // Note: We now allow transition_duration >= frame_duration/2 to enable overlapping fades
+    if (fadeOutDuration < 0) {
+      throw new Error(
+        `Invalid fade_out_duration: ${fadeOutDuration}. Must be non-negative (e.g., 0.5 for 0.5 second fade out).`
+      );
+    }    // Note: We now allow transition_duration >= frame_duration/2 to enable overlapping fades
     // This creates a chaotic, jittery screen effect where multiple frames are partially visible at once
 
     console.log("✨ Blinking Contribution Generator");
@@ -254,7 +260,8 @@ async function fetchAllYearlyContributions(
       cellGap,
       cellRadius,
       frameDuration,
-      transitionDuration,
+      fadeInDuration,
+      fadeOutDuration,
       colorLevels,
       endingText,
       fontSize,

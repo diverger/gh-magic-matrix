@@ -21,7 +21,9 @@ export interface BlinkingSVGOptions {
   cellGap?: number;
   cellRadius?: number;
   frameDuration?: number; // Duration to show each year (seconds)
-  transitionDuration?: number; // Duration of fade transition (seconds)
+  transitionDuration?: number; // Duration of fade transition (seconds) - used if fadeInDuration/fadeOutDuration not specified
+  fadeInDuration?: number; // Duration of fade in transition (seconds)
+  fadeOutDuration?: number; // Duration of fade out transition (seconds)
   colorLevels?: string[];
   endingText?: string; // Optional text to display at the end (pixel art style)
   fontSize?: FontSize; // Font size for ending text: '3x5' (compact) or '5x7' (standard)
@@ -32,19 +34,21 @@ export interface BlinkingSVGOptions {
  * Calculate animation timing for a frame in the blinking animation
  * @param frameIndex Index of the frame (0-based)
  * @param frameDuration Duration each frame stays visible (seconds)
- * @param transitionDuration Duration of fade in/out transitions (seconds)
+ * @param fadeInDuration Duration of fade in transition (seconds)
+ * @param fadeOutDuration Duration of fade out transition (seconds)
  * @param cycleDuration Total animation cycle duration (seconds)
  * @returns Timing values and normalized keyTimes for SMIL animation
  */
 function calculateFrameTiming(
   frameIndex: number,
   frameDuration: number,
-  transitionDuration: number,
+  fadeInDuration: number,
+  fadeOutDuration: number,
   cycleDuration: number
 ) {
   const startTime = frameIndex * frameDuration;
-  const fadeInEnd = startTime + transitionDuration;
-  const fadeOutStart = startTime + frameDuration - transitionDuration;
+  const fadeInEnd = startTime + fadeInDuration;
+  const fadeOutStart = startTime + frameDuration - fadeOutDuration;
   const fadeOutEnd = startTime + frameDuration;
 
   const ki1 = fadeInEnd / cycleDuration;
@@ -73,6 +77,8 @@ export function generateBlinkingSVG(
   const cellRadius = options.cellRadius ?? 2;
   const frameDuration = options.frameDuration ?? 3; // Show each year for 3 seconds (more visible)
   const transitionDuration = options.transitionDuration ?? 0.8; // 0.8s fade transition (smoother)
+  const fadeInDuration = options.fadeInDuration ?? transitionDuration; // Default to transitionDuration
+  const fadeOutDuration = options.fadeOutDuration ?? transitionDuration; // Default to transitionDuration
   const endingText = options.endingText; // Optional ending text frame
   const fontSize = options.fontSize ?? '5x7'; // Default to standard 5x7 font
   const textFrameDuration = options.textFrameDuration ?? frameDuration * 2; // Text shows 2x longer by default
@@ -93,8 +99,12 @@ export function generateBlinkingSVG(
     throw new Error(`frame_duration must be positive, got ${frameDuration}`);
   }
 
-  if (transitionDuration < 0) {
-    throw new Error(`transition_duration must be non-negative, got ${transitionDuration}`);
+  if (fadeInDuration < 0) {
+    throw new Error(`fade_in_duration must be non-negative, got ${fadeInDuration}`);
+  }
+
+  if (fadeOutDuration < 0) {
+    throw new Error(`fade_out_duration must be non-negative, got ${fadeOutDuration}`);
   }
 
   // Note: We now allow transition_duration >= frame_duration/2 to enable overlapping fades
@@ -119,7 +129,7 @@ export function generateBlinkingSVG(
     const weeks = grid.weeks.length;
 
     // Calculate animation timing for this year
-    const timing = calculateFrameTiming(yearIndex, frameDuration, transitionDuration, cycleDuration);
+    const timing = calculateFrameTiming(yearIndex, frameDuration, fadeInDuration, fadeOutDuration, cycleDuration);
 
     // Opacity values: fade in (0→1), stay visible (1), fade out (1→0), stay hidden (0)
     // All years animate simultaneously with overlapping timing
@@ -162,19 +172,13 @@ export function generateBlinkingSVG(
 
   // Add optional ending text frame
   if (hasEndingFrame && endingText) {
-    // Text frame starts after all year frames complete
-    const textFrameStart = yearFramesDuration / cycleDuration;
-
-    // Text frame always uses smooth fade (even in fast blink mode) for better readability
-    const textFadeIn = transitionDuration / cycleDuration;
-    const textFadeOut = transitionDuration / cycleDuration;
-
+    // Text frame uses same fade timing as year frames
+    const textFadeInEnd = (yearFramesDuration + fadeInDuration) / cycleDuration;
+    const textFadeOutStart = (yearFramesDuration + textFrameDuration - fadeOutDuration) / cycleDuration;
     const textEnd = (yearFramesDuration + textFrameDuration) / cycleDuration;
-    const fadeInEnd = (yearFramesDuration + transitionDuration) / cycleDuration;
-    const fadeOutStart = (yearFramesDuration + textFrameDuration - transitionDuration) / cycleDuration;
 
-    const textKeyTimes = [0, textFrameStart, fadeInEnd, fadeOutStart, textEnd, 1];
-    const textKeySplines = '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1';
+    const textKeyTimes = [0, textFadeInEnd, textFadeOutStart, textEnd, 1];
+    const textKeySplines = '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1';
 
     // Render text as pixel coordinates
     const textPixels = renderPixelText(
@@ -198,7 +202,7 @@ export function generateBlinkingSVG(
     yearGroups += `\n  <g id="text-frame" opacity="0">
     <animate
       attributeName="opacity"
-      values="0;0;1;1;0;0"
+      values="0;1;1;0;0"
       keyTimes="${textKeyTimes.join(';')}"
       dur="${cycleDuration}s"
       repeatCount="indefinite"

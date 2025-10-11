@@ -35,9 +35,17 @@ inputs:
     required: false
     default: '3'
   transition_duration:
-    description: 'Duration of fade in/out transition in seconds'
+    description: 'Duration of fade in/out transition in seconds (deprecated, use fade_in_duration and fade_out_duration)'
     required: false
     default: '0.8'
+  fade_in_duration:
+    description: 'Duration of fade in transition in seconds (defaults to transition_duration)'
+    required: false
+    default: ''
+  fade_out_duration:
+    description: 'Duration of fade out transition in seconds (defaults to transition_duration)'
+    required: false
+    default: ''
   ending_text:
     description: 'Text to display at the end (pixel art style, defaults to username)'
     required: false
