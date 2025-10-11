@@ -6,7 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "ncc build --out dist ./src/action.ts && tsc",
+    "build": "ncc build src/action.ts -o ../../dist/breathing-contrib --minify && tsc --emitDeclarationOnly --declaration --outDir ../../dist/breathing-contrib",
     "test": "bun test"
   },
   "dependencies": {

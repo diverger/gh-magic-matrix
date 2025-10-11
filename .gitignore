@@ -60,6 +60,10 @@ jspm_packages/
 dist/
 build/
 
+# Exception: Allow built action distributions (required for GitHub Actions)
+!dist/blinking-contrib/
+!dist/breathing-contrib/
+
 # IDE
 .vscode/
 .idea/
@@ -71,5 +75,8 @@ build/
 .DS_Store
 Thumbs.db
 
-RELEASE.md
-WORKFLOWS.md
+# Documentation files - ignore all markdown except READMEs and specific docs
+*.md
+!README.md
+!DOCKER_SETUP.md
+!packages/**/README.md

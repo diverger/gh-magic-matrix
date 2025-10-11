@@ -1,0 +1,64 @@
+name: Build Docker Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DCKR_USR }}
+          password: ${{ secrets.DCKR_PAT }}
+
+      - name: Build and push breathing-contrib Docker image
+        uses: docker/build-push-action@v5
+        id: docker-build-breathing
+        with:
+          context: .
+          file: ./Dockerfile.breathing
+          push: true
+          tags: |
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:${{ github.ref_name }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:latest
+          cache-from: type=registry,ref=${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:latest
+          cache-to: type=inline
+
+      - name: Build and push blinking-contrib Docker image
+        uses: docker/build-push-action@v5
+        id: docker-build-blinking
+        with:
+          context: .
+          file: ./Dockerfile.blinking
+          push: true
+          tags: |
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.ref_name }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
+          cache-from: type=registry,ref=${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
+          cache-to: type=inline
+
+      - name: Image digests
+        run: |
+          echo "Breathing image digest: ${{ steps.docker-build-breathing.outputs.digest }}"
+          echo "Blinking image digest: ${{ steps.docker-build-blinking.outputs.digest }}"
+          echo ""
+          echo "To use these images, update action.yml files with:"
+          echo "  breathing-contrib: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}"
+          echo "  blinking-contrib: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}"

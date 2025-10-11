@@ -8,20 +8,10 @@ COPY packages packages
 RUN bun install --no-cache
 RUN bun run build
 
-# Breathing contrib image
-FROM oven/bun:1.2.2-slim AS breathing-contrib
+FROM oven/bun:1.2.2-slim
 
 WORKDIR /action
 
 COPY --from=builder /app/dist/breathing-contrib/ ./
-
-ENTRYPOINT ["bun", "index.js"]
-
-# Blinking contrib image
-FROM oven/bun:1.2.2-slim AS blinking-contrib
-
-WORKDIR /action
-
-COPY --from=builder /app/dist/blinking-contrib/ ./
 
 ENTRYPOINT ["bun", "index.js"]

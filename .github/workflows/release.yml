@@ -31,20 +31,34 @@ jobs:
           username: ${{ secrets.DCKR_USR }}
           password: ${{ secrets.DCKR_PAT }}
 
-      - name: Build and push Docker image
+      - name: Build and push breathing-contrib Docker image
         uses: docker/build-push-action@v5
-        id: docker-build
+        id: docker-build-breathing
         with:
           context: .
+          file: ./Dockerfile.breathing
           push: true
           tags: |
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix:${{ github.sha }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix:${{ github.event.inputs.version }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix:latest
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:${{ github.event.inputs.version }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:latest
 
-      - name: Update action.yml with new image digest
+      - name: Build and push blinking-contrib Docker image
+        uses: docker/build-push-action@v5
+        id: docker-build-blinking
+        with:
+          context: .
+          file: ./Dockerfile.blinking
+          push: true
+          tags: |
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.event.inputs.version }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
+
+      - name: Update action.yml files with new image digests
         run: |
-          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix@${{ steps.docker-build.outputs.digest }}|" action.yml
+          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}|" breathing-contrib/action.yml
+          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}|" blinking-contrib/action.yml
 
       - uses: oven-sh/setup-bun@v1
 
@@ -54,9 +68,19 @@ jobs:
       - name: Build packages
         run: bun run build
 
+      - name: Verify build outputs
+        run: |
+          echo "Checking built distributions..."
+          ls -la dist/
+          test -f dist/breathing-contrib/index.js || echo "⚠️  breathing-contrib build not found"
+          test -f dist/blinking-contrib/index.js || echo "⚠️  blinking-contrib build not found"
+          echo "✅ Build verification complete"
+
       - name: Bump package version
         run: |
           sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' package.json
+          sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' packages/breathing-contrib/package.json
+          sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' packages/blinking-contrib/package.json
 
       - name: Commit and tag release
         run: |
@@ -64,7 +88,7 @@ jobs:
 
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git add action.yml package.json
+          git add breathing-contrib/action.yml blinking-contrib/action.yml package.json packages/*/package.json dist/
           git commit -m "🚀 Release v$VERSION"
           git tag v$VERSION
           git push origin main --tags
