@@ -170,13 +170,15 @@ export function generateBlinkingSVG(
 
   // Add optional ending text frame
   if (hasEndingFrame && endingText) {
-    // Text frame uses same fade timing as year frames
+    // Text frame waits until all year frames complete, then fades in
+    const textFrameStart = yearFramesDuration / cycleDuration;
     const textFadeInEnd = (yearFramesDuration + fadeInDuration) / cycleDuration;
     const textFadeOutStart = (yearFramesDuration + textFrameDuration - fadeOutDuration) / cycleDuration;
     const textEnd = (yearFramesDuration + textFrameDuration) / cycleDuration;
 
-    const textKeyTimes = [0, textFadeInEnd, textFadeOutStart, textEnd, 1];
-    const textKeySplines = '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1';
+    // Use 6 keyTimes to keep text hidden until year frames complete
+    const textKeyTimes = [0, textFrameStart, textFadeInEnd, textFadeOutStart, textEnd, 1];
+    const textKeySplines = '0 0 1 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0 0 1 1';
 
     // Render text as pixel coordinates
     const textPixels = renderPixelText(
@@ -200,7 +202,7 @@ export function generateBlinkingSVG(
     yearGroups += `\n  <g id="text-frame" opacity="0">
     <animate
       attributeName="opacity"
-      values="0;1;1;0;0"
+      values="0;0;1;1;0;0"
       keyTimes="${textKeyTimes.join(';')}"
       dur="${cycleDuration}s"
       repeatCount="indefinite"
