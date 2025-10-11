@@ -12,6 +12,7 @@ export interface FontMetrics {
   height: number;
   name: string;
   description: string;
+  baseline?: number; // For 3x5, the baseline row position (descenders go below this)
 }
 
 export const FONT_METRICS: Record<FontSize, FontMetrics> = {
@@ -20,6 +21,7 @@ export const FONT_METRICS: Record<FontSize, FontMetrics> = {
     height: 5,
     name: 'Tom Thumb',
     description: 'Compact 3x5 font, fits more characters (8-10 chars)',
+    baseline: 5, // Row 5 (0-indexed) is the baseline for proper lowercase alignment
   },
   '5x7': {
     width: 5,
@@ -27,6 +29,25 @@ export const FONT_METRICS: Record<FontSize, FontMetrics> = {
     name: 'Standard',
     description: 'Standard 5x7 font, better readability (4-6 chars)',
   },
+};
+
+/**
+ * Baseline offsets for 3x5 font characters (vertical position adjustment)
+ * - Ascenders (b,d,f,h,k,l,t): 0 (start from top)
+ * - Regular x-height (a,c,e,m,n,o,r,s,u,v,w,x,z): 2 (align at x-height)
+ * - Descenders (g,j,p,q,y): 1 (align at x-height with descender below)
+ * - Uppercase/numbers: 1 (centered for mixed case compatibility)
+ */
+const BASELINE_OFFSETS_3X5: Record<string, number> = {
+  // Ascenders - start from top (row 0)
+  'b': 0, 'd': 0, 'f': 0, 'h': 0, 'k': 0, 'l': 0, 't': 0, 'i': 0,
+
+  // Descenders - align at x-height (row 2-3), extend to row 6
+  'g': 1, 'j': 1, 'p': 1, 'q': 1, 'y': 1,
+
+  // Regular lowercase - align at x-height (row 2-5)
+  'a': 2, 'c': 2, 'e': 2, 'm': 2, 'n': 2, 'o': 2, 'r': 2, 's': 2,
+  'u': 2, 'v': 2, 'w': 2, 'x': 2, 'z': 2,
 };
 
 // Tom Thumb 3x5 Font - Compact and highly readable
@@ -951,6 +972,9 @@ export function renderPixelText(
     const charData = font[char];
     if (!charData) continue;
 
+    // Get baseline offset for 3x5 font to align lowercase properly
+    const baselineOffset = fontSize === '3x5' ? (BASELINE_OFFSETS_3X5[char] ?? 1) : 0;
+
     // Render character pixels
     const actualCharHeight = charData.length;
     for (let row = 0; row < actualCharHeight; row++) {
@@ -960,7 +984,7 @@ export function renderPixelText(
       for (let col = 0; col < charWidth; col++) {
         if (rowData[col] === 1) {
           const weekIdx = currentWeek + col;
-          const dayIdx = startDay + row;
+          const dayIdx = startDay + baselineOffset + row;
 
           // Only add if within grid bounds
           if (weekIdx >= 0 && weekIdx < gridWeeks && dayIdx >= 0 && dayIdx < gridDays) {
