@@ -268,9 +268,9 @@ export function createSmartPath(
       }
 
       // Now we're in the same row, move closer horizontally (but not all the way)
-      // Stop when we're within shooting range (e.g., 1 cell away minimum)
+      // Stop when we're within shooting range (e.g., 2 cells away to ensure bullet trace is visible)
       const targetX = nextTarget.x;
-      const minDistance = 1; // Stop 1 cell before target
+      const minDistance = 2; // Stop 2 cells before target (28px, enough for bullet trace)
       const desiredX = currentX < targetX ? targetX - minDistance : targetX + minDistance;
 
       while (currentX !== desiredX) {
@@ -301,7 +301,7 @@ export function createSmartPath(
 
       // Now we're in the same column, move closer vertically (but not all the way)
       const targetY = nextTarget.y;
-      const minDistance = 1; // Stop 1 cell before target
+      const minDistance = 2; // Stop 2 cells before target (28px, enough for bullet trace)
       const desiredY = currentY < targetY ? targetY - minDistance : targetY + minDistance;
 
       while (currentY !== desiredY) {

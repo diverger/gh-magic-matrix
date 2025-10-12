@@ -102,6 +102,13 @@ export function generateBullets(
   const shootSegments = characterPath.filter((seg: any) => seg.action === 'idle_shoot');
   console.log(`[SHOOT] Found ${shootSegments.length} shooting actions`);
 
+  // Create a map of target positions for hit time assignment
+  const targetMap = new Map<string, Target>();
+  for (const target of targets) {
+    const key = `${target.x.toFixed(1)},${target.y.toFixed(1)}`;
+    targetMap.set(key, target);
+  }
+
   // Generate a bullet for each shooting action
   for (const segment of shootSegments) {
     if (!segment.targetX || !segment.targetY) {
@@ -109,25 +116,84 @@ export function generateBullets(
       continue;
     }
 
-    const startX = segment.x;
-    const startY = segment.y;
-    const endX = segment.targetX;
-    const endY = segment.targetY;
+    const characterCenterX = segment.x;
+    const characterCenterY = segment.y;
+    const targetCenterX = segment.targetX;
+    const targetCenterY = segment.targetY;
 
-    // Calculate distance
-    const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+    // Calculate direction vector from character to target
+    const dx = targetCenterX - characterCenterX;
+    const dy = targetCenterY - characterCenterY;
+    const charToTargetDistance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Normalize direction
+    const dirX = dx / charToTargetDistance;
+    const dirY = dy / charToTargetDistance;
 
-    // Calculate bullet travel duration
-    const duration = distance / bulletSpeed;
+    // Get character dimensions from config
+    const characterWidth = config.characterWidth || 48;
+    const characterHeight = config.characterHeight || 64;
+
+    // Calculate bullet start position based on shooting direction
+    let bulletStartX = characterCenterX;
+    let bulletStartY = characterCenterY;
+
+    const absX = Math.abs(dirX);
+    const absY = Math.abs(dirY);
+
+    if (absX > absY) {
+      // Shooting horizontally (left or right)
+      // Start from ~20px left/right of character center
+      const horizontalOffset = 20;
+      bulletStartX = characterCenterX + (dirX > 0 ? horizontalOffset : -horizontalOffset);
+      bulletStartY = characterCenterY; // Keep Y at center
+    } else {
+      // Shooting vertically (up or down)
+      bulletStartX = characterCenterX; // Keep X at center
+      if (dirY > 0) {
+        // Shooting down - start from bottom edge
+        bulletStartY = characterCenterY + characterHeight / 2;
+      } else {
+        // Shooting up - start from top edge
+        bulletStartY = characterCenterY - characterHeight / 2;
+      }
+    }
+
+    // Calculate actual bullet travel distance (from bullet start to target)
+    const bulletTravelDistance = Math.sqrt(
+      (targetCenterX - bulletStartX) ** 2 + 
+      (targetCenterY - bulletStartY) ** 2
+    );
+    
+    const duration = bulletTravelDistance / bulletSpeed;
+
+    // Find matching target
+    const targetKey = `${targetCenterX.toFixed(1)},${targetCenterY.toFixed(1)}`;
+    const target = targetMap.get(targetKey);
+    
+    // Check if too close (less than 1 grid cell = 14px)
+    const minShootDistance = 14;
+    if (bulletTravelDistance < minShootDistance) {
+      // Too close — don't draw bullet trace, but destroy block immediately
+      if (target) {
+        target.hitTime = segment.time; // Hit instantly (no bullet flight time)
+      }
+      continue; // Skip generating bullet trace
+    }
+
+    // Far enough — set hit time with bullet flight duration
+    if (target) {
+      target.hitTime = segment.time + duration; // Block hit after bullet travels
+    }
 
     // Create bullet trace from character to target
     const bullet: Bullet = {
       id: `bullet-${bulletIdCounter++}`,
-      startX: startX,
-      startY: startY,
-      targetX: endX,
-      targetY: endY,
-      startTime: segment.time,
+      startX: bulletStartX,
+      startY: bulletStartY,
+      targetX: targetCenterX,
+      targetY: targetCenterY,
+      startTime: segment.time, // Shoot immediately when in position
       duration: duration,
       speed: bulletSpeed,
     };
@@ -193,20 +259,13 @@ export function createAllBulletsSVG(
   config: ShootingConfig,
   characterPath?: { x: number; y: number; time: number }[]
 ): string {
-  console.log(`[CREATE SVG] Creating SVG for ${bullets.length} bullets`);
-  if (bullets.length > 0) {
-    console.log(`[CREATE SVG] First bullet:`, JSON.stringify(bullets[0]));
-  }
   const bulletSVGs = bullets.map(bullet => createBulletSVG(bullet, config, characterPath));
-  console.log(`[CREATE SVG] Generated ${bulletSVGs.length} bullet SVG elements, first 200 chars: ${bulletSVGs[0]?.substring(0, 200)}`);
-
+  
   return `
   <g class="bullets-layer">
     ${bulletSVGs.join('\n')}
   </g>`;
-}
-
-/**
+}/**
  * Create muzzle flash effect when shooting
  */
 export function createMuzzleFlashSVG(
