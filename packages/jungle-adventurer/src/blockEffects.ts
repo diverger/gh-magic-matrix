@@ -39,9 +39,9 @@ export function createFadeOutEffect(
     <!-- Fade out when hit -->
     <animate
       attributeName="opacity"
-      values="1;1;0"
-      keyTimes="0;${(hitTime / (hitTime + duration)).toFixed(3)};1"
-      dur="${hitTime + duration}s"
+      values="1;0"
+      dur="${duration}s"
+      begin="${hitTime}s"
       fill="freeze"
     />
   </rect>`;
@@ -128,17 +128,18 @@ export function createExplosionEffect(
         attributeName="transform"
         type="scale"
         values="1;1.5;0"
-        keyTimes="0;${(hitTime / (hitTime + duration)).toFixed(3)};1"
-        dur="${hitTime + duration}s"
+        dur="${duration}s"
+        begin="${explosionDelay}s"
         additive="sum"
         fill="freeze"
       />
       <!-- Fade out -->
       <animate
         attributeName="opacity"
-        values="1;1;0.5;0"
-        keyTimes="0;${(hitTime / (hitTime + duration)).toFixed(3)};${((hitTime + duration * 0.5) / (hitTime + duration)).toFixed(3)};1"
-        dur="${hitTime + duration}s"
+        values="1;0.5;0"
+        keyTimes="0;0.5;1"
+        dur="${duration}s"
+        begin="${explosionDelay}s"
         fill="freeze"
       />
     </rect>

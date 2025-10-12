@@ -252,6 +252,7 @@ export function generateJungleAdventurerSVG(
       x: p.x,
       y: p.y,
       duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
+      isShooting: false, // TODO: Track shooting state per path point
     })),
     characterScale,
     'character-anim',

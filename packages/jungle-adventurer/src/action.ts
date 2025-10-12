@@ -15,7 +15,7 @@ import { fetchContributionData } from './githubApi';
 async function run(): Promise<void> {
   try {
     // Get inputs (simplified!)
-    const githubUserName = core.getInput('github_user_name', { required: true });
+    const githubUserName = core.getInput('github_user_name') || 'octocat'; // Default to 'octocat' for testing
     const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN || '';
     const outputPath = core.getInput('output_path') || 'jungle-adventurer.svg';
 
