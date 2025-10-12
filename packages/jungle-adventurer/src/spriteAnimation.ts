@@ -359,23 +359,31 @@ export function determineDirection(
   // Up: -112.5 to -67.5
   // RightUp: -67.5 to -22.5
 
+  let result: Direction8;
   if (angle >= -22.5 && angle < 22.5) {
-    return Direction8.Right;
+    result = Direction8.Right;
   } else if (angle >= 22.5 && angle < 67.5) {
-    return Direction8.RightDown;
+    result = Direction8.RightDown;
   } else if (angle >= 67.5 && angle < 112.5) {
-    return Direction8.Down;
+    result = Direction8.Down;
   } else if (angle >= 112.5 && angle < 157.5) {
-    return Direction8.LeftDown;
+    result = Direction8.LeftDown;
   } else if (angle >= 157.5 || angle < -157.5) {
-    return Direction8.Left;
+    result = Direction8.Left;
   } else if (angle >= -157.5 && angle < -112.5) {
-    return Direction8.LeftUp;
+    result = Direction8.LeftUp;
   } else if (angle >= -112.5 && angle < -67.5) {
-    return Direction8.Up;
+    result = Direction8.Up;
   } else {
-    return Direction8.RightUp;
+    result = Direction8.RightUp;
   }
+
+  // Log for pure vertical/horizontal shooting
+  if (Math.abs(deltaX) < 0.1 || Math.abs(deltaY) < 0.1) {
+    console.log(`[DIR] dx=${deltaX.toFixed(1)}, dy=${deltaY.toFixed(1)}, angle=${angle.toFixed(1)}° => ${result}`);
+  }
+
+  return result;
 }
 
 /**

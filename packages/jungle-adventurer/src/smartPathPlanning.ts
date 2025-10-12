@@ -171,6 +171,9 @@ function bfsPathfinding(
       const ny = current.y + dy;
       const key = `${nx},${ny}`;
 
+      // Enforce bounds: allow walking inside grid and a 1-cell outside border [-1..gridWidth] x [-1..gridHeight]
+      if (nx < -1 || ny < -1 || nx > gridWidth || ny > gridHeight) continue;
+
       // Skip if already visited
       if (visited.has(key)) continue;
 
@@ -472,9 +475,7 @@ export function createSmartPath(
   // Process each target in order (low contribution first)
   for (const nextTarget of sortedTargets) {
     const targetKey = `${nextTarget.x},${nextTarget.y}`;
-    if (visited.has(targetKey)) continue; // Already shot as a blocker
-
-    visited.add(targetKey);
+    if (visited.has(targetKey)) continue; // Already cleared
 
     // KEY DIFFERENCE FROM SNK:
     // - snk finds path TO the target cell (walks on it)
@@ -556,8 +557,11 @@ export function createSmartPath(
       targetY: targetPos.y,
     });
 
-    // Mark target cell as cleared (can now walk through it)
-    gridState.clear(nextTarget.x, nextTarget.y);
+  // Mark target cell as cleared (can now walk through it)
+  gridState.clear(nextTarget.x, nextTarget.y);
+
+  // Record that we've visited (cleared) this target so it's not targeted again
+  visited.add(targetKey);
 
     // No waiting - character can move immediately after shooting
     // Block disappears instantly, explosion is just visual effect

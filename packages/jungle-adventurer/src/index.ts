@@ -267,6 +267,24 @@ export function generateJungleAdventurerSVG(
     }
   });
 
+  // Diagnostic logging: report how many blocks received hitTimes and list a few missing
+  const hitCount = hitTimes.size;
+  const totalBlocks = blocks.length;
+  if (hitCount !== totalBlocks) {
+    const missing: string[] = [];
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const id = `block-${b.x}-${b.y}`;
+      if (!hitTimes.has(id)) {
+        missing.push(id);
+        if (missing.length >= 10) break;
+      }
+    }
+    console.warn('[HITTIMES] hitCount=', hitCount, 'totalBlocks=', totalBlocks, 'missingExamples=', missing.slice(0, 10));
+  } else {
+    console.log('[HITTIMES] All blocks have hitTimes:', hitCount);
+  }
+
   // Calculate total animation duration
   const totalDuration = characterPath[characterPath.length - 1].time + 2; // +2s buffer
 

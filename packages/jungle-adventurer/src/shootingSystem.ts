@@ -96,11 +96,26 @@ export function generateBullets(
   const bullets: Bullet[] = [];
   let bulletIdCounter = 0;
 
+  // Shooting animation timing (8 frames @ 12 FPS)
+  // Bullet should fire around frame 3-4 (middle of animation)
+  const shootingAnimationDelay = 3 / 12; // 0.25 seconds
+  const bulletTravelTime = 0.05; // Very fast bullet travel
+
   console.log(`[SHOOT] Checking ${characterPath.length} path segments for shooting actions`);
 
   // Find all 'idle_shoot' action segments
   const shootSegments = characterPath.filter((seg: any) => seg.action === 'idle_shoot');
   console.log(`[SHOOT] Found ${shootSegments.length} shooting actions`);
+
+  // Diagnostic: collect requested target keys from shoot segments and report missing ones
+  const requestedKeys: string[] = [];
+  for (const seg of shootSegments) {
+    if (seg.targetX !== undefined && seg.targetY !== undefined) {
+      requestedKeys.push(`${seg.targetX.toFixed(1)},${seg.targetY.toFixed(1)}`);
+    }
+  }
+  const uniqueRequested = Array.from(new Set(requestedKeys));
+  // We'll compare unique requested keys to existing targets when targetMap is built
 
   // Create a map of target positions for hit time assignment
   const targetMap = new Map<string, Target>();
@@ -108,6 +123,14 @@ export function generateBullets(
     const key = `${target.x.toFixed(1)},${target.y.toFixed(1)}`;
     targetMap.set(key, target);
   }  // Generate a bullet for each shooting action
+  // Diagnostic: compare requested keys vs available target keys
+  const availableKeys = Array.from(targetMap.keys());
+  const missingRequested = uniqueRequested.filter(k => !targetMap.has(k));
+  if (missingRequested.length > 0) {
+    console.warn('[SHOOT] Missing requested targets:', missingRequested.slice(0, 20));
+  } else {
+    console.log('[SHOOT] All requested targets available:', uniqueRequested.length);
+  }
   for (const segment of shootSegments) {
     if (!segment.targetX || !segment.targetY) {
       console.warn('[SHOOT] Shooting segment missing target coordinates:', segment);
@@ -168,20 +191,34 @@ export function generateBullets(
     // Find matching target
     const targetKey = `${targetCenterX.toFixed(1)},${targetCenterY.toFixed(1)}`;
     const target = targetMap.get(targetKey);
+    if (!target) {
+      // Log debugging info for missing targets so we can trace 999s
+      console.warn('[SHOOT] No matching target found for shooting segment:', {
+        targetKey,
+        targetCenterX: targetCenterX.toFixed(3),
+        targetCenterY: targetCenterY.toFixed(3),
+        characterCenterX: characterCenterX.toFixed(3),
+        characterCenterY: characterCenterY.toFixed(3),
+        dx: dx.toFixed(3),
+        dy: dy.toFixed(3),
+      });
+    }
 
     // Check if too close (less than 1 grid cell = 14px) - don't draw trace
     const minShootDistance = 14;
     if (bulletTravelDistance < minShootDistance) {
-      // Too close — don't draw bullet trace, but destroy block immediately
+      // Too close — don't draw bullet trace, but destroy block after shooting animation
       if (target) {
-        target.hitTime = segment.time; // Instant hit
+        target.hitTime = segment.time + shootingAnimationDelay;
       }
       continue; // Skip generating bullet trace
     }
 
-    // Far enough — draw bullet trace AND destroy block immediately (same time)
+    // Far enough — calculate exact hit time
+    // Block destroyed when bullet arrives: shoot start + animation delay + bullet travel time
+    const bulletHitTime = segment.time + shootingAnimationDelay + bulletTravelTime;
     if (target) {
-      target.hitTime = segment.time; // Block destroyed when shot is fired (instant hit)
+      target.hitTime = bulletHitTime;
     }
 
     // Create bullet trace from character to target
@@ -191,12 +228,27 @@ export function generateBullets(
       startY: bulletStartY,
       targetX: targetCenterX,
       targetY: targetCenterY,
-      startTime: segment.time, // Shoot immediately when in position
-      duration: duration, // Short trace effect duration
+      startTime: segment.time + shootingAnimationDelay, // Fire after animation delay
+      duration: bulletTravelTime, // Short trace effect duration
       speed: bulletSpeed,
     };
 
     bullets.push(bullet);
+  }
+
+  // Diagnostic: how many targets received a hitTime
+  const assigned = targets.filter(t => t.hitTime !== undefined).length;
+  console.log(`[SHOOT] Generated bullets=${bullets.length}, targetsAssignedHitTime=${assigned}/${targets.length}`);
+  if (assigned !== uniqueRequested.length) {
+    // List a few targets that were requested but didn't get assigned
+    const notAssigned: string[] = [];
+    for (const k of uniqueRequested) {
+      if (!targetMap.get(k) || targetMap.get(k)!.hitTime === undefined) {
+        notAssigned.push(k);
+        if (notAssigned.length >= 10) break;
+      }
+    }
+    if (notAssigned.length > 0) console.warn('[SHOOT] Requested but not assigned examples:', notAssigned.slice(0, 10));
   }
 
   return bullets;
