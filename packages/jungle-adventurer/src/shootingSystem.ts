@@ -125,7 +125,7 @@ export function generateBullets(
     const dx = targetCenterX - characterCenterX;
     const dy = targetCenterY - characterCenterY;
     const charToTargetDistance = Math.sqrt(dx * dx + dy * dy);
-    
+
     // Normalize direction
     const dirX = dx / charToTargetDistance;
     const dirY = dy / charToTargetDistance;
@@ -161,16 +161,16 @@ export function generateBullets(
 
     // Calculate actual bullet travel distance (from bullet start to target)
     const bulletTravelDistance = Math.sqrt(
-      (targetCenterX - bulletStartX) ** 2 + 
+      (targetCenterX - bulletStartX) ** 2 +
       (targetCenterY - bulletStartY) ** 2
     );
-    
+
     const duration = bulletTravelDistance / bulletSpeed;
 
     // Find matching target
     const targetKey = `${targetCenterX.toFixed(1)},${targetCenterY.toFixed(1)}`;
     const target = targetMap.get(targetKey);
-    
+
     // Check if too close (less than 1 grid cell = 14px)
     const minShootDistance = 14;
     if (bulletTravelDistance < minShootDistance) {
@@ -260,7 +260,7 @@ export function createAllBulletsSVG(
   characterPath?: { x: number; y: number; time: number }[]
 ): string {
   const bulletSVGs = bullets.map(bullet => createBulletSVG(bullet, config, characterPath));
-  
+
   return `
   <g class="bullets-layer">
     ${bulletSVGs.join('\n')}
