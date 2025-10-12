@@ -154,7 +154,7 @@ export function generateBullets(
         // Shooting down - start from center, slightly below
         bulletStartY = characterCenterY + characterHeight / 3; // Not bottom edge, closer to center
       } else {
-        // Shooting up - start from center, slightly above  
+        // Shooting up - start from center, slightly above
         bulletStartY = characterCenterY - characterHeight / 3; // Not top edge, closer to center
       }
     }
@@ -234,7 +234,7 @@ export function createBulletSVG(
   >
     <!-- Instant appear at shoot time -->
     <set attributeName="opacity" to="0.9" begin="${bullet.startTime}s" />
-    
+
     <!-- Instant disappear after brief flash -->
     <set attributeName="opacity" to="0" begin="${bullet.startTime + flashDuration}s" />
   </line>`;

@@ -220,7 +220,7 @@ export function createSmartPath(
   // Character enters from outside and moves toward first target
   let currentX = -1;  // grid cell coordinates (-1 means outside grid on the left)
   let currentY = -1;  // grid cell coordinates (-1 means outside grid on top)
-  
+
   // Start immediately, no entrance delay
   let currentTime = 0;
 
@@ -321,7 +321,7 @@ export function createSmartPath(
 
     // Now we're facing the target, add a shooting pause
     currentTime += 0.1; // Brief pause to aim
-    
+
     // Add shooting action
     segments.push({
       x: currentX * cellTotal + m,
@@ -331,7 +331,7 @@ export function createSmartPath(
       targetX: nextTarget.x * cellTotal + m,
       targetY: nextTarget.y * cellTotal + m,
     });
-    
+
     // No waiting - character can move immediately after shooting
     // Block disappears instantly, explosion is just visual effect
   }
