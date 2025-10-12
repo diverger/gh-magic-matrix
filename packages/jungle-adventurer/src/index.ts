@@ -229,9 +229,12 @@ export function generateJungleAdventurerSVG(
   };
 
   // Create shooting targets from blocks
+  // IMPORTANT: Convert from block corner coordinates to block CENTER coordinates
+  // block.x/y are top-left corner + margin (weekIdx * 14 + 1)
+  // We need center coordinates (weekIdx * 14 + 7) to match gridToPixel() output
   const shootingTargets = blocks.map(block => ({
-    x: block.x,
-    y: block.y,
+    x: block.x + block.width / 2,  // Convert corner to center: +12/2 = +6
+    y: block.y + block.height / 2,
     width: block.width,
     height: block.height,
     hitTime: undefined as number | undefined,  // Will be set by generateBullets
@@ -252,11 +255,14 @@ export function generateJungleAdventurerSVG(
     });
   });
 
-  // Create hit time map from shootingTargets (using exact coordinates, no rounding!)
+  // Create hit time map from shootingTargets
+  // IMPORTANT: Use block CORNER coordinates (not center) as key to match createBlockWithEffect
   const hitTimes = new Map<string, number>();
-  shootingTargets.forEach(target => {
+  shootingTargets.forEach((target, index) => {
     if (target.hitTime !== undefined) {
-      const blockId = `block-${target.x}-${target.y}`;
+      // Convert center coordinates back to corner coordinates to match blocks array
+      const block = blocks[index];
+      const blockId = `block-${block.x}-${block.y}`;
       hitTimes.set(blockId, target.hitTime);
     }
   });

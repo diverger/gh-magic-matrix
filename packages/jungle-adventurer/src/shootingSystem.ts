@@ -109,6 +109,9 @@ export function generateBullets(
     targetMap.set(key, target);
   }
 
+  // Debug: Show first few target positions
+  console.log(`[SHOOT] First 3 target positions in map:`, Array.from(targetMap.keys()).slice(0, 3));
+
   // Generate a bullet for each shooting action
   for (const segment of shootSegments) {
     if (!segment.targetX || !segment.targetY) {
@@ -170,6 +173,11 @@ export function generateBullets(
     // Find matching target
     const targetKey = `${targetCenterX.toFixed(1)},${targetCenterY.toFixed(1)}`;
     const target = targetMap.get(targetKey);
+
+    // Debug: Log first 3 attempts
+    if (bulletIdCounter < 3) {
+      console.log(`[SHOOT] Looking for target at ${targetKey}, found: ${target ? 'YES' : 'NO'}`);
+    }
 
     // Check if too close (less than 1 grid cell = 14px) - don't draw trace
     const minShootDistance = 14;
