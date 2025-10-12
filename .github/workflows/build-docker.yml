@@ -54,11 +54,27 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
           cache-to: type=inline
 
+      - name: Build and push jungle-adventurer Docker image
+        uses: docker/build-push-action@v5
+        id: docker-build-jungle
+        with:
+          context: .
+          file: ./Dockerfile.jungle
+          push: true
+          tags: |
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-jungle:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-jungle:${{ github.ref_name }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-jungle:latest
+          cache-from: type=registry,ref=${{ secrets.DCKR_USR }}/gh-magic-matrix-jungle:latest
+          cache-to: type=inline
+
       - name: Image digests
         run: |
           echo "Breathing image digest: ${{ steps.docker-build-breathing.outputs.digest }}"
           echo "Blinking image digest: ${{ steps.docker-build-blinking.outputs.digest }}"
+          echo "Jungle Adventurer image digest: ${{ steps.docker-build-jungle.outputs.digest }}"
           echo ""
           echo "To use these images, update action.yml files with:"
           echo "  breathing-contrib: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}"
           echo "  blinking-contrib: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}"
+          echo "  jungle-adventurer: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-jungle@${{ steps.docker-build-jungle.outputs.digest }}"

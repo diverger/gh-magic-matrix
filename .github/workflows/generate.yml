@@ -67,15 +67,25 @@ jobs:
           INPUT_ENDING_TEXT: ""  # Will use username by default
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate jungle-adventurer animation
+        run: bun packages/jungle-adventurer/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/jungle-adventurer/animation.svg
+          INPUT_COLOR_SCHEME: "github-green"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify outputs
         run: |
           ls -la dist/
           ls -la dist/breathing-contrib/
           ls -la dist/blinking-contrib/
+          ls -la dist/jungle-adventurer/ || echo "⚠️  Jungle adventurer output not found"
           test -f dist/breathing-contrib/light.svg
           test -f dist/breathing-contrib/dark.svg
           test -f dist/blinking-contrib/dark.svg
           test -f dist/blinking-contrib/light.svg
+          test -f dist/jungle-adventurer/animation.svg || echo "⚠️  Jungle adventurer animation not generated"
           echo "✅ All example files generated successfully"
 
       - name: Publish to output branch

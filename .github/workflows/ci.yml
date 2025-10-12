@@ -44,6 +44,13 @@ jobs:
       - name: Build actions
         run: bun run build
 
+      - name: Build jungle-adventurer action
+        run: |
+          cd packages/jungle-adventurer
+          bun build src/action.ts --outdir ../../jungle-adventurer/dist --target node --minify
+          echo "✅ Jungle Adventurer action built"
+          ls -lh ../../jungle-adventurer/dist/action.js
+
       - name: Generate breathing contribution (light theme)
         run: bun dist/breathing-contrib/index.js
         env:
@@ -87,15 +94,39 @@ jobs:
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate LED Billboard (example)
+        run: bun dist/led-billboard/index.js
+        env:
+          INPUT_INPUT_PATH: "examples/led-billboard"
+          INPUT_OUTPUT_PATH: "dist/led-billboard/example.svg"
+          INPUT_MATRIX_WIDTH: "32"
+          INPUT_MATRIX_HEIGHT: "32"
+          INPUT_LED_ON_COLOR: "#00ff00"
+          INPUT_LED_OFF_COLOR: "#003300"
+          INPUT_FRAME_DURATIONS: "0.5,0.5"
+          # INPUT_STRETCH defaults to 'false' (maintain aspect ratio)
+
+      - name: Generate Jungle Adventurer animation
+        run: bun packages/jungle-adventurer/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: dist/jungle-adventurer/animation.svg
+          INPUT_COLOR_SCHEME: "github-green"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify all outputs exist
         run: |
           ls -la dist/
           ls -la dist/breathing-contrib/
           ls -la dist/blinking-contrib/
+          ls -la dist/led-billboard/
+          ls -la dist/jungle-adventurer/ || echo "⚠️  Jungle Adventurer output not found"
           test -f dist/breathing-contrib/light.svg
           test -f dist/breathing-contrib/dark.svg
           test -f dist/blinking-contrib/light.svg
           test -f dist/blinking-contrib/dark.svg
+          test -f dist/led-billboard/example.svg
+          test -f dist/jungle-adventurer/animation.svg || echo "⚠️  Jungle Adventurer animation not generated"
           echo "✅ All output files generated successfully"
 
       - name: Upload PR preview artifacts
@@ -106,6 +137,8 @@ jobs:
           path: |
             dist/breathing-contrib/*.svg
             dist/blinking-contrib/*.svg
+            dist/led-billboard/*.svg
+            dist/jungle-adventurer/*.svg
           retention-days: 7
 
       - name: Publish to output branch

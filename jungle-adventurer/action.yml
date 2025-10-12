@@ -1,0 +1,37 @@
+name: 'Jungle Adventurer'
+description: 'Transform GitHub contributions into a shooting adventure game animation'
+author: 'diverger'
+
+branding:
+  icon: 'zap'
+  color: 'green'
+
+inputs:
+  github_user_name:
+    description: 'GitHub username to fetch contribution data from'
+    required: true
+  github_token:
+    description: 'GitHub token for API access (uses GITHUB_TOKEN by default)'
+    required: false
+    default: ${{ github.token }}
+  output_path:
+    description: 'Output SVG file path'
+    required: false
+    default: 'jungle-adventurer.svg'
+
+  # Color settings (only user-facing configuration)
+  color_scheme:
+    description: 'Color scheme name: github-green (default), github-dark, halloween, ocean, forest, sunset, candy'
+    required: false
+    default: 'github-green'
+  custom_colors:
+    description: 'Custom colors (comma-separated 5 colors: empty, level1, level2, level3, level4). Overrides color_scheme if provided.'
+    required: false
+
+outputs:
+  output_path:
+    description: 'Path to the generated SVG file'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile.jungle'

@@ -1,0 +1,36 @@
+# 请将你的 sprite sheet 文件放在这里
+
+这个目录专门存放 Jungle Adventurer 的 sprite sheets。
+
+## 📁 目录结构
+
+```
+packages/jungle-adventurer/assets/sprites/
+├── hero_run.png      ← 你的跑动 sprite (384x64, 8 frames)
+├── hero_walk.png     ← 你的走动 sprite (可选)
+├── hero_shoot.png    ← 你的射击 sprite (可选)
+└── README.md         ← 说明文档
+```
+
+## 🎯 为什么在这里？
+
+这个位置的优势：
+- ✅ 所有 jungle-adventurer 相关文件在一个目录
+- ✅ 更容易打包和发布
+- ✅ 不需要依赖外部 assets 目录
+- ✅ 独立、自包含的模块
+
+## 📝 快速开始
+
+```bash
+# 1. 进入这个目录
+cd packages/jungle-adventurer/assets/sprites/
+
+# 2. 复制你的素材
+cp /path/to/your/hero_run.png ./
+
+# 3. 检查
+ls -lh
+```
+
+查看 `README.md` 了解详细说明。

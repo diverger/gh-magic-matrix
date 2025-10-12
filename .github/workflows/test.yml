@@ -52,6 +52,14 @@ jobs:
           transition_duration: "0.8"
           color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
+      # Test jungle-adventurer action
+      - name: Test jungle-adventurer action
+        uses: diverger/gh-magic-matrix/jungle-adventurer@main
+        with:
+          github_user_name: ${{ inputs.test_user || github.repository_owner }}
+          output_path: dist/test/jungle-adventurer/animation.svg
+          color_scheme: "halloween"
+
       - name: Verify all outputs exist
         run: |
           ls -R dist/test
@@ -59,6 +67,7 @@ jobs:
           test -f dist/test/breathing-contrib/dark.svg
           test -f dist/test/blinking-contrib/light.svg
           test -f dist/test/blinking-contrib/dark.svg
+          test -f dist/test/jungle-adventurer/animation.svg
           echo "✅ All outputs generated successfully"
 
       - name: Publish to test-output branch
