@@ -6,54 +6,8 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateJungleAdventurerSVG, ContributionWeek } from './index';
-
-/**
- * Load sprite sheet from file and convert to base64 data URL
- * NOTE: Not used anymore - sprites are loaded automatically from built-in assets
- */
-async function loadSpriteSheet(filePath: string): Promise<string> {
-  try {
-    const imageBuffer = fs.readFileSync(filePath);
-    const base64 = imageBuffer.toString('base64');
-    const mimeType = filePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
-    return `data:${mimeType};base64,${base64}`;
-  } catch (error) {
-    throw new Error(`Failed to load sprite sheet from ${filePath}: ${error}`);
-  }
-}
-
-/**
- * Fetch GitHub contribution data
- * (Simplified version - you may want to use the actual GitHub API)
- */
-async function fetchContributionData(
-  username: string,
-  token?: string
-): Promise<ContributionWeek[]> {
-  // TODO: Implement actual GitHub GraphQL API call
-  // For now, return mock data
-
-  const weeks: ContributionWeek[] = [];
-  const numWeeks = 53;
-
-  for (let w = 0; w < numWeeks; w++) {
-    const days = [];
-    for (let d = 0; d < 7; d++) {
-      const count = Math.floor(Math.random() * 20);
-      const level = count === 0 ? 0 : Math.min(4, Math.floor(count / 5) + 1);
-
-      days.push({
-        date: new Date(2024, 0, 1 + w * 7 + d).toISOString().split('T')[0],
-        count,
-        level,
-      });
-    }
-    weeks.push({ days });
-  }
-
-  return weeks;
-}
+import { generateJungleAdventurerSVG } from './index';
+import { fetchContributionData } from './githubApi';
 
 /**
  * Main action function
@@ -62,7 +16,7 @@ async function run(): Promise<void> {
   try {
     // Get inputs (simplified!)
     const githubUserName = core.getInput('github_user_name', { required: true });
-    const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN;
+    const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN || '';
     const outputPath = core.getInput('output_path') || 'jungle-adventurer.svg';
 
     // Color settings (only user-facing configuration)
@@ -74,7 +28,23 @@ async function run(): Promise<void> {
 
     // Fetch contribution data
     core.info(`🎣 Fetching contribution data for ${githubUserName}...`);
-    const contributionWeeks = await fetchContributionData(githubUserName, githubToken);
+
+    let contributionWeeks;
+    if (!githubToken) {
+      core.warning('⚠️  No GitHub token provided, using mock data for testing');
+      const { generateMockContributionData } = await import('./githubApi');
+      contributionWeeks = generateMockContributionData();
+    } else {
+      try {
+        contributionWeeks = await fetchContributionData(githubUserName, githubToken);
+      } catch (error: any) {
+        core.warning(`⚠️  Failed to fetch real contribution data: ${error.message}`);
+        core.warning('⚠️  Falling back to mock data');
+        const { generateMockContributionData } = await import('./githubApi');
+        contributionWeeks = generateMockContributionData();
+      }
+    }
+
     core.info(`📊 Found ${contributionWeeks.length} weeks of contributions`);
 
     // Generate SVG (sprites are loaded automatically from built-in assets)

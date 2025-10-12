@@ -51,7 +51,7 @@ export function createScanningPath(
     // Move across the row
     if (row % 2 === 1) {
       // Odd rows: left to right
-      for (let col = 0; col <= gridWidth; col++) {
+      for (let col = 0; col < gridWidth; col++) {
         const x = col * cellTotal + cellSize / 2;
         const distance = col > 0 ? cellTotal : 0;
         currentTime += distance / speed;
@@ -59,9 +59,9 @@ export function createScanningPath(
       }
     } else {
       // Even rows: right to left
-      for (let col = gridWidth; col >= 0; col--) {
+      for (let col = gridWidth - 1; col >= 0; col--) {
         const x = col * cellTotal + cellSize / 2;
-        const distance = col < gridWidth ? cellTotal : 0;
+        const distance = col < gridWidth - 1 ? cellTotal : 0;
         currentTime += distance / speed;
         path.push({ x, y, time: currentTime });
       }

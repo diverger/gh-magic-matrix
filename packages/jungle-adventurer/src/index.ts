@@ -21,6 +21,7 @@ import {
 import {
   createScanningPath,
   createZigzagPath,
+  createSpiralPath,
   smoothPath,
   PathPoint,
 } from './pathPlanning';
@@ -138,6 +139,15 @@ export function generateJungleAdventurerSVG(
         characterSpeed
       );
       break;
+    case 'spiral':
+      characterPath = createSpiralPath(
+        gridWidth,
+        gridHeight,
+        cellSize,
+        cellGap,
+        characterSpeed
+      );
+      break;
     case 'scanning':
     default:
       characterPath = createScanningPath(
@@ -177,27 +187,18 @@ export function generateJungleAdventurerSVG(
     y: block.y,
     width: block.width,
     height: block.height,
-    hitTime: undefined as number | undefined,  // Add hitTime property
+    hitTime: undefined as number | undefined,  // Will be set by generateBullets
   }));
 
+  // Generate bullets - this will populate hitTime in targets
   const bullets = generateBullets(characterPath, targets, shootingConfig);
 
-  // Create hit time map
+  // Create hit time map from targets (using exact coordinates, no rounding!)
   const hitTimes = new Map<string, number>();
-  bullets.forEach(bullet => {
-    const blockId = `block-${Math.round(bullet.targetX - cellSize / 2)}-${Math.round(bullet.targetY - cellSize / 2)}`;
-    hitTimes.set(blockId, bullet.startTime + bullet.duration);
-  });
-
-  // Update blocks with hit times
-  blocks.forEach(block => {
-    const blockId = `block-${block.x}-${block.y}`;
-    const hitTime = hitTimes.get(blockId);
-    if (hitTime !== undefined) {
-      const target = targets.find(t => t.x === block.x && t.y === block.y);
-      if (target) {
-        target.hitTime = hitTime;
-      }
+  targets.forEach(target => {
+    if (target.hitTime !== undefined) {
+      const blockId = `block-${target.x}-${target.y}`;
+      hitTimes.set(blockId, target.hitTime);
     }
   });
 
@@ -246,7 +247,12 @@ export function generateJungleAdventurerSVG(
   <!-- Character layer (8-directional sprites, auto-switched based on movement) -->
   ${createMultiDirectionalSpriteElement(
     sprites,
-    characterPath.map(p => ({ x: p.x, y: p.y, duration: 0.1 })),
+    // Convert PathPoint[] with cumulative time to path segments with duration per segment
+    characterPath.map((p, index) => ({
+      x: p.x,
+      y: p.y,
+      duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
+    })),
     characterScale,
     'character-anim',
     animationFPS

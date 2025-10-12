@@ -66,6 +66,9 @@ export function calculateBulletDuration(
   targetY: number,
   speed: number
 ): number {
+  if (speed <= 0) {
+    throw new Error(`Bullet speed must be positive, got ${speed}`);
+  }
   const distance = calculateDistance(startX, startY, targetX, targetY);
   return distance / speed;
 }
@@ -85,6 +88,14 @@ export function generateBullets(
     bulletSpeed = 150,
     fireRate = 3,
   } = config;
+
+  // Validate parameters to prevent Infinity/NaN in calculations
+  if (bulletSpeed <= 0) {
+    throw new Error(`bulletSpeed must be positive, got ${bulletSpeed}`);
+  }
+  if (fireRate <= 0) {
+    throw new Error(`fireRate must be positive, got ${fireRate}`);
+  }
 
   const bullets: Bullet[] = [];
   const fireInterval = 1 / fireRate;

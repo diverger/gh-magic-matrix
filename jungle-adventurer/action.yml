@@ -13,7 +13,6 @@ inputs:
   github_token:
     description: 'GitHub token for API access (uses GITHUB_TOKEN by default)'
     required: false
-    default: ${{ github.token }}
   output_path:
     description: 'Output SVG file path'
     required: false

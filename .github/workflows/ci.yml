@@ -44,13 +44,6 @@ jobs:
       - name: Build actions
         run: bun run build
 
-      - name: Build jungle-adventurer action
-        run: |
-          cd packages/jungle-adventurer
-          bun build src/action.ts --outdir ../../jungle-adventurer/dist --target node --minify
-          echo "✅ Jungle Adventurer action built"
-          ls -lh ../../jungle-adventurer/dist/action.js
-
       - name: Generate breathing contribution (light theme)
         run: bun dist/breathing-contrib/index.js
         env:
