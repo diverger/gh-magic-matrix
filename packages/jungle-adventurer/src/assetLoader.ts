@@ -11,17 +11,17 @@ import { createSpriteSheet } from './spriteAnimation';
 
 // Get package directory (handles both ESM and CommonJS)
 function getPackageDir(): string {
-  // Try ESM first
+  // In production (ncc bundle), __dirname points to dist/jungle-adventurer/
   if (typeof __dirname !== 'undefined') {
-    return join(__dirname, '..');
+    return __dirname;
   }
 
   // Fallback for ESM
   try {
     const currentFile = fileURLToPath(import.meta.url);
-    return join(dirname(currentFile), '..');
+    return dirname(currentFile);
   } catch {
-    // Last resort
+    // Development fallback
     return join(process.cwd(), 'packages', 'jungle-adventurer');
   }
 }

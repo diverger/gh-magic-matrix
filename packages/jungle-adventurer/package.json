@@ -2,10 +2,10 @@
   "name": "@gh-magic-matrix/jungle-adventurer",
   "version": "1.0.0",
   "description": "Jungle adventurer shooting game animation from GitHub contributions",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "../../dist/jungle-adventurer/index.js",
+  "types": "../../dist/jungle-adventurer/index.d.ts",
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node && tsc --emitDeclarationOnly",
+    "build": "ncc build src/action.ts -o ../../dist/jungle-adventurer --minify && tsc --emitDeclarationOnly --declaration --outDir ../../dist/jungle-adventurer && cp -r assets ../../dist/jungle-adventurer/",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "dev": "tsc --watch"
@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@vercel/ncc": "^0.38.4",
     "bun-types": "latest",
     "typescript": "^5.0.0"
   }

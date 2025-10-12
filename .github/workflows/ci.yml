@@ -95,7 +95,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Jungle Adventurer animation
-        run: bun packages/jungle-adventurer/dist/index.js
+        run: bun dist/jungle-adventurer/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUT_PATH: dist/jungle-adventurer/animation.svg

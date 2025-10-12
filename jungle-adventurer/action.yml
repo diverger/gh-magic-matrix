@@ -34,4 +34,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'Dockerfile.jungle'
+  image: 'docker://diverger/gh-magic-matrix-jungle:latest'
