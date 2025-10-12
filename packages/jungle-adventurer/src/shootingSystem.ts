@@ -26,6 +26,9 @@ export interface ShootingConfig {
   /** Character position */
   characterX: number;
   characterY: number;
+  /** Character display size (for calculating muzzle position) */
+  characterWidth?: number;
+  characterHeight?: number;
   /** Bullet spawn offset from character center */
   bulletOffsetX?: number;
   bulletOffsetY?: number;
@@ -128,22 +131,73 @@ export function generateBullets(
     const currentPos = characterPath[i];
     const currentTime = currentPos.time;
 
+    // Calculate movement direction from the direction character is currently traveling
+    // Use previous->current for current direction (not current->next which is future direction)
+    let movementDirX = 0;
+    let movementDirY = 0;
+
+    // Use previous to current for movement direction (the direction we just traveled)
+    if (i > 0) {
+      const prevPos = characterPath[i - 1];
+      movementDirX = currentPos.x - prevPos.x;
+      movementDirY = currentPos.y - prevPos.y;
+      const len = Math.sqrt(movementDirX * movementDirX + movementDirY * movementDirY);
+      if (len > 0) {
+        movementDirX /= len;
+        movementDirY /= len;
+      }
+    } else {
+      // At start (i=0), use current to next for initial direction
+      if (i < characterPath.length - 1) {
+        const nextPos = characterPath[i + 1];
+        movementDirX = nextPos.x - currentPos.x;
+        movementDirY = nextPos.y - currentPos.y;
+        const len = Math.sqrt(movementDirX * movementDirX + movementDirY * movementDirY);
+        if (len > 0) {
+          movementDirX /= len;
+          movementDirY /= len;
+        }
+      }
+    }
+
     // Check if enough time has passed to fire again
     if (currentTime - lastFireTime >= fireInterval) {
-      // Find nearest unshot target within range
+      // Find nearest unshot target AHEAD in movement direction
       let nearestTarget: Target | null = null;
       let nearestDistance = Infinity;
       const shootRange = 300; // Max shooting range in pixels
 
+      // DEBUG: Log movement direction for first few bullets
+      if (bullets.length < 3) {
+        console.log(`[DEBUG] Bullet ${bullets.length} @ ${currentTime.toFixed(2)}s: movementDir=(${movementDirX.toFixed(2)}, ${movementDirY.toFixed(2)})`);
+      }
+
       for (const target of remainingTargets) {
+        const targetCenterX = target.x + target.width / 2;
+        const targetCenterY = target.y + target.height / 2;
+
+        // Vector from character to target
+        const toTargetX = targetCenterX - currentPos.x;
+        const toTargetY = targetCenterY - currentPos.y;
+
+        // Dot product to check if target is ahead (in front of character)
+        // If moving, only shoot targets in front (dot product > 0)
+        const dotProduct = toTargetX * movementDirX + toTargetY * movementDirY;
+        const isAhead = movementDirX === 0 && movementDirY === 0 ? true : dotProduct > 0;
+
         const distance = calculateDistance(
           currentPos.x,
           currentPos.y,
-          target.x,
-          target.y
+          targetCenterX,
+          targetCenterY
         );
 
-        if (distance <= shootRange && distance < nearestDistance) {
+        // DEBUG: Log target evaluation for first bullet
+        if (bullets.length === 0 && distance < 100) {
+          console.log(`  Target @ (${targetCenterX.toFixed(1)}, ${targetCenterY.toFixed(1)}): toTarget=(${toTargetX.toFixed(1)}, ${toTargetY.toFixed(1)}), dot=${dotProduct.toFixed(2)}, isAhead=${isAhead}`);
+        }
+
+        if (isAhead && distance <= shootRange && distance < nearestDistance) {
           nearestDistance = distance;
           nearestTarget = target;
         }
@@ -156,14 +210,38 @@ export function generateBullets(
         const dy = nearestTarget.y + nearestTarget.height / 2 - currentPos.y;
         const angle = Math.atan2(dy, dx);
 
-        // Calculate gun muzzle offset based on shooting direction
-        // Assume character is 48x64, gun muzzle is at front edge of character
-        const muzzleDistance = 20; // Distance from center to muzzle
-        const muzzleOffsetX = Math.cos(angle) * muzzleDistance;
-        const muzzleOffsetY = Math.sin(angle) * muzzleDistance;
+        // Calculate gun muzzle offset based on shooting direction and character size
+        // Character center is at currentPos, we need to offset to the edge where gun is
+        const characterWidth = config.characterWidth || 48;
+        const characterHeight = config.characterHeight || 64;
+
+        // Determine which direction we're shooting (horizontal or vertical dominant)
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+
+        let muzzleOffsetX = 0;
+        let muzzleOffsetY = 0;
+
+        if (absX >= absY) {
+          // Horizontal shooting (left/right) - also handles diagonal case
+          // Gun muzzle is at character's horizontal edge, vertical center
+          muzzleOffsetX = (dx > 0 ? 1 : -1) * (characterWidth / 2);
+          muzzleOffsetY = 0; // Keep at vertical center
+        } else {
+          // Vertical shooting (up/down)
+          // Gun muzzle is at character's vertical edge, horizontal center
+          muzzleOffsetX = 0; // Keep at horizontal center
+          muzzleOffsetY = (dy > 0 ? 1 : -1) * (characterHeight / 2);
+        }
 
         const bulletStartX = currentPos.x + muzzleOffsetX;
         const bulletStartY = currentPos.y + muzzleOffsetY;
+
+        // DEBUG: Log first few bullets
+        if (bullets.length < 3) {
+          console.log(`  [BULLET ${bullets.length}] charPos=(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}), muzzleOffset=(${muzzleOffsetX.toFixed(1)}, ${muzzleOffsetY.toFixed(1)}), bulletStart=(${bulletStartX.toFixed(1)}, ${bulletStartY.toFixed(1)}), target=(${(nearestTarget.x + nearestTarget.width/2).toFixed(1)}, ${(nearestTarget.y + nearestTarget.height/2).toFixed(1)})`);
+        }
+
         const duration = calculateBulletDuration(
           bulletStartX,
           bulletStartY,
@@ -201,10 +279,12 @@ export function generateBullets(
 
 /**
  * Create SVG element for a single bullet
+ * The bullet needs to follow the character until it's fired
  */
 export function createBulletSVG(
   bullet: Bullet,
-  config: ShootingConfig
+  config: ShootingConfig,
+  characterPath?: { x: number; y: number; time: number }[]
 ): string {
   const {
     bulletWidth = 2,
@@ -213,32 +293,72 @@ export function createBulletSVG(
     hasTrail = true,
   } = config;
 
-  const path = `M ${bullet.startX},${bullet.startY} L ${bullet.targetX},${bullet.targetY}`;
+  // Build the complete bullet path:
+  // 1. If characterPath provided, follow character from start until bullet.startTime
+  // 2. Then fly from bullet.startX,startY to target
+
+  let completePath = '';
+  let totalDuration = 0;
+
+  if (characterPath && characterPath.length > 0) {
+    // Find the character position at bullet start time
+    // Bullet follows character until startTime, then shoots
+    const pathBeforeFire = characterPath.filter(p => p.time <= bullet.startTime);
+
+    if (pathBeforeFire.length > 1) {
+      // Follow character's path from start to fire time
+      const pathPoints = pathBeforeFire.map(p => `${p.x},${p.y}`).join(' L ');
+      completePath = `M ${pathPoints}`;
+      totalDuration = bullet.startTime;
+    } else if (pathBeforeFire.length === 1) {
+      // Only one point (start time = 0), just start from there
+      completePath = `M ${pathBeforeFire[0].x},${pathBeforeFire[0].y}`;
+      totalDuration = 0;
+    } else {
+      // Shouldn't happen, but fallback
+      completePath = `M ${bullet.startX},${bullet.startY}`;
+      totalDuration = 0;
+    }
+
+    // Add the shooting trajectory
+    completePath += ` L ${bullet.targetX},${bullet.targetY}`;
+    totalDuration += bullet.duration;
+  } else {
+    // Fallback: just the shooting trajectory
+    completePath = `M ${bullet.startX},${bullet.startY} L ${bullet.targetX},${bullet.targetY}`;
+    totalDuration = bullet.duration;
+  }
 
   return `
   <g class="bullet" id="${bullet.id}">
-    ${hasTrail ? createBulletTrail(bullet, bulletColor) : ''}
+    ${hasTrail && characterPath ? createBulletTrail(bullet, bulletColor, characterPath) : ''}
     <rect
       width="${bulletWidth}"
       height="${bulletHeight}"
       fill="${bulletColor}"
       rx="1"
+      x="${-bulletWidth / 2}"
+      y="${-bulletHeight / 2}"
+      opacity="0"
     >
-      <!-- Position animation along path -->
+      <!-- Position animation - follows character then shoots -->
       <animateMotion
-        path="${path}"
-        dur="${bullet.duration}s"
-        begin="${bullet.startTime}s"
+        path="${completePath}"
+        dur="${totalDuration}s"
+        begin="0s"
         fill="freeze"
       />
 
-      <!-- Fade out on impact -->
+      <!-- Show bullet only when it fires (at startTime) -->
+      <set attributeName="opacity" to="1" begin="${bullet.startTime}s" />
+
+      <!-- Fade out on impact - use shorter duration for fast bullets -->
       <animate
         attributeName="opacity"
-        values="1;1;0"
-        keyTimes="0;0.9;1"
-        dur="${bullet.duration}s"
-        begin="${bullet.startTime}s"
+        from="1"
+        to="0"
+        dur="${Math.min(0.1, bullet.duration * 0.3)}s"
+        begin="${totalDuration - Math.min(0.1, bullet.duration * 0.3)}s"
         fill="freeze"
       />
     </rect>
@@ -247,39 +367,83 @@ export function createBulletSVG(
 
 /**
  * Create bullet trail effect
+ * Trail only appears during the shooting phase, following the bullet
  */
-function createBulletTrail(bullet: Bullet, color: string): string {
-  // Trail is a line that follows the bullet
+function createBulletTrail(
+  bullet: Bullet,
+  color: string,
+  characterPath?: { x: number; y: number; time: number }[]
+): string {
+  // Trail is a short line segment that follows the bullet
+  // It only appears during the shooting phase
+  const trailStartTime = bullet.startTime;
+  const trailLength = 8; // Trail length in pixels
+
+  // Calculate trail direction (opposite to bullet direction)
+  const dx = bullet.targetX - bullet.startX;
+  const dy = bullet.targetY - bullet.startY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance === 0) return ''; // No trail for zero-distance bullets
+
+  const trailDx = (-dx / distance) * trailLength;
+  const trailDy = (-dy / distance) * trailLength;
+
+  // Build the same path as the bullet for following character
+  let completePath = '';
+  let totalDuration = 0;
+
+  if (characterPath && characterPath.length > 0) {
+    const pathBeforeFire = characterPath.filter(p => p.time <= bullet.startTime);
+
+    if (pathBeforeFire.length > 1) {
+      const pathPoints = pathBeforeFire.map(p => `${p.x},${p.y}`).join(' L ');
+      completePath = `M ${pathPoints}`;
+      totalDuration = bullet.startTime;
+    } else if (pathBeforeFire.length === 1) {
+      completePath = `M ${pathBeforeFire[0].x},${pathBeforeFire[0].y}`;
+      totalDuration = 0;
+    } else {
+      completePath = `M ${bullet.startX},${bullet.startY}`;
+      totalDuration = 0;
+    }
+
+    completePath += ` L ${bullet.targetX},${bullet.targetY}`;
+    totalDuration += bullet.duration;
+  } else {
+    completePath = `M ${bullet.startX},${bullet.startY} L ${bullet.targetX},${bullet.targetY}`;
+    totalDuration = bullet.duration;
+  }
+
   return `
   <line
-    x1="${bullet.startX}"
-    y1="${bullet.startY}"
-    x2="${bullet.startX}"
-    y2="${bullet.startY}"
+    x1="0"
+    y1="0"
+    x2="${trailDx}"
+    y2="${trailDy}"
     stroke="${color}"
-    stroke-width="1"
-    opacity="0.5"
+    stroke-width="2"
+    stroke-linecap="round"
+    opacity="0"
   >
-    <animate
-      attributeName="x2"
-      values="${bullet.startX};${bullet.targetX}"
-      dur="${bullet.duration}s"
-      begin="${bullet.startTime}s"
+    <!-- Follow the same path as bullet -->
+    <animateMotion
+      path="${completePath}"
+      dur="${totalDuration}s"
+      begin="0s"
       fill="freeze"
     />
-    <animate
-      attributeName="y2"
-      values="${bullet.startY};${bullet.targetY}"
-      dur="${bullet.duration}s"
-      begin="${bullet.startTime}s"
-      fill="freeze"
-    />
+
+    <!-- Show trail only when shooting starts -->
+    <set attributeName="opacity" to="0.6" begin="${trailStartTime}s" />
+
+    <!-- Fade out on impact -->
     <animate
       attributeName="opacity"
-      values="0.5;0.5;0"
-      keyTimes="0;0.9;1"
-      dur="${bullet.duration}s"
-      begin="${bullet.startTime}s"
+      from="0.6"
+      to="0"
+      dur="${Math.min(0.1, bullet.duration * 0.3)}s"
+      begin="${totalDuration - Math.min(0.1, bullet.duration * 0.3)}s"
       fill="freeze"
     />
   </line>`;
@@ -290,11 +454,12 @@ function createBulletTrail(bullet: Bullet, color: string): string {
  */
 export function createAllBulletsSVG(
   bullets: Bullet[],
-  config: ShootingConfig
+  config: ShootingConfig,
+  characterPath?: { x: number; y: number; time: number }[]
 ): string {
   return `
   <g class="bullets-layer">
-    ${bullets.map(bullet => createBulletSVG(bullet, config)).join('\n')}
+    ${bullets.map(bullet => createBulletSVG(bullet, config, characterPath)).join('\n')}
   </g>`;
 }
 

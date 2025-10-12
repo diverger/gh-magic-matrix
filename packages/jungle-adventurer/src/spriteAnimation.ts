@@ -573,6 +573,8 @@ export function createMovingSpriteElement(
       width="${displayWidth}"
       height="${displayHeight}"
       viewBox="${viewBoxValues[0]}"
+      x="${-displayWidth / 2}"
+      y="${-displayHeight / 2}"
     >
       <!-- Sprite frame animation -->
       <animate
@@ -618,19 +620,24 @@ export function createMultiDirectionalSpriteElement(
   animationId: string,
   fps: number = 12
 ): string {
-  // Determine which sprite to use for each path segment
+  // Calculate total animation duration
+  const totalDuration = pathPoints.reduce((sum, p) => sum + p.duration, 0);
+
+  // Build sprite segments with timing information
   interface SpriteSegment {
-    startIndex: number;
-    endIndex: number;
+    startTime: number;
+    endTime: number;
     spriteKey: keyof MultiDirectionalSprites;
     direction: Direction8;
   }
 
   const segments: SpriteSegment[] = [];
+  let currentTime = 0;
 
   for (let i = 0; i < pathPoints.length - 1; i++) {
     const from = pathPoints[i];
     const to = pathPoints[i + 1];
+    const duration = to.duration;
 
     const direction = determineDirection(from.x, from.y, to.x, to.y);
     const isShooting = from.isShooting || to.isShooting || false;
@@ -638,64 +645,170 @@ export function createMultiDirectionalSpriteElement(
     const spriteKey = getSpriteKey(direction, action);
 
     segments.push({
-      startIndex: i,
-      endIndex: i + 1,
+      startTime: currentTime,
+      endTime: currentTime + duration,
       spriteKey,
       direction,
     });
+
+    currentTime += duration;
   }
 
-  // Determine the dominant direction based on total distance traveled in each direction
-  // This gives better sprite selection than just using the first segment
-  const directionDistances = new Map<Direction8, number>();
+  // Collect unique sprites used in the animation
+  const uniqueSpriteKeys = Array.from(new Set(segments.map(s => s.spriteKey)));
 
-  for (let i = 0; i < pathPoints.length - 1; i++) {
-    const from = pathPoints[i];
-    const to = pathPoints[i + 1];
-    const direction = determineDirection(from.x, from.y, to.x, to.y);
-    const distance = Math.sqrt(
-      Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2)
-    );
+  console.log(`🎮 Multi-Directional Sprite Animation:`);
+  console.log(`  Total segments: ${segments.length}`);
+  console.log(`  Unique sprites: ${uniqueSpriteKeys.join(', ')}`);
+  console.log(`  Segment breakdown:`, segments.map(s =>
+    `${s.direction} (${s.startTime.toFixed(2)}s-${s.endTime.toFixed(2)}s)`
+  ).join(', '));
 
-    const currentDistance = directionDistances.get(direction) || 0;
-    directionDistances.set(direction, currentDistance + distance);
-  }
-
-  // Find the direction with the most distance traveled
-  let dominantDirection = Direction8.Right;
-  let maxDistance = 0;
-
-  for (const [direction, distance] of directionDistances.entries()) {
-    if (distance > maxDistance) {
-      maxDistance = distance;
-      dominantDirection = direction;
-    }
-  }
-
-  // Use the dominant direction for sprite selection
-  const action = pathPoints.some(p => p.isShooting) ? 'shoot' : 'run';
-  const spriteKey = getSpriteKey(dominantDirection, action);
-
-  const primarySegment = {
-    spriteKey,
-    direction: dominantDirection,
-  };
-
-  const primarySprite = sprites[primarySegment.spriteKey] || sprites.runRight;
-
-  if (!primarySprite) {
-    throw new Error('No sprite sheet provided for animation');
-  }
-
-  // Use the existing single-sprite animation function (without auto-flip!)
-  return createMovingSpriteElement(
-    primarySprite,
+  // Create animation with sprite switching
+  return createSegmentedMultiSpriteElement(
+    sprites,
+    segments,
     pathPoints,
+    totalDuration,
     scale,
     animationId,
-    fps,
-    false  // NO auto-flip for gun-wielding character!
+    fps
   );
+}
+
+/**
+ * Create sprite animation that switches between different sprites for each path segment
+ */
+function createSegmentedMultiSpriteElement(
+  sprites: MultiDirectionalSprites,
+  segments: { startTime: number; endTime: number; spriteKey: keyof MultiDirectionalSprites }[],
+  pathPoints: { x: number; y: number; duration: number }[],
+  totalDuration: number,
+  scale: number,
+  animationId: string,
+  fps: number
+): string {
+  // Use SMIL animation with <set> elements to switch sprites at specific times
+  // Create one <image> per unique sprite, show/hide based on timing
+
+  const uniqueSpriteKeys = Array.from(new Set(segments.map(s => s.spriteKey)));
+
+  // For each unique sprite, create visibility timeline
+  const spriteVisibilityMap = new Map<string, { startTime: number; endTime: number }[]>();
+
+  for (const segment of segments) {
+    const key = segment.spriteKey;
+    if (!spriteVisibilityMap.has(key)) {
+      spriteVisibilityMap.set(key, []);
+    }
+    spriteVisibilityMap.get(key)!.push({
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+    });
+  }
+
+  // Calculate sprite dimensions
+  const firstSprite = sprites[uniqueSpriteKeys[0]];
+  if (!firstSprite) {
+    throw new Error('No sprite sheets provided');
+  }
+
+  const layout = firstSprite.layout || 'horizontal';
+  const frameWidth = firstSprite.frameWidth || 64;
+  const frameHeight = firstSprite.frameHeight || 64;
+  const frameCount = firstSprite.frameCount || 6;
+
+  const fullWidth = layout === 'horizontal' ? frameWidth * frameCount : frameWidth;
+  const fullHeight = layout === 'vertical' ? frameHeight * frameCount : frameHeight;
+  const displayWidth = frameWidth * scale;
+  const displayHeight = frameHeight * scale;
+
+  const spriteAnimDuration = frameCount / fps;
+
+  // Generate viewBox animation values for frame cycling
+  const viewBoxValues: string[] = [];
+  for (let i = 0; i < frameCount; i++) {
+    if (layout === 'horizontal') {
+      const x = i * frameWidth;
+      viewBoxValues.push(`${x} 0 ${frameWidth} ${frameHeight}`);
+    } else {
+      const y = i * frameHeight;
+      viewBoxValues.push(`0 ${y} ${frameWidth} ${frameHeight}`);
+    }
+  }
+  viewBoxValues.push(viewBoxValues[0]);
+
+  const frameKeyTimes = Array.from(
+    { length: frameCount + 1 },
+    (_, i) => (i / frameCount).toFixed(3)
+  ).join(';');
+
+  // Generate position animation path
+  const positionPath = generateSVGPath(pathPoints);
+
+  // Build sprite layers with visibility animations
+  const spriteLayers = uniqueSpriteKeys.map((spriteKey, index) => {
+    const sprite = sprites[spriteKey];
+    if (!sprite) return '';
+
+    const visibilityRanges = spriteVisibilityMap.get(spriteKey) || [];
+
+    // Create visibility animation using <set> elements
+    // Start hidden, then show/hide at specific times
+    const visibilityAnimations = visibilityRanges.flatMap((range, rangeIndex) => {
+      const beginTime = range.startTime.toFixed(3);
+      const endTime = range.endTime.toFixed(3);
+
+      return [
+        // Show at start time
+        `<set attributeName="visibility" to="visible" begin="${beginTime}s" />`,
+        // Hide at end time
+        `<set attributeName="visibility" to="hidden" begin="${endTime}s" />`,
+      ];
+    }).join('\n      ');
+
+    const isFirstSprite = index === 0;
+    const initialVisibility = isFirstSprite ? 'visible' : 'hidden';
+
+    return `
+    <svg
+      width="${displayWidth}"
+      height="${displayHeight}"
+      viewBox="${viewBoxValues[0]}"
+      x="${-displayWidth / 2}"
+      y="${-displayHeight / 2}"
+      visibility="${initialVisibility}"
+      class="sprite-layer-${spriteKey}"
+    >
+      <!-- Frame animation -->
+      <animate
+        attributeName="viewBox"
+        values="${viewBoxValues.join(';')}"
+        keyTimes="${frameKeyTimes}"
+        dur="${spriteAnimDuration}s"
+        repeatCount="indefinite"
+        calcMode="discrete"
+      />
+
+      <!-- Visibility switching -->
+      ${visibilityAnimations}
+
+      <image href="${sprite.imageData}" width="${fullWidth}" height="${fullHeight}" />
+    </svg>`;
+  }).join('');
+
+  return `
+  <g class="sprite-character-multidirectional" id="${animationId}">
+    <!-- Position animation -->
+    <animateMotion
+      path="${positionPath}"
+      dur="${totalDuration}s"
+      fill="freeze"
+    />
+
+    <!-- Multiple sprite layers that switch visibility -->
+    ${spriteLayers}
+  </g>`;
 }
 
 

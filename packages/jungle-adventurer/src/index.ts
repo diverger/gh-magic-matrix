@@ -19,12 +19,14 @@ import {
   createAllImpactFlashesSVG,
 } from './blockEffects';
 import {
-  createScanningPath,
-  createZigzagPath,
-  createSpiralPath,
   smoothPath,
   PathPoint,
 } from './pathPlanning';
+import {
+  createSmartPath,
+  actionSegmentsToPathPoints,
+  Target,
+} from './smartPathPlanning';
 import { loadBuiltInSprites } from './assetLoader';
 import { getGridColors } from './colorSchemes';
 
@@ -59,8 +61,6 @@ export interface JungleAdventurerOptions {
   bulletHeight?: number;
   bulletColor?: string;
   blockDestroyEffect?: 'explode' | 'fade' | 'shatter' | 'dissolve';
-  pathType?: 'scanning' | 'zigzag' | 'spiral';
-  characterSpeed?: number;
 }
 
 /**
@@ -105,14 +105,12 @@ export function generateJungleAdventurerSVG(
   // Animation settings (internal defaults)
   const characterScale = options.characterScale ?? 1.0;
   const animationFPS = options.animationFPS ?? 12;
-  const bulletSpeed = options.bulletSpeed ?? 150;
+  const bulletSpeed = options.bulletSpeed ?? 200; // Increased from 150 to ensure bullets outpace character
   const fireRate = options.fireRate ?? 3;
   const bulletWidth = options.bulletWidth ?? 2;
   const bulletHeight = options.bulletHeight ?? 4;
-  const bulletColor = options.bulletColor ?? '#ffff00';
+  const bulletColor = options.bulletColor ?? '#ff4500'; // OrangeRed - high contrast on white background
   const blockDestroyEffect = options.blockDestroyEffect ?? 'explode';
-  const pathType = options.pathType ?? 'scanning';
-  const characterSpeed = options.characterSpeed ?? 100;
 
   // Load sprites (use provided or load built-in)
   const sprites = options.sprites ?? loadBuiltInSprites();
@@ -120,17 +118,23 @@ export function generateJungleAdventurerSVG(
   // Calculate grid dimensions
   const gridWidth = contributionWeeks.length;
   const gridHeight = 7; // Always 7 days per week
-  const totalWidth = gridWidth * (cellSize + cellGap) - cellGap;
-  const totalHeight = gridHeight * (cellSize + cellGap) - cellGap;
-
-  // Add padding for character movement
-  const padding = 100;
-  const svgWidth = totalWidth + padding * 2;
-  const svgHeight = totalHeight + padding * 2;
-
-  // Create blocks from contribution data
-  const blocks: Block[] = [];
   const cellTotal = cellSize + cellGap;
+
+  // Canvas with symmetric padding around grid
+  // Left/Right: 1 cell each side
+  // Top/Bottom: 2 cells each side (symmetric)
+  const width = (gridWidth + 2) * cellTotal;   // Extra 2 cells width (1 on each side)
+  const height = (gridHeight + 4) * cellTotal; // Extra 4 cells height (2 top, 2 bottom)
+
+  const viewBoxX = -cellTotal;      // Start 1 cell to the left
+  const viewBoxY = -cellTotal * 2;  // Start 2 cells above
+
+  const svgWidth = width;
+  const svgHeight = height;
+
+  // Create blocks from contribution data AND collect path targets
+  const blocks: Block[] = [];
+  const pathTargets: Target[] = [];
 
   contributionWeeks.forEach((week, weekIdx) => {
     if (!week.days) {
@@ -150,66 +154,71 @@ export function generateJungleAdventurerSVG(
           );
         }
 
+        // Grid coordinates: x * cellTotal + m (exactly like the pattern)
+        // NO margin offset - grid starts at (0, 0)
+        const m = (cellTotal - cellSize) / 2;
         blocks.push({
-          x: padding + weekIdx * cellTotal,
-          y: padding + dayIdx * cellTotal,
+          x: weekIdx * cellTotal + m,
+          y: dayIdx * cellTotal + m,
           width: cellSize,
           height: cellSize,
           color: color || colorLevels[0] || '#666666', // Fallback chain
           level: level,
         });
+
+        // Collect target for path planning
+        pathTargets.push({
+          x: weekIdx,
+          y: dayIdx,
+          contributionLevel: level,
+        });
       }
     });
   });
 
-  // Generate character path
+  // Generate character path using smart planning
   let characterPath: PathPoint[];
 
-  switch (pathType) {
-    case 'zigzag':
-      characterPath = createZigzagPath(
-        gridWidth,
-        gridHeight,
-        cellSize,
-        cellGap,
-        characterSpeed
-      );
-      break;
-    case 'spiral':
-      characterPath = createSpiralPath(
-        gridWidth,
-        gridHeight,
-        cellSize,
-        cellGap,
-        characterSpeed
-      );
-      break;
-    case 'scanning':
-    default:
-      characterPath = createScanningPath(
-        gridWidth,
-        gridHeight,
-        cellSize,
-        cellGap,
-        characterSpeed
-      );
-      break;
+  // Always use smart path that visits all contribution cells efficiently
+  if (pathTargets.length > 0) {
+    const smartSegments = createSmartPath(
+      pathTargets,
+      gridWidth,
+      gridHeight,
+      cellSize,
+      cellGap,
+      30,  // walkSpeed
+      60,  // runSpeed
+      3    // shootRange (cells)
+    );
+    characterPath = actionSegmentsToPathPoints(smartSegments);
+    console.log(`🎯 Smart path: ${smartSegments.length} segments, ${pathTargets.length} targets`);
+  } else {
+    // No contributions - just idle at starting position
+    characterPath = [{
+      x: -cellTotal + cellTotal / 2,
+      y: -cellTotal + cellTotal / 2,
+      time: 0,
+    }];
   }
 
-  // Offset path by padding
-  characterPath = characterPath.map(p => ({
-    ...p,
-    x: p.x + padding,
-    y: p.y + padding,
-  }));
+  // Reduce smoothing to avoid too many interpolation points
+  characterPath = smoothPath(characterPath, 1);
 
-  // Smooth the path for better animation
-  characterPath = smoothPath(characterPath, 3);
+  // Adjust character path to align character's center with block centers
+  // animateMotion positions the top-left corner of the sprite, so we need to offset
+  // Get any sprite to determine frame size (all sprites should have same dimensions)
+  const firstSprite = sprites.runRight || sprites.shootRight || Object.values(sprites).find(s => s);
+  const displayWidth = firstSprite ? firstSprite.frameWidth * characterScale : 48;
+  const displayHeight = firstSprite ? firstSprite.frameHeight * characterScale : 64;
 
-  // Generate bullets
+  // Generate bullets BEFORE offsetting character path
+  // generateBullets expects character center coordinates
   const shootingConfig: ShootingConfig = {
     characterX: 0,
     characterY: 0,
+    characterWidth: displayWidth,
+    characterHeight: displayHeight,
     bulletSpeed,
     fireRate,
     bulletWidth,
@@ -218,7 +227,8 @@ export function generateJungleAdventurerSVG(
     hasTrail: true,
   };
 
-  const targets = blocks.map(block => ({
+  // Create shooting targets from blocks
+  const shootingTargets = blocks.map(block => ({
     x: block.x,
     y: block.y,
     width: block.width,
@@ -226,12 +236,24 @@ export function generateJungleAdventurerSVG(
     hitTime: undefined as number | undefined,  // Will be set by generateBullets
   }));
 
-  // Generate bullets - this will populate hitTime in targets
-  const bullets = generateBullets(characterPath, targets, shootingConfig);
+  // Generate bullets using CENTER coordinates
+  const bullets = generateBullets(characterPath, shootingTargets, shootingConfig);
 
-  // Create hit time map from targets (using exact coordinates, no rounding!)
+  // Create shooting state map: mark which path segments are shooting
+  const shootingTimes = new Set<number>();
+  bullets.forEach(bullet => {
+    const shootTime = bullet.startTime;
+    // Mark path segments near this shoot time as shooting
+    characterPath.forEach((p, idx) => {
+      if (idx > 0 && Math.abs(p.time - shootTime) < 0.2) { // Within 200ms
+        shootingTimes.add(idx);
+      }
+    });
+  });
+
+  // Create hit time map from shootingTargets (using exact coordinates, no rounding!)
   const hitTimes = new Map<string, number>();
-  targets.forEach(target => {
+  shootingTargets.forEach(target => {
     if (target.hitTime !== undefined) {
       const blockId = `block-${target.x}-${target.y}`;
       hitTimes.set(blockId, target.hitTime);
@@ -253,7 +275,7 @@ export function generateJungleAdventurerSVG(
 <svg
   width="${svgWidth}"
   height="${svgHeight}"
-  viewBox="0 0 ${svgWidth} ${svgHeight}"
+  viewBox="${viewBoxX} ${viewBoxY} ${svgWidth} ${svgHeight}"
   xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
 >
@@ -264,37 +286,22 @@ export function generateJungleAdventurerSVG(
   </style>
 
   <!-- Background -->
-  <rect width="100%" height="100%" fill="${backgroundColor}" />
+  <rect x="${viewBoxX}" y="${viewBoxY}" width="${svgWidth}" height="${svgHeight}" fill="${backgroundColor}" />
 
   <!-- Blocks layer (with destroy effects) -->
   <g class="blocks-layer">
     ${createAllBlocksWithEffects(blocks, hitTimes, blockDestroyEffect)}
   </g>
 
-  <!-- Impact flashes layer -->
+    <!-- Impact flashes layer -->
   ${createAllImpactFlashesSVG(impacts)}
 
   <!-- Bullets layer -->
-  ${createAllBulletsSVG(bullets, shootingConfig)}
-
-  <!-- Muzzle flashes layer -->
-  ${createAllMuzzleFlashesSVG(bullets, bulletColor)}
+  ${createAllBulletsSVG(bullets, shootingConfig, characterPath)}
 
   <!-- Character layer (8-directional sprites, auto-switched based on movement) -->
   <!-- IMPORTANT: This MUST be AFTER blocks layer so character appears on top! -->
   ${createMultiDirectionalSpriteElement(
-    sprites,
-    // Convert PathPoint[] with cumulative time to path segments with duration per segment
-    characterPath.map((p, index) => ({
-      x: p.x,
-      y: p.y,
-      duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
-      isShooting: false, // TODO: Track shooting state per path point
-    })),
-    characterScale,
-    'character-anim',
-    animationFPS
-  )}
 
   <!-- Timeline indicator (optional, for debugging) -->
   <!--

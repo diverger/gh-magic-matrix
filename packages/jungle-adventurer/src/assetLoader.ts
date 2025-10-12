@@ -70,37 +70,37 @@ export function getAssetPath(assetName: string): string {
 export function loadBuiltInSprites(): MultiDirectionalSprites {
     const sprites: MultiDirectionalSprites = {};
 
-    // Sprite file mapping - using EXACT filenames from assets/sprites/
+    // Sprite file mapping - using EXACT filenames from assets/sprites/ (all lowercase)
     const spriteFiles = {
-        // Run with gun - 8 directions
-        runRight: 'Run_Gun_right.png',
-        runLeft: 'Run_Gun_left.png',
-        runUp: 'Run_Gun_up.png',
-        runDown: 'Run_Gun_down.png',
-        runRightUp: 'Run_Gun_right_up.png',
-        runRightDown: 'Run_Gun_right_down.png',
-        runLeftUp: 'Run_Gun_left_up.png',
-        runLeftDown: 'Run_Gun_left_down.png',
+        // Run with gun (not shooting) - 8 directions
+        runRight: 'run_gun_right.png',
+        runLeft: 'run_gun_left.png',
+        runUp: 'run_gun_up.png',
+        runDown: 'run_gun_down.png',
+        runRightUp: 'run_gun_right_up.png',
+        runRightDown: 'run_gun_right_down.png',
+        runLeftUp: 'run_gun_left_up.png',
+        runLeftDown: 'run_gun_left_down.png',
 
-        // Shooting - 8 directions
-        shootRight: 'Shooting_right.png',
-        shootLeft: 'Shooting_left.png',
-        shootUp: 'Shooting_up.png',
-        shootDown: 'Shooting_down.png',
-        shootRightUp: 'Shooting_right_up.png',
-        shootRightDown: 'Shooting_right_down.png',
-        shootLeftUp: 'Shooting_left_up.png',
-        shootLeftDown: 'Shooting_left_down.png',
+        // Run while shooting - 8 directions (CORRECT: use run_while_shooting_*)
+        shootRight: 'run_while_shooting_right.png',
+        shootLeft: 'run_while_shooting_left.png',
+        shootUp: 'run_while_shooting_up.png',
+        shootDown: 'run_while_shooting_down.png',
+        shootRightUp: 'run_while_shooting_right_up.png',
+        shootRightDown: 'run_while_shooting_right_down.png',
+        shootLeftUp: 'run_while_shooting_left_up.png',
+        shootLeftDown: 'run_while_shooting_left_down.png',
 
         // Walk while reloading - 8 directions
-        reloadRight: 'Walk_while_reloading_Right.png',
-        reloadLeft: 'Walk_while_reloading_Left.png',
-        reloadUp: 'Walk_while_reloading_Up.png',
-        reloadDown: 'Walk_while_reloading_Down.png',
-        reloadRightUp: 'Walk_while_reloading_Right_Up.png',
-        reloadRightDown: 'Walk_while_reloading_Right_Down.png',
-        reloadLeftUp: 'Walk_while_reloading_Left_Up.png',
-        reloadLeftDown: 'Walk_while_reloading_Left_Down.png',
+        reloadRight: 'walk_while_reloading_right.png',
+        reloadLeft: 'walk_while_reloading_left.png',
+        reloadUp: 'walk_while_reloading_up.png',
+        reloadDown: 'walk_while_reloading_down.png',
+        reloadRightUp: 'walk_while_reloading_right_up.png',
+        reloadRightDown: 'walk_while_reloading_right_down.png',
+        reloadLeftUp: 'walk_while_reloading_left_up.png',
+        reloadLeftDown: 'walk_while_reloading_left_down.png',
     };
 
     // Load all sprites

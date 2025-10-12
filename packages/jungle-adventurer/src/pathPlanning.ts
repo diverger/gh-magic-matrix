@@ -17,62 +17,72 @@ export interface GridCell {
 }
 
 /**
- * Create a simple scanning path (left-to-right, row by row)
- * Similar to old-school arcade games
+ * Create a simple scanning path (left-to-right, top-to-bottom)
+ *
+ * Coordinate system:
+ * - X: column * cellTotal (left to right, 0 to gridWidth-1)
+ * - Y: row * cellTotal (top to bottom, 0 to gridHeight-1)
+ * - Origin (0,0) is top-left of the grid
+ * - Character moves within grid cells (no padding needed)
  */
 export function createScanningPath(
   gridWidth: number,
   gridHeight: number,
   cellSize: number,
   cellGap: number,
-  speed: number = 100 // pixels per second
+  speed: number = 50 // reduced default speed
 ): PathPoint[] {
   const path: PathPoint[] = [];
   let currentTime = 0;
 
   const cellTotal = cellSize + cellGap;
+  const m = cellTotal / 2; // center of cell
 
-  // Start position (bottom-left, below the grid)
-  const startX = 0;
-  const startY = gridHeight * cellTotal + cellTotal * 2;
+  // Start position at first cell (top-left)
+  const startX = m;
+  const startY = m;
 
   path.push({ x: startX, y: startY, time: currentTime });
 
-  // Move to first row
-  const firstRowY = (gridHeight - 1) * cellTotal + cellSize / 2;
-  const moveUpDistance = Math.abs(startY - firstRowY);
-  currentTime += moveUpDistance / speed;
-  path.push({ x: startX, y: firstRowY, time: currentTime });
+  // Scan each row from top to bottom
+  // ALWAYS left to right to avoid "backwards running"
+  for (let row = 0; row < gridHeight; row++) {
+    const y = row * cellTotal + m;
 
-  // Scan each row from bottom to top
-  for (let row = gridHeight - 1; row >= 0; row--) {
-    const y = row * cellTotal + cellSize / 2;
+    // Always move left to right
+    for (let col = 0; col < gridWidth; col++) {
+      const x = col * cellTotal + m;
 
-    // Move across the row
-    if (row % 2 === 1) {
-      // Odd rows: left to right
-      for (let col = 0; col < gridWidth; col++) {
-        const x = col * cellTotal + cellSize / 2;
-        const distance = col > 0 ? cellTotal : 0;
+      // Skip first cell (already there)
+      if (row === 0 && col === 0) continue;
+
+      if (path.length > 0) {
+        const lastPoint = path[path.length - 1];
+        const distance = Math.sqrt(
+          Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2)
+        );
         currentTime += distance / speed;
-        path.push({ x, y, time: currentTime });
       }
-    } else {
-      // Even rows: right to left
-      for (let col = gridWidth - 1; col >= 0; col--) {
-        const x = col * cellTotal + cellSize / 2;
-        const distance = col < gridWidth - 1 ? cellTotal : 0;
-        currentTime += distance / speed;
-        path.push({ x, y, time: currentTime });
-      }
+
+      path.push({ x, y, time: currentTime });
     }
 
     // Move to next row (if not the last row)
-    if (row > 0) {
-      const nextY = (row - 1) * cellTotal + cellSize / 2;
+    // Two-step movement: down first, then left to start of next row
+    if (row < gridHeight - 1) {
+      const nextY = (row + 1) * cellTotal + m;
+      const lastPoint = path[path.length - 1];
+
+      // Step 1: Move down (keep same X)
       currentTime += cellTotal / speed;
-      const lastX = path[path.length - 1].x;
-      path.push({ x: lastX, y: nextY, time: currentTime });
+      path.push({ x: lastPoint.x, y: nextY, time: currentTime });
+
+      // Step 2: Move left to start of next row (if not already there)
+      if (lastPoint.x !== m) {
+        const horizontalDistance = Math.abs(lastPoint.x - m);
+        currentTime += horizontalDistance / speed;
+        path.push({ x: m, y: nextY, time: currentTime });
+      }
     }
   }
 
