@@ -20,7 +20,7 @@ async function run(): Promise<void> {
     const outputPath = core.getInput('output_path') || 'jungle-adventurer.svg';
 
     // Color settings (only user-facing configuration)
-    const colorScheme = core.getInput('color_scheme') || 'github-green';
+    const colorScheme = core.getInput('color_scheme') || 'github-light';
     const customColors = core.getInput('custom_colors') || undefined;
 
     core.info(`🎮 Generating Jungle Adventurer animation for ${githubUserName}...`);

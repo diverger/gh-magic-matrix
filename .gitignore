@@ -60,6 +60,10 @@ jspm_packages/
 dist/
 build/
 
+# Test outputs
+test-outputs/
+jungle-test-output.svg
+
 # Exception: Allow built action distributions (required for GitHub Actions)
 !dist/blinking-contrib/
 !dist/breathing-contrib/

@@ -497,6 +497,10 @@ export function createMovingSpriteElement(
   const displayWidth = frameWidth * scale;
   const displayHeight = frameHeight * scale;
 
+  // Calculate full sprite sheet dimensions
+  const fullWidth = layout === 'horizontal' ? frameWidth * frameCount : frameWidth;
+  const fullHeight = layout === 'vertical' ? frameHeight * frameCount : frameHeight;
+
   // Determine flip state for each segment
   const flipStates: boolean[] = [];
   for (let i = 0; i < pathPoints.length - 1; i++) {
@@ -558,12 +562,17 @@ export function createMovingSpriteElement(
 
   return `
   <g class="sprite-character-moving">
+    <!-- Position animation - applies to the group -->
+    <animateMotion
+      path="${generateSVGPath(pathPoints)}"
+      dur="${totalDuration}s"
+      fill="freeze"
+    />
+
     <svg
       width="${displayWidth}"
       height="${displayHeight}"
       viewBox="${viewBoxValues[0]}"
-      x="0"
-      y="0"
     >
       <!-- Sprite frame animation -->
       <animate
@@ -575,16 +584,10 @@ export function createMovingSpriteElement(
         calcMode="discrete"
       />
 
-      <!-- Position animation -->
-      <animateMotion
-        path="${generateSVGPath(pathPoints)}"
-        dur="${totalDuration}s"
-        fill="freeze"
-      />
-
       ${flipAnimation}
 
-      <image href="${imageData}" width="100%" height="100%" />
+      <!-- CRITICAL: Use actual pixel dimensions, not 100%! -->
+      <image href="${imageData}" width="${fullWidth}" height="${fullHeight}" />
     </svg>
   </g>`;
 }
@@ -642,11 +645,40 @@ export function createMultiDirectionalSpriteElement(
     });
   }
 
-  // For simplicity, use the first segment's sprite
-  // TODO: Advanced implementation could switch sprites mid-animation
-  const primarySegment = segments[0] || {
-    spriteKey: 'runRight' as keyof MultiDirectionalSprites,
-    direction: Direction8.Right,
+  // Determine the dominant direction based on total distance traveled in each direction
+  // This gives better sprite selection than just using the first segment
+  const directionDistances = new Map<Direction8, number>();
+
+  for (let i = 0; i < pathPoints.length - 1; i++) {
+    const from = pathPoints[i];
+    const to = pathPoints[i + 1];
+    const direction = determineDirection(from.x, from.y, to.x, to.y);
+    const distance = Math.sqrt(
+      Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2)
+    );
+
+    const currentDistance = directionDistances.get(direction) || 0;
+    directionDistances.set(direction, currentDistance + distance);
+  }
+
+  // Find the direction with the most distance traveled
+  let dominantDirection = Direction8.Right;
+  let maxDistance = 0;
+
+  for (const [direction, distance] of directionDistances.entries()) {
+    if (distance > maxDistance) {
+      maxDistance = distance;
+      dominantDirection = direction;
+    }
+  }
+
+  // Use the dominant direction for sprite selection
+  const action = pathPoints.some(p => p.isShooting) ? 'shoot' : 'run';
+  const spriteKey = getSpriteKey(dominantDirection, action);
+
+  const primarySegment = {
+    spriteKey,
+    direction: dominantDirection,
   };
 
   const primarySprite = sprites[primarySegment.spriteKey] || sprites.runRight;

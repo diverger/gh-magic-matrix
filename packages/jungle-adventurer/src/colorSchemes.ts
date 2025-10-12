@@ -10,9 +10,15 @@ export interface ColorScheme {
 }
 
 export const COLOR_SCHEMES: Record<string, ColorScheme> = {
+  'github-light': {
+    name: 'GitHub Light',
+    description: 'GitHub light mode contribution graph colors (default)',
+    colors: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+  },
+
   'github-green': {
     name: 'GitHub Green',
-    description: 'Classic GitHub contribution graph colors',
+    description: 'Classic GitHub contribution graph colors (dark mode)',
     colors: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
   },
 
@@ -80,8 +86,8 @@ export function getColorScheme(name: string): string[] {
     return scheme.colors;
   }
 
-  // Default to github-green
-  return COLOR_SCHEMES['github-green'].colors;
+  // Default to github-light
+  return COLOR_SCHEMES['github-light'].colors;
 }
 
 /**
@@ -139,7 +145,7 @@ export function getGridColors(
     console.error(
       `Color scheme "${colorScheme}" returned ${colors.length} colors instead of 5. Using default.`
     );
-    return COLOR_SCHEMES['github-green'].colors;
+    return COLOR_SCHEMES['github-light'].colors;
   }
 
   return colors as [string, string, string, string, string];

@@ -151,8 +151,19 @@ export function generateBullets(
 
       // Fire at the nearest target
       if (nearestTarget) {
-        const bulletStartX = currentPos.x + bulletOffsetX;
-        const bulletStartY = currentPos.y + bulletOffsetY;
+        // Calculate direction to target
+        const dx = nearestTarget.x + nearestTarget.width / 2 - currentPos.x;
+        const dy = nearestTarget.y + nearestTarget.height / 2 - currentPos.y;
+        const angle = Math.atan2(dy, dx);
+
+        // Calculate gun muzzle offset based on shooting direction
+        // Assume character is 48x64, gun muzzle is at front edge of character
+        const muzzleDistance = 20; // Distance from center to muzzle
+        const muzzleOffsetX = Math.cos(angle) * muzzleDistance;
+        const muzzleOffsetY = Math.sin(angle) * muzzleDistance;
+
+        const bulletStartX = currentPos.x + muzzleOffsetX;
+        const bulletStartY = currentPos.y + muzzleOffsetY;
         const duration = calculateBulletDuration(
           bulletStartX,
           bulletStartY,

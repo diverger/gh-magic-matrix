@@ -90,10 +90,10 @@ export function generateJungleAdventurerSVG(
   const cellRadius = options.cellRadius ?? 2;
 
   // Color settings (simplified!)
-  const colorScheme = options.colorScheme ?? 'github-green';
+  const colorScheme = options.colorScheme ?? 'github-light';
   const customColors = options.customColors;
   const colorLevels = getGridColors(colorScheme, customColors);
-  const backgroundColor = options.backgroundColor ?? '#0d1117';
+  const backgroundColor = options.backgroundColor ?? '#ffffff';
 
   // Validate color levels array
   if (!colorLevels || colorLevels.length < 5) {
@@ -281,6 +281,7 @@ export function generateJungleAdventurerSVG(
   ${createAllMuzzleFlashesSVG(bullets, bulletColor)}
 
   <!-- Character layer (8-directional sprites, auto-switched based on movement) -->
+  <!-- IMPORTANT: This MUST be AFTER blocks layer so character appears on top! -->
   ${createMultiDirectionalSpriteElement(
     sprites,
     // Convert PathPoint[] with cumulative time to path segments with duration per segment
