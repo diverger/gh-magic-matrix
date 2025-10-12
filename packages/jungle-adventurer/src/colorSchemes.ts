@@ -111,21 +111,38 @@ export function parseCustomColors(colorString: string): string[] | null {
 
 /**
  * Get colors for grid rendering
+ * Always returns exactly 5 colors (guaranteed)
  */
 export function getGridColors(
   colorScheme: string = 'github-green',
   customColors?: string
-): string[] {
+): [string, string, string, string, string] {
   // Custom colors take priority
   if (customColors) {
     const parsed = parseCustomColors(customColors);
-    if (parsed) {
-      return parsed;
+    if (parsed && parsed.length === 5) {
+      return parsed as [string, string, string, string, string];
+    }
+    // Log warning if custom colors are invalid
+    if (customColors.trim() !== '') {
+      console.warn(
+        `Invalid custom colors "${customColors}". Expected 5 hex colors. Falling back to scheme "${colorScheme}".`
+      );
     }
   }
 
   // Otherwise use named scheme
-  return getColorScheme(colorScheme);
+  const colors = getColorScheme(colorScheme);
+
+  // Defensive check (should never happen, but TypeScript safety)
+  if (colors.length !== 5) {
+    console.error(
+      `Color scheme "${colorScheme}" returned ${colors.length} colors instead of 5. Using default.`
+    );
+    return COLOR_SCHEMES['github-green'].colors;
+  }
+
+  return colors as [string, string, string, string, string];
 }
 
 export default {

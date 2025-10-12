@@ -114,35 +114,37 @@ export function createExplosionEffect(
 
   return `
   <g class="explosion-effect">
-    <!-- Block expands and fades -->
-    <rect
-      x="${block.x}"
-      y="${block.y}"
-      width="${block.width}"
-      height="${block.height}"
-      fill="${block.color}"
-      rx="2"
-    >
-      <!-- Scale up -->
-      <animateTransform
-        attributeName="transform"
-        type="scale"
-        values="1;1.5;0"
-        dur="${duration}s"
-        begin="${explosionDelay}s"
-        additive="sum"
-        fill="freeze"
-      />
-      <!-- Fade out -->
-      <animate
-        attributeName="opacity"
-        values="1;0.5;0"
-        keyTimes="0;0.5;1"
-        dur="${duration}s"
-        begin="${explosionDelay}s"
-        fill="freeze"
-      />
-    </rect>
+    <!-- Block expands and fades (using group transform for proper center scaling) -->
+    <g transform="translate(${centerX}, ${centerY})">
+      <rect
+        x="${-block.width / 2}"
+        y="${-block.height / 2}"
+        width="${block.width}"
+        height="${block.height}"
+        fill="${block.color}"
+        rx="2"
+      >
+        <!-- Scale up from center (now at 0,0 of this group) -->
+        <animateTransform
+          attributeName="transform"
+          type="scale"
+          values="1;1.5;0"
+          dur="${duration}s"
+          begin="${explosionDelay}s"
+          additive="sum"
+          fill="freeze"
+        />
+        <!-- Fade out -->
+        <animate
+          attributeName="opacity"
+          values="1;0.5;0"
+          keyTimes="0;0.5;1"
+          dur="${duration}s"
+          begin="${explosionDelay}s"
+          fill="freeze"
+        />
+      </rect>
+    </g>
 
     <!-- Explosion particles -->
     ${particles.join('\n')}
@@ -239,6 +241,13 @@ export function createDissolveEffect(
   const rows = Math.ceil(block.height / pixelSize);
   const pixels: string[] = [];
 
+  // Calculate total delay for wave effect
+  const maxDelay = (rows + cols - 2) * 0.02; // Maximum delay for last pixel
+  const pixelDuration = duration - maxDelay; // Each pixel animation duration
+
+  // Ensure minimum duration for pixel animation
+  const safePxDuration = Math.max(0.2, pixelDuration);
+
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const pixelX = block.x + col * pixelSize;
@@ -246,7 +255,6 @@ export function createDissolveEffect(
 
       // Each pixel disappears at a slightly different time (wave effect)
       const delay = (row + col) * 0.02;
-      const pixelDuration = 0.3;
 
       pixels.push(`
       <rect
@@ -261,7 +269,7 @@ export function createDissolveEffect(
           attributeName="opacity"
           values="0;1;0"
           keyTimes="0;0.5;1"
-          dur="${pixelDuration}s"
+          dur="${safePxDuration}s"
           begin="${hitTime + delay}s"
           fill="freeze"
         />
@@ -269,7 +277,7 @@ export function createDissolveEffect(
         <animate
           attributeName="y"
           values="${pixelY};${pixelY - 5}"
-          dur="${pixelDuration}s"
+          dur="${safePxDuration}s"
           begin="${hitTime + delay}s"
           fill="freeze"
         />

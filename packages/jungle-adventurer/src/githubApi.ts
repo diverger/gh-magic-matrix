@@ -87,7 +87,7 @@ export async function fetchContributionData(
       return {
         date: day.date,
         count: count,
-        level: level,
+        level: Math.max(0, Math.min(4, level)), // Ensure level is always 0-4
       } as ContributionDay;
     }),
   }));

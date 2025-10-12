@@ -70,6 +70,20 @@ export function generateJungleAdventurerSVG(
   contributionWeeks: ContributionWeek[],
   options: JungleAdventurerOptions = {}
 ): string {
+  // Validate input
+  if (!contributionWeeks || contributionWeeks.length === 0) {
+    throw new Error('contributionWeeks cannot be empty');
+  }
+
+  // Validate that we have valid weeks with days
+  const validWeeks = contributionWeeks.filter(
+    week => week.days && week.days.length > 0
+  );
+
+  if (validWeeks.length === 0) {
+    throw new Error('contributionWeeks must contain at least one week with days');
+  }
+
   // Grid settings
   const cellSize = options.cellSize ?? 12;
   const cellGap = options.cellGap ?? 2;
@@ -80,6 +94,13 @@ export function generateJungleAdventurerSVG(
   const customColors = options.customColors;
   const colorLevels = getGridColors(colorScheme, customColors);
   const backgroundColor = options.backgroundColor ?? '#0d1117';
+
+  // Validate color levels array
+  if (!colorLevels || colorLevels.length < 5) {
+    throw new Error(
+      `Color scheme must provide exactly 5 colors, got ${colorLevels?.length ?? 0}`
+    );
+  }
 
   // Animation settings (internal defaults)
   const characterScale = options.characterScale ?? 1.0;
@@ -112,15 +133,30 @@ export function generateJungleAdventurerSVG(
   const cellTotal = cellSize + cellGap;
 
   contributionWeeks.forEach((week, weekIdx) => {
+    if (!week.days) {
+      return; // Skip weeks without days
+    }
+
     week.days.forEach((day, dayIdx) => {
       if (day.count > 0) {
+        // Validate and clamp level to valid range (0-4)
+        const level = Math.max(0, Math.min(4, day.level ?? 0));
+
+        // Double-check color exists (defensive programming)
+        const color = colorLevels[level];
+        if (!color) {
+          console.warn(
+            `Warning: No color found for level ${level}, using fallback`
+          );
+        }
+
         blocks.push({
           x: padding + weekIdx * cellTotal,
           y: padding + dayIdx * cellTotal,
           width: cellSize,
           height: cellSize,
-          color: colorLevels[day.level],
-          level: day.level,
+          color: color || colorLevels[0] || '#666666', // Fallback chain
+          level: level,
         });
       }
     });
