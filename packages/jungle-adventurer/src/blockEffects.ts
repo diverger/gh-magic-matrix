@@ -53,7 +53,7 @@ export function createFadeOutEffect(
 export function createExplosionEffect(
   block: Block,
   hitTime: number,
-  duration: number = 0.4
+  duration: number = 0.05  // Instant explosion (50ms) - almost invisible, just a flash
 ): string {
   const centerX = block.x + block.width / 2;
   const centerY = block.y + block.height / 2;
@@ -75,7 +75,7 @@ export function createExplosionEffect(
       cy="${centerY}"
       r="2"
       fill="${block.color}"
-      opacity="0"
+      opacity="1"
     >
       <!-- Move outward -->
       <animate
@@ -92,11 +92,10 @@ export function createExplosionEffect(
         begin="${explosionDelay}s"
         fill="freeze"
       />
-      <!-- Fade in then out -->
+      <!-- Fade out (start visible, no fade in) -->
       <animate
         attributeName="opacity"
-        values="0;1;0"
-        keyTimes="0;0.3;1"
+        values="1;0"
         dur="${duration}s"
         begin="${explosionDelay}s"
         fill="freeze"
@@ -114,39 +113,7 @@ export function createExplosionEffect(
 
   return `
   <g class="explosion-effect">
-    <!-- Block expands and fades (using group transform for proper center scaling) -->
-    <g transform="translate(${centerX}, ${centerY})">
-      <rect
-        x="${-block.width / 2}"
-        y="${-block.height / 2}"
-        width="${block.width}"
-        height="${block.height}"
-        fill="${block.color}"
-        rx="2"
-      >
-        <!-- Scale up from center (now at 0,0 of this group) -->
-        <animateTransform
-          attributeName="transform"
-          type="scale"
-          values="1;1.5;0"
-          dur="${duration}s"
-          begin="${explosionDelay}s"
-          additive="sum"
-          fill="freeze"
-        />
-        <!-- Fade out -->
-        <animate
-          attributeName="opacity"
-          values="1;0.5;0"
-          keyTimes="0;0.5;1"
-          dur="${duration}s"
-          begin="${explosionDelay}s"
-          fill="freeze"
-        />
-      </rect>
-    </g>
-
-    <!-- Explosion particles -->
+    <!-- Explosion particles only (base block already exists outside) -->
     ${particles.join('\n')}
   </g>`;
 }
@@ -233,7 +200,7 @@ export function createShatterEffect(
 export function createDissolveEffect(
   block: Block,
   hitTime: number,
-  duration: number = 0.6
+  duration: number = 0.1  // Very fast dissolve (100ms)
 ): string {
   // Break block into pixels
   const pixelSize = 2;
@@ -263,12 +230,11 @@ export function createDissolveEffect(
         width="${pixelSize}"
         height="${pixelSize}"
         fill="${block.color}"
-        opacity="0"
+        opacity="1"
       >
         <animate
           attributeName="opacity"
-          values="0;1;0"
-          keyTimes="0;0.5;1"
+          values="1;0"
           dur="${safePxDuration}s"
           begin="${hitTime + delay}s"
           fill="freeze"
@@ -299,18 +265,23 @@ export function createBlockWithEffect(
   hitTime: number,
   effectType: 'explode' | 'fade' | 'shatter' | 'dissolve' = 'explode'
 ): string {
-  switch (effectType) {
-    case 'fade':
-      return createFadeOutEffect(block, hitTime);
-    case 'explode':
-      return createExplosionEffect(block, hitTime);
-    case 'shatter':
-      return createShatterEffect(block, hitTime);
-    case 'dissolve':
-      return createDissolveEffect(block, hitTime);
-    default:
-      return createFadeOutEffect(block, hitTime);
-  }
+  // Just show the block that hides instantly when hit - no explosion effect
+  const baseBlock = `
+  <rect
+    x="${block.x}"
+    y="${block.y}"
+    width="${block.width}"
+    height="${block.height}"
+    fill="${block.color}"
+    rx="2"
+    opacity="1"
+  >
+    <!-- Instantly hide when hit -->
+    <set attributeName="opacity" to="0" begin="${hitTime}s" />
+  </rect>`;
+
+  // No explosion effects - instant disappearance only
+  return baseBlock;
 }
 
 /**

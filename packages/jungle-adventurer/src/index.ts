@@ -205,7 +205,7 @@ export function generateJungleAdventurerSVG(
   // Reduce smoothing to avoid too many interpolation points
   characterPath = smoothPath(characterPath, 1);
 
-  // Adjust character path to align character's center with block centers
+  // Adjust character's center with block centers
   // animateMotion positions the top-left corner of the sprite, so we need to offset
   // Get any sprite to determine frame size (all sprites should have same dimensions)
   const firstSprite = sprites.runRight || sprites.shootRight || Object.values(sprites).find(s => s);
@@ -293,11 +293,10 @@ export function generateJungleAdventurerSVG(
     ${createAllBlocksWithEffects(blocks, hitTimes, blockDestroyEffect)}
   </g>
 
-    <!-- Impact flashes layer -->
+  <!-- Impact flashes layer -->
   ${createAllImpactFlashesSVG(impacts)}
 
-  <!-- Bullets layer -->
-  ${createAllBulletsSVG(bullets, shootingConfig, characterPath)}
+  <!-- Bullets layer - REMOVED: no bullet traces, instant hit only -->
 
   <!-- Character layer (8-directional sprites, auto-switched based on movement) -->
   <!-- IMPORTANT: This MUST be AFTER blocks layer so character appears on top! -->

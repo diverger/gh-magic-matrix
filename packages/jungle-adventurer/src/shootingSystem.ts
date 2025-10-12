@@ -143,19 +143,19 @@ export function generateBullets(
 
     if (absX > absY) {
       // Shooting horizontally (left or right)
-      // Start from ~20px left/right of character center
-      const horizontalOffset = 20;
+      // Muzzle is at character's vertical center, offset horizontally by ~half character width
+      const horizontalOffset = characterWidth / 2; // Start from edge of character
       bulletStartX = characterCenterX + (dirX > 0 ? horizontalOffset : -horizontalOffset);
-      bulletStartY = characterCenterY; // Keep Y at center
+      bulletStartY = characterCenterY; // Keep Y at center (where gun is)
     } else {
       // Shooting vertically (up or down)
       bulletStartX = characterCenterX; // Keep X at center
       if (dirY > 0) {
-        // Shooting down - start from bottom edge
-        bulletStartY = characterCenterY + characterHeight / 2;
+        // Shooting down - start from center, slightly below
+        bulletStartY = characterCenterY + characterHeight / 3; // Not bottom edge, closer to center
       } else {
-        // Shooting up - start from top edge
-        bulletStartY = characterCenterY - characterHeight / 2;
+        // Shooting up - start from center, slightly above  
+        bulletStartY = characterCenterY - characterHeight / 3; // Not top edge, closer to center
       }
     }
 
@@ -165,25 +165,25 @@ export function generateBullets(
       (targetCenterY - bulletStartY) ** 2
     );
 
-    const duration = bulletTravelDistance / bulletSpeed;
+    const duration = 0.05; // Fixed short duration for trace visual effect only
 
     // Find matching target
     const targetKey = `${targetCenterX.toFixed(1)},${targetCenterY.toFixed(1)}`;
     const target = targetMap.get(targetKey);
 
-    // Check if too close (less than 1 grid cell = 14px)
+    // Check if too close (less than 1 grid cell = 14px) - don't draw trace
     const minShootDistance = 14;
     if (bulletTravelDistance < minShootDistance) {
       // Too close — don't draw bullet trace, but destroy block immediately
       if (target) {
-        target.hitTime = segment.time; // Hit instantly (no bullet flight time)
+        target.hitTime = segment.time; // Instant hit
       }
       continue; // Skip generating bullet trace
     }
 
-    // Far enough — set hit time with bullet flight duration
+    // Far enough — draw bullet trace AND destroy block immediately (same time)
     if (target) {
-      target.hitTime = segment.time + duration; // Block hit after bullet travels
+      target.hitTime = segment.time; // Block destroyed when shot is fired (instant hit)
     }
 
     // Create bullet trace from character to target
@@ -194,14 +194,12 @@ export function generateBullets(
       targetX: targetCenterX,
       targetY: targetCenterY,
       startTime: segment.time, // Shoot immediately when in position
-      duration: duration,
+      duration: duration, // Short trace effect duration
       speed: bulletSpeed,
     };
 
     bullets.push(bullet);
   }
-
-  console.log(`Generated ${bullets.length} bullets for ${shootSegments.length} shooting actions`);
 
   return bullets;
 }
@@ -219,7 +217,7 @@ export function createBulletSVG(
     bulletColor = '#ff6600', // Orange-red for bullet trace
   } = config;
 
-  const traceDuration = 0.15; // Trace appears briefly (150ms)
+  const flashDuration = 0.05; // 50ms instant flash
 
   const svg = `
   <line
@@ -234,18 +232,11 @@ export function createBulletSVG(
     stroke-linecap="round"
     opacity="0"
   >
-    <!-- Show trace when bullet fires -->
-    <set attributeName="opacity" to="0.8" begin="${bullet.startTime}s" />
-
-    <!-- Fade out quickly after showing -->
-    <animate
-      attributeName="opacity"
-      from="0.8"
-      to="0"
-      dur="${traceDuration}s"
-      begin="${bullet.startTime}s"
-      fill="freeze"
-    />
+    <!-- Instant appear at shoot time -->
+    <set attributeName="opacity" to="0.9" begin="${bullet.startTime}s" />
+    
+    <!-- Instant disappear after brief flash -->
+    <set attributeName="opacity" to="0" begin="${bullet.startTime + flashDuration}s" />
   </line>`;
 
   return svg;
