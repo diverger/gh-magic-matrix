@@ -10,7 +10,6 @@ import {
 import {
   generateBullets,
   createAllBulletsSVG,
-  createAllMuzzleFlashesSVG,
   ShootingConfig,
 } from './shootingSystem';
 import {
@@ -178,10 +177,11 @@ export function generateJungleAdventurerSVG(
 
   // Generate character path using smart planning
   let characterPath: PathPoint[];
+  let smartSegments: any[] = []; // Keep ActionSegment[] for shooting system
 
   // Always use smart path that visits all contribution cells efficiently
   if (pathTargets.length > 0) {
-    const smartSegments = createSmartPath(
+    smartSegments = createSmartPath(
       pathTargets,
       gridWidth,
       gridHeight,
@@ -236,8 +236,8 @@ export function generateJungleAdventurerSVG(
     hitTime: undefined as number | undefined,  // Will be set by generateBullets
   }));
 
-  // Generate bullets using CENTER coordinates
-  const bullets = generateBullets(characterPath, shootingTargets, shootingConfig);
+  // Generate bullets using ActionSegments (which have action and targetX/targetY)
+  const bullets = generateBullets(smartSegments.length > 0 ? smartSegments : characterPath, shootingTargets, shootingConfig);
 
   // Create shooting state map: mark which path segments are shooting
   const shootingTimes = new Set<number>();
@@ -302,6 +302,18 @@ export function generateJungleAdventurerSVG(
   <!-- Character layer (8-directional sprites, auto-switched based on movement) -->
   <!-- IMPORTANT: This MUST be AFTER blocks layer so character appears on top! -->
   ${createMultiDirectionalSpriteElement(
+    sprites,
+    // Convert PathPoint[] with cumulative time to path segments with duration per segment
+    characterPath.map((p, index) => ({
+      x: p.x,
+      y: p.y,
+      duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
+      isShooting: false, // TODO: Track shooting state per path point
+    })),
+    characterScale,
+    'character-anim',
+    animationFPS
+  )}
 
   <!-- Timeline indicator (optional, for debugging) -->
   <!--

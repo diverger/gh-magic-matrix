@@ -100,49 +100,96 @@ function findNearestTarget(
 }
 
 /**
- * Generate path from current position to target
- * Uses direct Manhattan path (horizontal then vertical)
+ * Generate path from current position to a shooting position for the target
+ * Then add a "turn and shoot" segment
  *
- * For simplicity, use direct path (can be enhanced with A* later)
+ * Shooting logic:
+ * 1. Move to a position where target is in one of 4 cardinal directions
+ * 2. Turn to face the target (this changes movement direction)
+ * 3. Shoot in straight line
  */
-function generatePathToTarget(
+function generatePathToShootTarget(
   fromX: number,
   fromY: number,
-  toX: number,
-  toY: number,
+  targetX: number,
+  targetY: number,
   cellSize: number,
   cellGap: number,
   speed: number,
   currentTime: number
-): PathPoint[] {
+): { path: PathPoint[], shootFromX: number, shootFromY: number, finalTime: number } {
   const path: PathPoint[] = [];
   const cellTotal = cellSize + cellGap;
-  // Same as blocks: center the position within the cell
   const m = (cellTotal - cellSize) / 2;
 
   let x = fromX;
   let y = fromY;
   let time = currentTime;
 
-  // Move horizontally first (one cell at a time)
-  const targetX = toX;
-  while (x !== targetX) {
-    const step = x < targetX ? 1 : -1;
-    x += step;
-    time += cellTotal / speed;
-    path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+  // Strategy: Move to same row or column as target, then face it and shoot
+  // Choose whether to align horizontally or vertically based on which is closer
+
+  const dx = targetX - fromX;
+  const dy = targetY - fromY;
+
+  let shootFromGridX = fromX;
+  let shootFromGridY = fromY;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Target is more horizontal - align vertically first, then move horizontally
+    // Move to target's row
+    while (y !== targetY) {
+      const step = y < targetY ? 1 : -1;
+      y += step;
+      time += cellTotal / speed;
+      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+    }
+
+    // Then move towards target column (but stop before target, so we can shoot)
+    // Stop 1-3 cells away from target
+    const targetCol = targetX;
+    const stopBeforeTarget = x < targetCol ? targetCol - 1 : targetCol + 1;
+
+    while (x !== stopBeforeTarget) {
+      const step = x < stopBeforeTarget ? 1 : -1;
+      x += step;
+      time += cellTotal / speed;
+      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+    }
+
+    shootFromGridX = x;
+    shootFromGridY = y;
+  } else {
+    // Target is more vertical - align horizontally first, then move vertically
+    // Move to target's column
+    while (x !== targetX) {
+      const step = x < targetX ? 1 : -1;
+      x += step;
+      time += cellTotal / speed;
+      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+    }
+
+    // Then move towards target row (but stop before target)
+    const targetRow = targetY;
+    const stopBeforeTarget = y < targetRow ? targetRow - 1 : targetRow + 1;
+
+    while (y !== stopBeforeTarget) {
+      const step = y < stopBeforeTarget ? 1 : -1;
+      y += step;
+      time += cellTotal / speed;
+      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+    }
+
+    shootFromGridX = x;
+    shootFromGridY = y;
   }
 
-  // Then move vertically (one cell at a time)
-  const targetY = toY;
-  while (y !== targetY) {
-    const step = y < targetY ? 1 : -1;
-    y += step;
-    time += cellTotal / speed;
-    path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
-  }
-
-  return path;
+  return {
+    path,
+    shootFromX: shootFromGridX,
+    shootFromY: shootFromGridY,
+    finalTime: time
+  };
 }
 
 /**
@@ -197,63 +244,89 @@ export function createSmartPath(
     const targetKey = `${nextTarget.x},${nextTarget.y}`;
     visited.add(targetKey);
 
-    const distance = manhattanDistance(currentX, currentY, nextTarget.x, nextTarget.y);
+    // Shooting strategy: Move to a position where we can see the target
+    // "See" means: same row or same column, with line of sight
+    // We DON'T need to move TO the target, just to a position facing it
 
-    // Determine action based on distance
-    let speed: number;
-    let action: 'walk' | 'run' | 'shoot';
+    const dx = nextTarget.x - currentX;
+    const dy = nextTarget.y - currentY;
 
-    if (distance <= shootRange) {
-      // Close range - shoot while moving
-      speed = walkSpeed;
-      action = 'shoot';
+    // Decide approach direction: prioritize the longer distance
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      // Approach horizontally
+      // First, align vertically to same row as target
+      while (currentY !== nextTarget.y) {
+        const step = currentY < nextTarget.y ? 1 : -1;
+        currentY += step;
+        currentTime += cellTotal / runSpeed;
+        segments.push({
+          x: currentX * cellTotal + m,
+          y: currentY * cellTotal + m,
+          time: currentTime,
+          action: 'run',
+        });
+      }
+
+      // Now we're in the same row, move closer horizontally (but not all the way)
+      // Stop when we're within shooting range (e.g., 1 cell away minimum)
+      const targetX = nextTarget.x;
+      const minDistance = 1; // Stop 1 cell before target
+      const desiredX = currentX < targetX ? targetX - minDistance : targetX + minDistance;
+
+      while (currentX !== desiredX) {
+        const step = currentX < desiredX ? 1 : -1;
+        currentX += step;
+        currentTime += cellTotal / runSpeed;
+        segments.push({
+          x: currentX * cellTotal + m,
+          y: currentY * cellTotal + m,
+          time: currentTime,
+          action: 'run',
+        });
+      }
     } else {
-      // Far range - just run
-      speed = runSpeed;
-      action = 'run';
+      // Approach vertically
+      // First, align horizontally to same column as target
+      while (currentX !== nextTarget.x) {
+        const step = currentX < nextTarget.x ? 1 : -1;
+        currentX += step;
+        currentTime += cellTotal / runSpeed;
+        segments.push({
+          x: currentX * cellTotal + m,
+          y: currentY * cellTotal + m,
+          time: currentTime,
+          action: 'run',
+        });
+      }
+
+      // Now we're in the same column, move closer vertically (but not all the way)
+      const targetY = nextTarget.y;
+      const minDistance = 1; // Stop 1 cell before target
+      const desiredY = currentY < targetY ? targetY - minDistance : targetY + minDistance;
+
+      while (currentY !== desiredY) {
+        const step = currentY < desiredY ? 1 : -1;
+        currentY += step;
+        currentTime += cellTotal / runSpeed;
+        segments.push({
+          x: currentX * cellTotal + m,
+          y: currentY * cellTotal + m,
+          time: currentTime,
+          action: 'run',
+        });
+      }
     }
 
-    // Generate path to target
-    const pathToTarget = generatePathToTarget(
-      currentX,
-      currentY,
-      nextTarget.x,
-      nextTarget.y,
-      cellSize,
-      cellGap,
-      speed,
-      currentTime
-    );
-
-    // Add path segments with actions
-    for (const point of pathToTarget) {
-      segments.push({
-        ...point,
-        action,
-        targetX: nextTarget.x * cellTotal + m,
-        targetY: nextTarget.y * cellTotal + m,
-      });
-    }
-
-    // Arrive at target - idle shoot
-    if (pathToTarget.length > 0) {
-      currentTime = pathToTarget[pathToTarget.length - 1].time;
-    }
-    const shootDuration = 0.5; // 0.5 seconds to shoot target
-    currentTime += shootDuration;
-
+    // Now we're facing the target, add a shooting pause
+    currentTime += 0.1; // Brief pause to aim and shoot
     segments.push({
-      x: nextTarget.x * cellTotal + m,
-      y: nextTarget.y * cellTotal + m,
+      x: currentX * cellTotal + m,
+      y: currentY * cellTotal + m,
       time: currentTime,
       action: 'idle_shoot',
       targetX: nextTarget.x * cellTotal + m,
       targetY: nextTarget.y * cellTotal + m,
     });
-
-    // Update current position
-    currentX = nextTarget.x;
-    currentY = nextTarget.y;
   }
 
   console.log(`📍 Smart path generated: ${segments.length} segments, visited ${visited.size}/${targets.length} targets`);
