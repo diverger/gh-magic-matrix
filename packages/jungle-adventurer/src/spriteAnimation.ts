@@ -615,7 +615,7 @@ function generateSVGPath(points: { x: number; y: number }[]): string {
  */
 export function createMultiDirectionalSpriteElement(
   sprites: MultiDirectionalSprites,
-  pathPoints: { x: number; y: number; duration: number; isShooting?: boolean }[],
+  pathPoints: { x: number; y: number; duration: number; isShooting?: boolean; targetX?: number; targetY?: number }[],
   scale: number = 1.0,
   animationId: string,
   fps: number = 12
@@ -639,8 +639,18 @@ export function createMultiDirectionalSpriteElement(
     const to = pathPoints[i + 1];
     const duration = to.duration;
 
-    const direction = determineDirection(from.x, from.y, to.x, to.y);
+    // Determine direction based on shooting target or movement
+    let direction: Direction8;
     const isShooting = from.isShooting || to.isShooting || false;
+
+    if (isShooting && from.targetX !== undefined && from.targetY !== undefined) {
+      // When shooting, face the TARGET, not the movement direction
+      direction = determineDirection(from.x, from.y, from.targetX, from.targetY);
+    } else {
+      // When running, use movement direction
+      direction = determineDirection(from.x, from.y, to.x, to.y);
+    }
+
     const action = isShooting ? 'shoot' : 'run';
     const spriteKey = getSpriteKey(direction, action);
 

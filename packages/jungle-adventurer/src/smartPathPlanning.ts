@@ -67,6 +67,171 @@ class GridState {
 }
 
 /**
+ * Check if there's a clear line of sight from (fromX, fromY) to (toX, toY)
+ * Returns true if can shoot from current position to target
+ */
+function hasLineOfSight(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number
+): boolean {
+  // Can shoot if in same row or same column
+  return fromX === toX || fromY === toY;
+}
+
+/**
+ * Find a path from current position to a shooting position near target
+ * Uses BFS to find valid path through cleared cells
+ * Returns path as grid coordinates, or null if no path exists
+ */
+function findPathToShootingPosition(
+  fromX: number,
+  fromY: number,
+  targetX: number,
+  targetY: number,
+  gridState: GridState,
+  gridWidth: number,
+  gridHeight: number
+): { x: number; y: number }[] | null {
+  // Determine best shooting positions (1 cell away from target in 4 directions)
+  const shootingPositions = [
+    { x: targetX - 1, y: targetY, dir: 'right' },  // Shoot from left
+    { x: targetX + 1, y: targetY, dir: 'left' },   // Shoot from right
+    { x: targetX, y: targetY - 1, dir: 'down' },   // Shoot from above
+    { x: targetX, y: targetY + 1, dir: 'up' },     // Shoot from below
+  ];
+
+  // Try each shooting position, find the one with shortest path
+  let bestPath: { x: number; y: number }[] | null = null;
+  let bestLength = Infinity;
+
+  for (const shootPos of shootingPositions) {
+    // Check if shooting position is valid (can stand there)
+    if (!gridState.canStandAt(shootPos.x, shootPos.y)) continue;
+
+    // BFS to find path
+    const path = bfsPathfinding(fromX, fromY, shootPos.x, shootPos.y, gridState, gridWidth, gridHeight);
+    if (path && path.length < bestLength) {
+      bestPath = path;
+      bestLength = path.length;
+    }
+  }
+
+  return bestPath;
+}
+
+/**
+ * BFS pathfinding - finds shortest path from (fromX, fromY) to (toX, toY)
+ * Only walks through cells where gridState.canStandAt() is true
+ */
+function bfsPathfinding(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  gridState: GridState,
+  gridWidth: number,
+  gridHeight: number
+): { x: number; y: number }[] | null {
+  if (fromX === toX && fromY === toY) {
+    return [{ x: fromX, y: fromY }];
+  }
+
+  type Node = { x: number; y: number; parent: Node | null };
+  const visited = new Set<string>();
+  const queue: Node[] = [{ x: fromX, y: fromY, parent: null }];
+  visited.add(`${fromX},${fromY}`);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+
+    // Found destination
+    if (current.x === toX && current.y === toY) {
+      // Reconstruct path
+      const path: { x: number; y: number }[] = [];
+      let node: Node | null = current;
+      while (node) {
+        path.unshift({ x: node.x, y: node.y });
+        node = node.parent;
+      }
+      return path;
+    }
+
+    // Try all 4 directions
+    const directions = [
+      { dx: 1, dy: 0 },   // right
+      { dx: -1, dy: 0 },  // left
+      { dx: 0, dy: 1 },   // down
+      { dx: 0, dy: -1 },  // up
+    ];
+
+    for (const { dx, dy } of directions) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      const key = `${nx},${ny}`;
+
+      // Skip if already visited
+      if (visited.has(key)) continue;
+
+      // Skip if can't stand there
+      if (!gridState.canStandAt(nx, ny)) continue;
+
+      // Add to queue
+      visited.add(key);
+      queue.push({ x: nx, y: ny, parent: current });
+    }
+  }
+
+  // No path found
+  return null;
+}
+
+/**
+ * Find a blocking cell on the path and check if we can shoot it from current position
+ * Returns the blocker if found and shootable, null otherwise
+ */
+function findShootableBlocker(
+  currentX: number,
+  currentY: number,
+  targetX: number,
+  targetY: number,
+  gridState: GridState,
+  targets: Target[]
+): Target | null {
+  // Check if there's a blocker in our path
+  // For horizontal movement
+  if (currentY === targetY) {
+    const step = currentX < targetX ? 1 : -1;
+    for (let x = currentX + step; x !== targetX; x += step) {
+      if (!gridState.canStandAt(x, currentY)) {
+        // Found a blocker! Check if it's a target we can shoot
+        const blockerTarget = targets.find(t => t.x === x && t.y === currentY);
+        if (blockerTarget && hasLineOfSight(currentX, currentY, x, currentY)) {
+          return blockerTarget;
+        }
+      }
+    }
+  }
+
+  // For vertical movement
+  if (currentX === targetX) {
+    const step = currentY < targetY ? 1 : -1;
+    for (let y = currentY + step; y !== targetY; y += step) {
+      if (!gridState.canStandAt(currentX, y)) {
+        // Found a blocker! Check if it's a target we can shoot
+        const blockerTarget = targets.find(t => t.x === currentX && t.y === y);
+        if (blockerTarget && hasLineOfSight(currentX, currentY, currentX, y)) {
+          return blockerTarget;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Calculate Manhattan distance between two points
  */
 function manhattanDistance(x1: number, y1: number, x2: number, y2: number): number {
@@ -116,13 +281,39 @@ function generatePathToShootTarget(
   cellSize: number,
   cellGap: number,
   speed: number,
-  currentTime: number
+  currentTime: number,
+  gridWidth: number,
+  gridHeight: number
 ): { path: PathPoint[], shootFromX: number, shootFromY: number, finalTime: number } {
   const path: PathPoint[] = [];
   const cellTotal = cellSize + cellGap;
   const m = (cellTotal - cellSize) / 2;
 
-  let x = fromX;
+  // Helper function to convert grid coords to pixel coords
+  // When outside grid, adjust position to avoid overlapping with edge blocks
+  const gridToPixel = (gridX: number, gridY: number): { x: number, y: number } => {
+    // Place sprite at cell center (gridX * 14 + 7), not at corner+margin
+    let pixelX = gridX * cellTotal + cellTotal / 2;
+    let pixelY = gridY * cellTotal + cellTotal / 2;
+
+    // Character sprite frame size: 33.6px x 44.8px (48x64 frame at scale 0.7)
+    // Frame half-width: 16.8px, Frame half-height: 22.4px
+
+    // Move sprite away from grid edges to avoid overlapping
+    if (gridX < 0) {
+      pixelX -= 10;
+    } else if (gridX >= gridWidth) {
+      pixelX += 10;
+    }
+
+    if (gridY < 0) {
+      pixelY -= 10;
+    } else if (gridY >= gridHeight) {
+      pixelY += 10;
+    }
+
+    return { x: pixelX, y: pixelY };
+  };  let x = fromX;
   let y = fromY;
   let time = currentTime;
 
@@ -142,7 +333,8 @@ function generatePathToShootTarget(
       const step = y < targetY ? 1 : -1;
       y += step;
       time += cellTotal / speed;
-      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+      const pos = gridToPixel(x, y);
+      path.push({ x: pos.x, y: pos.y, time });
     }
 
     // Then move towards target column (but stop before target, so we can shoot)
@@ -154,7 +346,8 @@ function generatePathToShootTarget(
       const step = x < stopBeforeTarget ? 1 : -1;
       x += step;
       time += cellTotal / speed;
-      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+      const pos = gridToPixel(x, y);
+      path.push({ x: pos.x, y: pos.y, time });
     }
 
     shootFromGridX = x;
@@ -166,7 +359,8 @@ function generatePathToShootTarget(
       const step = x < targetX ? 1 : -1;
       x += step;
       time += cellTotal / speed;
-      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+      const pos = gridToPixel(x, y);
+      path.push({ x: pos.x, y: pos.y, time });
     }
 
     // Then move towards target row (but stop before target)
@@ -177,7 +371,8 @@ function generatePathToShootTarget(
       const step = y < stopBeforeTarget ? 1 : -1;
       y += step;
       time += cellTotal / speed;
-      path.push({ x: x * cellTotal + m, y: y * cellTotal + m, time });
+      const pos = gridToPixel(x, y);
+      path.push({ x: pos.x, y: pos.y, time });
     }
 
     shootFromGridX = x;
@@ -194,7 +389,11 @@ function generatePathToShootTarget(
 
 /**
  * Create smart path that visits all contribution cells
- * Uses greedy nearest-neighbor algorithm (can be improved with better TSP solver)
+ * PRINCIPLE: Follow snk strategy - clear blocks by contribution level (low to high)
+ * - Level 1 (lowest) first
+ * - Level 2 second
+ * - Level 3 third
+ * - Level 4 (highest) last
  */
 export function createSmartPath(
   targets: Target[],
@@ -213,130 +412,158 @@ export function createSmartPath(
   const cellTotal = cellSize + cellGap;
   // Same as blocks: center the position within the cell
   const m = (cellTotal - cellSize) / 2;
-  const visited = new Set<string>();
   const segments: ActionSegment[] = [];
 
+  // Helper function to convert grid coords to pixel coords
+  // When outside grid, adjust position to avoid overlapping with edge blocks
+  const gridToPixel = (gridX: number, gridY: number): { x: number, y: number } => {
+    // Place sprite at cell center (gridX * 14 + 7), not at corner+margin
+    let pixelX = gridX * cellTotal + cellTotal / 2;
+    let pixelY = gridY * cellTotal + cellTotal / 2;
+
+    // Character sprite frame size: 33.6px x 44.8px (48x64 frame at scale 0.7)
+    // Frame half-width: 16.8px, Frame half-height: 22.4px
+
+    // Move sprite away from grid edges to avoid overlapping with edge blocks
+    if (gridX < 0) {
+      pixelX -= 10;  // Move LEFT away from grid
+    } else if (gridX >= gridWidth) {
+      pixelX += 10;  // Move RIGHT away from grid
+    }
+
+    if (gridY < 0) {
+      pixelY -= 10;  // Move UP away from grid
+    } else if (gridY >= gridHeight) {
+      pixelY += 10;  // Move DOWN away from grid
+    }
+
+    return { x: pixelX, y: pixelY };
+  };
+
+  // Track which cells have been cleared (can walk through)
+  const gridState = new GridState(gridWidth, gridHeight);
+
   // Start OUTSIDE the grid (top-left corner)
-  // Character enters from outside and moves toward first target
   let currentX = -1;  // grid cell coordinates (-1 means outside grid on the left)
   let currentY = -1;  // grid cell coordinates (-1 means outside grid on top)
-
-  // Start immediately, no entrance delay
   let currentTime = 0;
 
-  // First position: outside grid (negative coordinates)
+  // First position: outside grid
+  const startPos = gridToPixel(currentX, currentY);
   segments.push({
-    x: currentX * cellTotal + m,  // negative coordinates, outside grid
-    y: currentY * cellTotal + m,  // negative coordinates, outside grid
+    x: startPos.x,
+    y: startPos.y,
     time: currentTime,
     action: 'idle',
   });
 
-  // Safety limit to prevent infinite loops
-  let iterations = 0;
-  const maxIterations = targets.length + 10;
+  // SNK PRINCIPLE: Sort targets by contribution level (low to high)
+  // Level 1 first, then 2, 3, 4
+  const sortedTargets = [...targets].sort((a, b) => a.contributionLevel - b.contributionLevel);
 
-  // Visit all targets using nearest-neighbor greedy algorithm
-  while (visited.size < targets.length && iterations < maxIterations) {
-    iterations++;
+  const levelCounts = sortedTargets.reduce((acc, t) => {
+    acc[t.contributionLevel] = (acc[t.contributionLevel] || 0) + 1;
+    return acc;
+  }, {} as Record<number, number>);
+  console.log(`📊 Targets by level: L1=${levelCounts[1]||0}, L2=${levelCounts[2]||0}, L3=${levelCounts[3]||0}, L4=${levelCounts[4]||0}`);
 
-    const nextTarget = findNearestTarget(currentX, currentY, targets, visited);
-    if (!nextTarget) break;
+  const visited = new Set<string>();
 
+  // Process each target in order (low contribution first)
+  for (const nextTarget of sortedTargets) {
     const targetKey = `${nextTarget.x},${nextTarget.y}`;
+    if (visited.has(targetKey)) continue; // Already shot as a blocker
+
     visited.add(targetKey);
 
-    // Shooting strategy: Move to a position where we can see the target
-    // "See" means: same row or same column, with line of sight
-    // We DON'T need to move TO the target, just to a position facing it
+    // KEY DIFFERENCE FROM SNK:
+    // - snk finds path TO the target cell (walks on it)
+    // - We find path to a SHOOTING POSITION (1 cell away, with line of sight)
 
-    const dx = nextTarget.x - currentX;
-    const dy = nextTarget.y - currentY;
+    // Find path to a position where we can shoot the target
+    const path = findPathToShootingPosition(
+      currentX,
+      currentY,
+      nextTarget.x,
+      nextTarget.y,
+      gridState,
+      gridWidth,
+      gridHeight
+    );
 
-    // Decide approach direction: prioritize the longer distance
-    if (Math.abs(dx) >= Math.abs(dy)) {
-      // Approach horizontally
-      // First, align vertically to same row as target
-      while (currentY !== nextTarget.y) {
-        const step = currentY < nextTarget.y ? 1 : -1;
-        currentY += step;
-        currentTime += cellTotal / runSpeed;
-        segments.push({
-          x: currentX * cellTotal + m,
-          y: currentY * cellTotal + m,
-          time: currentTime,
-          action: 'run',
-        });
+    if (!path) {
+      // No direct path - target is blocked
+      // Try to find a blocker we can shoot to clear the way
+      console.log(`[PATH] Target at (${nextTarget.x}, ${nextTarget.y}) is blocked, looking for shootable blockers...`);
+
+      // Find all possible shooting positions around the target
+      const shootingPositions = [
+        { x: nextTarget.x - 1, y: nextTarget.y },
+        { x: nextTarget.x + 1, y: nextTarget.y },
+        { x: nextTarget.x, y: nextTarget.y - 1 },
+        { x: nextTarget.x, y: nextTarget.y + 1 },
+      ];
+
+      // Find blockers that are preventing us from reaching shooting positions
+      let foundBlocker = false;
+      for (const shootPos of shootingPositions) {
+        // Check if this shooting position is blocked by a target
+        if (!gridState.canStandAt(shootPos.x, shootPos.y)) {
+          const blockerTarget = sortedTargets.find(t => t.x === shootPos.x && t.y === shootPos.y && !visited.has(`${t.x},${t.y}`));
+          if (blockerTarget) {
+            // Found a blocker! Process it first
+            console.log(`[PATH] Found blocker at (${blockerTarget.x}, ${blockerTarget.y}), will shoot it first`);
+            sortedTargets.splice(sortedTargets.indexOf(nextTarget), 0, blockerTarget);
+            foundBlocker = true;
+            break;
+          }
+        }
       }
 
-      // Now we're in the same row, move closer horizontally (but not all the way)
-      // Stop when we're within shooting range
-      const targetX = nextTarget.x;
-      const minDistance = 1; // Stop 1 cell before target
-      const desiredX = currentX < targetX ? targetX - minDistance : targetX + minDistance;
-
-      while (currentX !== desiredX) {
-        const step = currentX < desiredX ? 1 : -1;
-        currentX += step;
-        currentTime += cellTotal / runSpeed;
-        segments.push({
-          x: currentX * cellTotal + m,
-          y: currentY * cellTotal + m,
-          time: currentTime,
-          action: 'run',
-        });
+      if (!foundBlocker) {
+        console.warn(`[PATH] No path found to shoot target at (${nextTarget.x}, ${nextTarget.y}) and no shootable blockers found`);
       }
-    } else {
-      // Approach vertically
-      // First, align horizontally to same column as target
-      while (currentX !== nextTarget.x) {
-        const step = currentX < nextTarget.x ? 1 : -1;
-        currentX += step;
-        currentTime += cellTotal / runSpeed;
-        segments.push({
-          x: currentX * cellTotal + m,
-          y: currentY * cellTotal + m,
-          time: currentTime,
-          action: 'run',
-        });
-      }
-
-      // Now we're in the same column, move closer vertically (but not all the way)
-      const targetY = nextTarget.y;
-      const minDistance = 1; // Stop 1 cell before target
-      const desiredY = currentY < targetY ? targetY - minDistance : targetY + minDistance;
-
-      while (currentY !== desiredY) {
-        const step = currentY < desiredY ? 1 : -1;
-        currentY += step;
-        currentTime += cellTotal / runSpeed;
-        segments.push({
-          x: currentX * cellTotal + m,
-          y: currentY * cellTotal + m,
-          time: currentTime,
-          action: 'run',
-        });
-      }
+      continue;
     }
 
-    // Now we're facing the target, add a shooting pause
+    // Follow the path (skip first point as it's current position)
+    for (let i = 1; i < path.length; i++) {
+      currentX = path[i].x;
+      currentY = path[i].y;
+      currentTime += cellTotal / runSpeed;
+
+      const pos = gridToPixel(currentX, currentY);
+      segments.push({
+        x: pos.x,
+        y: pos.y,
+        time: currentTime,
+        action: 'run',
+      });
+    }
+
+    // Now we're at shooting position, add a shooting pause
     currentTime += 0.1; // Brief pause to aim
 
     // Add shooting action
+    const shootPos = gridToPixel(currentX, currentY);
+    const targetPos = gridToPixel(nextTarget.x, nextTarget.y);
     segments.push({
-      x: currentX * cellTotal + m,
-      y: currentY * cellTotal + m,
+      x: shootPos.x,
+      y: shootPos.y,
       time: currentTime,
       action: 'idle_shoot',
-      targetX: nextTarget.x * cellTotal + m,
-      targetY: nextTarget.y * cellTotal + m,
+      targetX: targetPos.x,
+      targetY: targetPos.y,
     });
+
+    // Mark target cell as cleared (can now walk through it)
+    gridState.clear(nextTarget.x, nextTarget.y);
 
     // No waiting - character can move immediately after shooting
     // Block disappears instantly, explosion is just visual effect
   }
 
-  console.log(`📍 Smart path generated: ${segments.length} segments, visited ${visited.size}/${targets.length} targets`);
+  console.log(`📍 Smart path generated: ${segments.length} segments, visited ${visited.size}/${targets.length} targets (by contribution level)`);
 
   return segments;
 }

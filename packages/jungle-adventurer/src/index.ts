@@ -102,7 +102,7 @@ export function generateJungleAdventurerSVG(
   }
 
   // Animation settings (internal defaults)
-  const characterScale = options.characterScale ?? 1.0;
+  const characterScale = options.characterScale ?? 0.7;  // Scale down to fit in cells (real sprite ~16x32, frame 48x64)
   const animationFPS = options.animationFPS ?? 12;
   const bulletSpeed = options.bulletSpeed ?? 200; // Increased from 150 to ensure bullets outpace character
   const fireRate = options.fireRate ?? 3;
@@ -119,13 +119,14 @@ export function generateJungleAdventurerSVG(
   const gridHeight = 7; // Always 7 days per week
   const cellTotal = cellSize + cellGap;
 
-  // Canvas with symmetric padding around grid
-  // Left/Right: 1 cell each side
+  // Canvas with padding around grid to accommodate sprite movement
+  // Sprite frame: 33.6px x 44.8px at scale 0.7
+  // Left/Right: 2 cells (28px) to fit sprite width (33.6px)
   // Top/Bottom: 2 cells each side (symmetric)
-  const width = (gridWidth + 2) * cellTotal;   // Extra 2 cells width (1 on each side)
+  const width = (gridWidth + 4) * cellTotal;   // Extra 4 cells width (2 on each side)
   const height = (gridHeight + 4) * cellTotal; // Extra 4 cells height (2 top, 2 bottom)
 
-  const viewBoxX = -cellTotal;      // Start 1 cell to the left
+  const viewBoxX = -cellTotal * 2;  // Start 2 cells to the left
   const viewBoxY = -cellTotal * 2;  // Start 2 cells above
 
   const svgWidth = width;
@@ -303,12 +304,21 @@ export function generateJungleAdventurerSVG(
   ${createMultiDirectionalSpriteElement(
     sprites,
     // Convert PathPoint[] with cumulative time to path segments with duration per segment
-    characterPath.map((p, index) => ({
-      x: p.x,
-      y: p.y,
-      duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
-      isShooting: false, // TODO: Track shooting state per path point
-    })),
+    // Use smartSegments to track shooting state AND target direction
+    characterPath.map((p, index) => {
+      // Find corresponding segment in smartSegments to check action and target
+      const segment = smartSegments.find(s => Math.abs(s.time - p.time) < 0.01);
+      const isShooting = segment?.action === 'idle_shoot';
+
+      return {
+        x: p.x,
+        y: p.y,
+        duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
+        isShooting,
+        targetX: segment?.targetX,
+        targetY: segment?.targetY,
+      };
+    }),
     characterScale,
     'character-anim',
     animationFPS
