@@ -24,7 +24,7 @@ import {
 import {
   createSmartPath,
   actionSegmentsToPathPoints,
-  Target,
+  GridTarget,
 } from './smartPathPlanning';
 import { loadBuiltInSprites } from './assetLoader';
 import { getGridColors } from './colorSchemes';
@@ -134,7 +134,7 @@ export function generateJungleAdventurerSVG(
 
   // Create blocks from contribution data AND collect path targets
   const blocks: Block[] = [];
-  const pathTargets: Target[] = [];
+  const pathTargets: GridTarget[] = [];
 
   contributionWeeks.forEach((week, weekIdx) => {
     if (!week.days) {
@@ -246,8 +246,11 @@ export function generateJungleAdventurerSVG(
   // and target fields so generateBullets sees the exact times used for animation.
   // IMPORTANT: For shooting actions, we need to use the ORIGINAL smartSegment's
   // position and time, not the smoothed path point, to ensure accurate hit timing.
+
+  // First, build pathForShooting from smoothed characterPath
   const pathForShooting = characterPath.map(p => {
-    const nearest = smartSegments.find((s: any) => Math.abs(s.time - p.time) < 0.25);
+    // Use smaller threshold (0.1s) to better preserve shooting hold points
+    const nearest = smartSegments.find((s: any) => Math.abs(s.time - p.time) < 0.1);
 
     // For idle_shoot actions, use the original segment's position and time
     // to ensure bullets are generated from the exact shooting position
@@ -272,6 +275,39 @@ export function generateJungleAdventurerSVG(
       targetY: nearest?.targetY,
     };
   });
+
+  // CRITICAL FIX: Ensure ALL idle_shoot segments from smartSegments are included
+  // The smoothing may have skipped some shooting hold points due to interpolation
+  // We need to preserve the full shooting hold duration for proper timing
+  const allShootSegments = smartSegments.filter((s: any) => s.action === 'idle_shoot');
+  for (const shootSeg of allShootSegments) {
+    // Check if this shooting segment is already in pathForShooting
+    const existsInPath = pathForShooting.some(p =>
+      p.action === 'idle_shoot' &&
+      Math.abs(p.time - shootSeg.time) < 0.01 &&
+      Math.abs(p.x - shootSeg.x) < 1 &&
+      Math.abs(p.y - shootSeg.y) < 1
+    );
+
+    if (!existsInPath) {
+      // Insert this shooting segment at the correct time position
+      const insertIndex = pathForShooting.findIndex(p => p.time > shootSeg.time);
+      const newPoint = {
+        x: shootSeg.x,
+        y: shootSeg.y,
+        time: shootSeg.time,
+        action: shootSeg.action,
+        targetX: shootSeg.targetX,
+        targetY: shootSeg.targetY,
+      };
+
+      if (insertIndex === -1) {
+        pathForShooting.push(newPoint);
+      } else {
+        pathForShooting.splice(insertIndex, 0, newPoint);
+      }
+    }
+  }
 
   // Diagnostic: report how many smoothed points were matched to an action segment
   try {

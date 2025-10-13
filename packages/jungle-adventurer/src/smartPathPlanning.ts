@@ -11,7 +11,7 @@
 
 import type { PathPoint } from './pathPlanning';
 
-export interface Target {
+export interface GridTarget {
   x: number; // grid column
   y: number; // grid row
   contributionLevel: number; // 1-4
@@ -200,8 +200,8 @@ function findShootableBlocker(
   targetX: number,
   targetY: number,
   gridState: GridState,
-  targets: Target[]
-): Target | null {
+  targets: GridTarget[]
+): GridTarget | null {
   // Check if there's a blocker in our path
   // For horizontal movement
   if (currentY === targetY) {
@@ -247,10 +247,10 @@ function manhattanDistance(x1: number, y1: number, x2: number, y2: number): numb
 function findNearestTarget(
   currentX: number,
   currentY: number,
-  targets: Target[],
+  targets: GridTarget[],
   visited: Set<string>
-): Target | null {
-  let nearest: Target | null = null;
+): GridTarget | null {
+  let nearest: GridTarget | null = null;
   let minDistance = Infinity;
 
   for (const target of targets) {
@@ -399,7 +399,7 @@ function generatePathToShootTarget(
  * - Level 4 (highest) last
  */
 export function createSmartPath(
-  targets: Target[],
+  targets: GridTarget[],
   gridWidth: number,
   gridHeight: number,
   cellSize: number,
@@ -471,11 +471,23 @@ export function createSmartPath(
   console.log(`📊 Targets by level: L1=${levelCounts[1]||0}, L2=${levelCounts[2]||0}, L3=${levelCounts[3]||0}, L4=${levelCounts[4]||0}`);
 
   const visited = new Set<string>();
+  const attemptedBlockers = new Set<string>(); // Track blockers we've tried to prioritize
 
   // Process each target in order (low contribution first)
-  for (const nextTarget of sortedTargets) {
+  // Use while loop with manual index to safely handle array modifications
+  let targetIndex = 0;
+  const maxIterations = sortedTargets.length * 10; // Safety limit to prevent infinite loops
+  let iterations = 0;
+
+  while (targetIndex < sortedTargets.length && iterations < maxIterations) {
+    iterations++;
+    const nextTarget = sortedTargets[targetIndex];
     const targetKey = `${nextTarget.x},${nextTarget.y}`;
-    if (visited.has(targetKey)) continue; // Already cleared
+
+    if (visited.has(targetKey)) {
+      targetIndex++;
+      continue; // Already cleared
+    }
 
     // KEY DIFFERENCE FROM SNK:
     // - snk finds path TO the target cell (walks on it)
@@ -512,18 +524,30 @@ export function createSmartPath(
         if (!gridState.canStandAt(shootPos.x, shootPos.y)) {
           const blockerTarget = sortedTargets.find(t => t.x === shootPos.x && t.y === shootPos.y && !visited.has(`${t.x},${t.y}`));
           if (blockerTarget) {
+            const blockerKey = `${blockerTarget.x},${blockerTarget.y}`;
+
+            // Check if we've already tried to prioritize this blocker (circular dependency)
+            if (attemptedBlockers.has(blockerKey)) {
+              console.warn(`[PATH] Circular blocker dependency detected at (${blockerTarget.x}, ${blockerTarget.y}), skipping`);
+              continue;
+            }
+
             // Found a blocker! Process it first
             console.log(`[PATH] Found blocker at (${blockerTarget.x}, ${blockerTarget.y}), will shoot it first`);
+            attemptedBlockers.add(blockerKey);
+
             // Remove any existing occurrence of this blocker to avoid duplicating it
             const existingIdx = sortedTargets.indexOf(blockerTarget);
-            const nextIdx = sortedTargets.indexOf(nextTarget);
             if (existingIdx !== -1) {
               // Remove the existing entry
               sortedTargets.splice(existingIdx, 1);
+              // Adjust current index if blocker was before current position
+              if (existingIdx < targetIndex) {
+                targetIndex--;
+              }
             }
-            // Recompute insertion index (nextTarget may have shifted)
-            const insertIdx = sortedTargets.indexOf(nextTarget);
-            sortedTargets.splice(insertIdx, 0, blockerTarget);
+            // Insert blocker before current target
+            sortedTargets.splice(targetIndex, 0, blockerTarget);
             foundBlocker = true;
             break;
           }
@@ -532,7 +556,11 @@ export function createSmartPath(
 
       if (!foundBlocker) {
         console.warn(`[PATH] No path found to shoot target at (${nextTarget.x}, ${nextTarget.y}) and no shootable blockers found`);
+        // Skip this target and move on to prevent infinite loop
+        targetIndex++;
+        continue;
       }
+      // Don't increment index - we want to process the blocker we just inserted
       continue;
     }
 
@@ -551,12 +579,13 @@ export function createSmartPath(
       });
     }
 
-    // Now we're at shooting position, add a shooting pause
-    currentTime += 0.1; // Brief pause to aim
+    // Minimal pause at shooting position - just enough to stop moving
+    // No explicit aiming pause needed - the hold below provides it
 
-    // Add shooting action
     const shootPos = gridToPixel(currentX, currentY);
     const targetPos = gridToPixel(nextTarget.x, nextTarget.y);
+
+    // Add shooting action
     segments.push({
       x: shootPos.x,
       y: shootPos.y,
@@ -566,14 +595,47 @@ export function createSmartPath(
       targetY: targetPos.y,
     });
 
+    // Hold duration for shooting animation
+    // Shooting sprite: 6 frames @ 12 FPS = 0.5s total animation
+    // Hold for ~4 frames (0.33s) so block destroys mid-to-late in animation
+    const shootingHoldDuration = 0.33; // ~4 frames worth - balanced timing
+    const holdSteps = 4; // 4 stationary points for smooth hold
+
+    for (let i = 1; i <= holdSteps; i++) {
+      currentTime += shootingHoldDuration / holdSteps;
+      segments.push({
+        x: shootPos.x,  // Same position - character is stationary
+        y: shootPos.y,  // Same position - character is stationary
+        time: currentTime,
+        action: 'idle_shoot', // Keep showing shooting animation
+        targetX: targetPos.x,
+        targetY: targetPos.y,
+      });
+    }
+
+    // Add a small buffer after shooting to ensure block disappears before moving
+    // Block destroys at lastShootTime - 0.08s, so we need to wait until after that
+    const blockDestructionBuffer = 0.05; // 50ms after shooting hold ends
+    currentTime += blockDestructionBuffer;
+
+    segments.push({
+      x: shootPos.x,
+      y: shootPos.y,
+      time: currentTime,
+      action: 'idle', // Brief idle to ensure block is gone
+    });
+
   // Mark target cell as cleared (can now walk through it)
   gridState.clear(nextTarget.x, nextTarget.y);
 
   // Record that we've visited (cleared) this target so it's not targeted again
   visited.add(targetKey);
 
-    // No waiting - character can move immediately after shooting
-    // Block disappears instantly, explosion is just visual effect
+    // Character now pauses during shooting for visual clarity
+    // The shooting hold duration ensures visible aiming and firing
+
+    // Move to next target in the list
+    targetIndex++;
   }
 
   console.log(`📍 Smart path generated: ${segments.length} segments, visited ${visited.size}/${targets.length} targets (by contribution level)`);
