@@ -77,12 +77,46 @@ export function calculateBulletDuration(
 }
 
 /**
+ * Find the time when character visually arrives at a shooting position
+ * by looking through the smoothed path for when the character is actually at that position
+ */
+function findVisualArrivalTime(
+  characterPath: any[],
+  shootingX: number,
+  shootingY: number,
+  shootingTime: number,
+  debugKey?: string
+): number {
+  let closestTime = shootingTime;
+  let minDistance = Infinity;
+  let closestIndex = -1;
+
+  // Search the ENTIRE path (not just a window) to find when character is actually at the shooting position
+  for (let i = 0; i < characterPath.length; i++) {
+    const point = characterPath[i];
+    const distance = calculateDistance(point.x, point.y, shootingX, shootingY);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestTime = point.time;
+      closestIndex = i;
+    }
+  }
+
+  // Log diagnostic info for first few targets
+  if (debugKey && minDistance > 5) {
+    console.log(`[ARRIVAL] ${debugKey}: shootTime=${shootingTime.toFixed(2)}s, visualArrival=${closestTime.toFixed(2)}s, delta=${(closestTime - shootingTime).toFixed(2)}s, distance=${minDistance.toFixed(1)}px, index=${closestIndex}`);
+  }
+
+  return closestTime;
+}
+
+/**
  * Generate bullets to shoot at targets
  * GUN SHOOTING LOGIC: Path planning adds 'idle_shoot' action when stopping to shoot
  *
  * 1. Path planning stops 1 cell before target and adds 'idle_shoot' action
  * 2. 'idle_shoot' action has targetX/targetY indicating what to shoot
- * 3. Generate bullet trace from character position to target
+ * 3. Generate bullet trace from character to target
  */
 export function generateBullets(
   characterPath: any[], // ActionSegment[] with action, targetX, targetY properties
@@ -100,6 +134,8 @@ export function generateBullets(
   // Bullet should fire around frame 3-4 (middle of animation)
   const shootingAnimationDelay = 3 / 12; // 0.25 seconds
   const bulletTravelTime = 0.05; // Very fast bullet travel
+  // Small safety margin to avoid destroying blocks before the visual arrival
+  const safetyMargin = 0.08; // 80ms extra to be conservative
 
   console.log(`[SHOOT] Checking ${characterPath.length} path segments for shooting actions`);
 
@@ -131,8 +167,11 @@ export function generateBullets(
   } else {
     console.log('[SHOOT] All requested targets available:', uniqueRequested.length);
   }
+
+  let debugCount = 0; // Only log first few for debugging
+
   for (const segment of shootSegments) {
-    if (!segment.targetX || !segment.targetY) {
+    if (segment.targetX === undefined || segment.targetY === undefined) {
       console.warn('[SHOOT] Shooting segment missing target coordinates:', segment);
       continue;
     }
@@ -141,6 +180,14 @@ export function generateBullets(
     const characterCenterY = segment.y;
     const targetCenterX = segment.targetX;
     const targetCenterY = segment.targetY;
+
+    if (debugCount < 5) {
+      console.log(`[SHOOT] Processing shoot segment:`, {
+        segmentTime: segment.time?.toFixed(2),
+        segmentPos: `(${characterCenterX?.toFixed(1)}, ${characterCenterY?.toFixed(1)})`,
+        targetPos: `(${targetCenterX?.toFixed(1)}, ${targetCenterY?.toFixed(1)})`
+      });
+    }
 
     // Calculate direction vector from character to target
     const dx = targetCenterX - characterCenterX;
@@ -204,24 +251,60 @@ export function generateBullets(
       });
     }
 
+    // Find the actual visual arrival time at the shooting position
+    // The segment contains the ORIGINAL smartSegment position/time (not smoothed)
+    // We need to find when the character visually reaches that position in the smoothed path
+    const debugKey = debugCount < 5 ? targetKey : undefined;
+    const visualArrivalTime = findVisualArrivalTime(characterPath, characterCenterX, characterCenterY, segment.time, debugKey);
+
+    // The character needs time to arrive, stop, and aim before shooting
+    // Add extra delay to ensure block destruction happens AFTER visual arrival + settling
+    const arrivalSettleDelay = 0.15; // Time for character to visually settle at position
+    debugCount++;
+
     // Check if too close (less than 1 grid cell = 14px) - don't draw trace
     const minShootDistance = 14;
     if (bulletTravelDistance < minShootDistance) {
-      // Too close — don't draw bullet trace, but destroy block after shooting animation
+      // Too close — destroy block after visual arrival + settle + shooting animation + safety margin
       if (target) {
-        target.hitTime = segment.time + shootingAnimationDelay;
+        const proposed = visualArrivalTime + arrivalSettleDelay + shootingAnimationDelay + safetyMargin;
+        if (target.hitTime === undefined || proposed > target.hitTime) {
+          if (debugKey) {
+            console.log('[SHOOT] Close-target hitTime', {
+              targetKey,
+              proposed: proposed.toFixed(2),
+              segmentTime: segment.time.toFixed(2),
+              visualArrival: visualArrivalTime.toFixed(2),
+              arrivalDelay: arrivalSettleDelay,
+              totalDelay: (proposed - visualArrivalTime).toFixed(2)
+            });
+          }
+          target.hitTime = proposed;
+        }
       }
       continue; // Skip generating bullet trace
     }
 
-    // Far enough — calculate exact hit time
-    // Block destroyed when bullet arrives: shoot start + animation delay + bullet travel time
-    const bulletHitTime = segment.time + shootingAnimationDelay + bulletTravelTime;
-    if (target) {
-      target.hitTime = bulletHitTime;
-    }
+    // Far enough — calculate exact hit time ensuring it's after visual arrival + settling
+    const visualBasedHitTime = visualArrivalTime + arrivalSettleDelay + shootingAnimationDelay + bulletTravelTime;
 
-    // Create bullet trace from character to target
+    if (target) {
+      const proposed = visualBasedHitTime + safetyMargin;
+      if (target.hitTime === undefined || proposed > target.hitTime) {
+        if (debugKey) {
+          console.log('[SHOOT] Far-target hitTime', {
+            targetKey,
+            proposed: proposed.toFixed(2),
+            segmentTime: segment.time.toFixed(2),
+            visualArrival: visualArrivalTime.toFixed(2),
+            arrivalDelay: arrivalSettleDelay,
+            visualBasedHitTime: visualBasedHitTime.toFixed(2),
+            totalDelay: (proposed - visualArrivalTime).toFixed(2)
+          });
+        }
+        target.hitTime = proposed;
+      }
+    }    // Create bullet trace from character to target
     const bullet: Bullet = {
       id: `bullet-${bulletIdCounter++}`,
       startX: bulletStartX,

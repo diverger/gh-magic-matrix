@@ -514,7 +514,16 @@ export function createSmartPath(
           if (blockerTarget) {
             // Found a blocker! Process it first
             console.log(`[PATH] Found blocker at (${blockerTarget.x}, ${blockerTarget.y}), will shoot it first`);
-            sortedTargets.splice(sortedTargets.indexOf(nextTarget), 0, blockerTarget);
+            // Remove any existing occurrence of this blocker to avoid duplicating it
+            const existingIdx = sortedTargets.indexOf(blockerTarget);
+            const nextIdx = sortedTargets.indexOf(nextTarget);
+            if (existingIdx !== -1) {
+              // Remove the existing entry
+              sortedTargets.splice(existingIdx, 1);
+            }
+            // Recompute insertion index (nextTarget may have shifted)
+            const insertIdx = sortedTargets.indexOf(nextTarget);
+            sortedTargets.splice(insertIdx, 0, blockerTarget);
             foundBlocker = true;
             break;
           }

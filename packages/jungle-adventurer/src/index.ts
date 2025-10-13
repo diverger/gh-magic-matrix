@@ -240,8 +240,58 @@ export function generateJungleAdventurerSVG(
     hitTime: undefined as number | undefined,  // Will be set by generateBullets
   }));
 
-  // Generate bullets using ActionSegments (which have action and targetX/targetY)
-  const bullets = generateBullets(smartSegments.length > 0 ? smartSegments : characterPath, shootingTargets, shootingConfig);
+  // Merge action data from smartSegments into the smoothed characterPath so
+  // bullet timing matches the visual (smoothed) timeline. For each smoothed
+  // path point, find the nearest action segment (by time) and attach action
+  // and target fields so generateBullets sees the exact times used for animation.
+  // IMPORTANT: For shooting actions, we need to use the ORIGINAL smartSegment's
+  // position and time, not the smoothed path point, to ensure accurate hit timing.
+  const pathForShooting = characterPath.map(p => {
+    const nearest = smartSegments.find((s: any) => Math.abs(s.time - p.time) < 0.25);
+
+    // For idle_shoot actions, use the original segment's position and time
+    // to ensure bullets are generated from the exact shooting position
+    if (nearest?.action === 'idle_shoot') {
+      return {
+        x: nearest.x,        // Use original shooting position
+        y: nearest.y,        // Use original shooting position
+        time: nearest.time,  // Use original shooting time
+        action: nearest.action,
+        targetX: nearest.targetX,
+        targetY: nearest.targetY,
+      };
+    }
+
+    // For other actions, use smoothed path data
+    return {
+      x: p.x,
+      y: p.y,
+      time: p.time,
+      action: nearest?.action,
+      targetX: nearest?.targetX,
+      targetY: nearest?.targetY,
+    };
+  });
+
+  // Diagnostic: report how many smoothed points were matched to an action segment
+  try {
+    const matched = pathForShooting.filter(p => p.action !== undefined).length;
+    const idleShootCount = pathForShooting.filter(p => p.action === 'idle_shoot').length;
+    const deltas: number[] = [];
+    for (const p of pathForShooting) {
+      if (p.action !== undefined) {
+        const nearest = smartSegments.find((s: any) => Math.abs(s.time - p.time) < 0.25);
+        if (nearest) deltas.push(Math.abs(nearest.time - p.time));
+      }
+    }
+    deltas.sort((a, b) => a - b);
+    console.log('[DIAG] pathForShooting: points=', pathForShooting.length, 'matched=', matched, 'idle_shoot=', idleShootCount, 'deltaSamples=', deltas.slice(0,5));
+  } catch (e) {
+    /* ignore diag errors */
+  }
+
+  // Generate bullets using the merged path which matches visual timing
+  const bullets = generateBullets(pathForShooting, shootingTargets, shootingConfig);
 
   // Create shooting state map: mark which path segments are shooting
   const shootingTimes = new Set<number>();
@@ -325,22 +375,21 @@ export function generateJungleAdventurerSVG(
 
   <!-- Character layer (8-directional sprites, auto-switched based on movement) -->
   <!-- IMPORTANT: This MUST be AFTER blocks layer so character appears on top! -->
-  ${createMultiDirectionalSpriteElement(
+    ${createMultiDirectionalSpriteElement(
     sprites,
     // Convert PathPoint[] with cumulative time to path segments with duration per segment
-    // Use smartSegments to track shooting state AND target direction
+    // Use the merged path (pathForShooting) so shooting flags align with visual timing
     characterPath.map((p, index) => {
-      // Find corresponding segment in smartSegments to check action and target
-      const segment = smartSegments.find(s => Math.abs(s.time - p.time) < 0.01);
-      const isShooting = segment?.action === 'idle_shoot';
+      const seg = pathForShooting[index];
+      const isShooting = seg?.action === 'idle_shoot';
 
       return {
         x: p.x,
         y: p.y,
         duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
         isShooting,
-        targetX: segment?.targetX,
-        targetY: segment?.targetY,
+        targetX: seg?.targetX,
+        targetY: seg?.targetY,
       };
     }),
     characterScale,
