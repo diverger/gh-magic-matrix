@@ -242,11 +242,14 @@ export function createAnimatedSpriteElement(
   animationName: string,
   fps: number = 12
 ): string {
-  const { frameWidth, frameHeight, imageData, frameCount } = spriteSheet;
+  const { frameWidth, frameHeight, imageData, frameCount, layout } = spriteSheet;
   const totalDuration = frameCount / fps;
 
   const displayWidth = frameWidth * scale;
   const displayHeight = frameHeight * scale;
+
+  const imageWidth = layout === 'horizontal' ? frameWidth * frameCount : frameWidth;
+  const imageHeight = layout === 'vertical' ? frameHeight * frameCount : frameHeight;
 
   return `
   <g class="sprite-character" transform="translate(${position.x}, ${position.y})">
@@ -257,8 +260,8 @@ export function createAnimatedSpriteElement(
     ">
       <image
         href="${imageData}"
-        width="${frameWidth * frameCount}"
-        height="${frameHeight}"
+        width="${imageWidth}"
+        height="${imageHeight}"
         style="
           animation: ${animationName} ${totalDuration}s steps(${frameCount}) infinite;
           transform-origin: 0 0;
@@ -592,13 +595,14 @@ export function createMovingSpriteElement(
 
   // Generate keyTimes for position animation
   let accumulatedTime = 0;
-  const positionKeyTimes = [
-    '0',
-    ...pathPoints.map(p => {
-      accumulatedTime += p.duration;
-      return (accumulatedTime / totalDuration).toFixed(3);
-    })
-  ].join(';');
+  const keyTimesList: string[] = ['0'];
+  for (const p of pathPoints) {
+    accumulatedTime += p.duration;
+    keyTimesList.push((accumulatedTime / totalDuration).toFixed(3));
+  }
+  const positionKeyTimes = keyTimesList.join(';');
+  // For flip (discrete), use the first N keyTimes to match N values
+  const flipKeyTimes = keyTimesList.slice(0, -1).join(';');
 
   // Generate flip animation if needed
   let flipAnimation = '';
@@ -610,7 +614,7 @@ export function createMovingSpriteElement(
       attributeName="transform"
       type="scale"
       values="${flipValues}"
-      keyTimes="${positionKeyTimes}"
+      keyTimes="${flipKeyTimes}"
       dur="${totalDuration}s"
       calcMode="discrete"
       additive="sum"
@@ -623,6 +627,8 @@ export function createMovingSpriteElement(
     <animateMotion
       path="${generateSVGPath(pathPoints)}"
       dur="${totalDuration}s"
+      keyTimes="${positionKeyTimes}"
+      calcMode="linear"
       fill="freeze"
     />
 
@@ -826,6 +832,16 @@ function createSegmentedMultiSpriteElement(
   // Generate position animation path
   const positionPath = generateSVGPath(pathPoints);
 
+  // Generate keyTimes for position animation to honor per-segment durations
+  let accumulatedTime = 0;
+  const positionKeyTimes = [
+    '0',
+    ...pathPoints.map(p => {
+      accumulatedTime += p.duration;
+      return (accumulatedTime / totalDuration).toFixed(3);
+    })
+  ].join(';');
+
   // Build sprite layers with visibility animations
   const spriteLayers = uniqueSpriteKeys.map((spriteKey, index) => {
     const sprite = sprites[spriteKey];
@@ -883,6 +899,8 @@ function createSegmentedMultiSpriteElement(
     <animateMotion
       path="${positionPath}"
       dur="${totalDuration}s"
+      keyTimes="${positionKeyTimes}"
+      calcMode="linear"
       fill="freeze"
     />
 

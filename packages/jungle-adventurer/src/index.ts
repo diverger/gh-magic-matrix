@@ -145,6 +145,7 @@ export function generateJungleAdventurerSVG(
       if (day.count > 0) {
         // Validate and clamp level to valid range (0-4)
         const level = Math.max(0, Math.min(4, day.level ?? 0));
+        const targetLevel = Math.max(1, Math.min(4, level)); // smartPath expects 1-4
 
         // Double-check color exists (defensive programming)
         const color = colorLevels[level];
@@ -170,11 +171,15 @@ export function generateJungleAdventurerSVG(
         pathTargets.push({
           x: weekIdx,
           y: dayIdx,
-          contributionLevel: level,
+          contributionLevel: targetLevel,
         });
       }
     });
   });
+  
+  console.log(`[DEBUG-BLOCKS] Created ${blocks.length} blocks and ${pathTargets.length} pathTargets`);
+  console.log(`[DEBUG-BLOCKS] First 5 blocks:`, blocks.slice(0, 5).map(b => `(${b.x},${b.y})`));
+  console.log(`[DEBUG-BLOCKS] First 5 pathTargets:`, pathTargets.slice(0, 5).map(t => `grid(${t.x},${t.y})`));
 
   // Generate character path using smart planning
   let characterPath: PathPoint[];
@@ -385,6 +390,29 @@ export function generateJungleAdventurerSVG(
     return hitTimes.has(blockId);
   });
   console.log(`[BLOCKS] Rendering ${reachableBlocks.length}/${blocks.length} blocks (only those that can be reached and shot)`);
+  
+  // DEBUG: Show block distribution
+  const blocksByGridX = new Map<number, number>();
+  const blocksByGridY = new Map<number, number>();
+  blocks.forEach(b => {
+    const gridX = Math.floor(b.x / cellTotal);
+    const gridY = Math.floor(b.y / cellTotal);
+    blocksByGridX.set(gridX, (blocksByGridX.get(gridX) || 0) + 1);
+    blocksByGridY.set(gridY, (blocksByGridY.get(gridY) || 0) + 1);
+  });
+  console.log(`[DEBUG] All blocks by gridX:`, Array.from(blocksByGridX.entries()).sort((a,b) => a[0] - b[0]).slice(0, 10));
+  console.log(`[DEBUG] All blocks by gridY:`, Array.from(blocksByGridY.entries()).sort((a,b) => a[0] - b[0]).slice(0, 10));
+  
+  const reachableByGridX = new Map<number, number>();
+  const reachableByGridY = new Map<number, number>();
+  reachableBlocks.forEach(b => {
+    const gridX = Math.floor(b.x / cellTotal);
+    const gridY = Math.floor(b.y / cellTotal);
+    reachableByGridX.set(gridX, (reachableByGridX.get(gridX) || 0) + 1);
+    reachableByGridY.set(gridY, (reachableByGridY.get(gridY) || 0) + 1);
+  });
+  console.log(`[DEBUG] Reachable blocks by gridX:`, Array.from(reachableByGridX.entries()).sort((a,b) => a[0] - b[0]).slice(0, 10));
+  console.log(`[DEBUG] Reachable blocks by gridY:`, Array.from(reachableByGridY.entries()).sort((a,b) => a[0] - b[0]).slice(0, 10));
 
   // Calculate total animation duration
   const totalDuration = characterPath[characterPath.length - 1].time + 2; // +2s buffer

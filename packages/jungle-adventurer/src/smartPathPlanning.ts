@@ -21,6 +21,7 @@ export interface ActionSegment extends PathPoint {
   action: 'idle' | 'walk' | 'run' | 'shoot' | 'idle_shoot' | 'reload';
   targetX?: number; // shooting target position
   targetY?: number;
+  targetIndex?: number; // original index in targets array (for hitTime mapping)
 }
 
 /**
@@ -94,12 +95,18 @@ function findPathToShootingPosition(
   gridWidth: number,
   gridHeight: number
 ): { x: number; y: number }[] | null {
-  // Determine best shooting positions (1 cell away from target in 4 directions)
+  // Candidate shooting positions:
+  // - Adjacent cells (inside grid)
+  // - Outside ring positions aligned with the target (allow starting outside)
   const shootingPositions = [
-    { x: targetX - 1, y: targetY, dir: 'right' },  // Shoot from left
-    { x: targetX + 1, y: targetY, dir: 'left' },   // Shoot from right
-    { x: targetX, y: targetY - 1, dir: 'down' },   // Shoot from above
-    { x: targetX, y: targetY + 1, dir: 'up' },     // Shoot from below
+    { x: targetX - 1, y: targetY }, // from left (inside)
+    { x: targetX + 1, y: targetY }, // from right (inside)
+    { x: targetX, y: targetY - 1 }, // from above (inside)
+    { x: targetX, y: targetY + 1 }, // from below (inside)
+    { x: -1, y: targetY },          // outside left
+    { x: gridWidth, y: targetY },   // outside right
+    { x: targetX, y: -1 },          // outside top
+    { x: targetX, y: gridHeight },  // outside bottom
   ];
 
   // Try each shooting position, find the one with shortest path
@@ -465,7 +472,9 @@ export function createSmartPath(
 
   // SNK PRINCIPLE: Sort targets by contribution level (low to high)
   // Level 1 first, then 2, 3, 4
-  const sortedTargets = [...targets].sort((a, b) => a.contributionLevel - b.contributionLevel);
+  // IMPORTANT: Track original index before sorting so we can map back to blocks array
+  const targetsWithIndex = targets.map((t, index) => ({ ...t, originalIndex: index }));
+  const sortedTargets = targetsWithIndex.sort((a, b) => a.contributionLevel - b.contributionLevel);
 
   const levelCounts = sortedTargets.reduce((acc, t) => {
     acc[t.contributionLevel] = (acc[t.contributionLevel] || 0) + 1;
@@ -620,6 +629,7 @@ export function createSmartPath(
       action: 'idle_shoot',
       targetX: targetPos.x,
       targetY: targetPos.y,
+      targetIndex: nextTarget.originalIndex,  // Store original index for hitTime mapping
     });
 
     // Hold duration for shooting animation
@@ -652,11 +662,9 @@ export function createSmartPath(
       action: 'idle', // Brief idle to ensure block is gone
     });
 
-  // DON'T mark target cell as cleared in gridState
-  // This prevents pathfinding from routing through cells that still have visible blocks
-  // The block won't actually disappear until its hitTime (which is after we finish shooting)
-  //
-  // gridState.clear(nextTarget.x, nextTarget.y);  // REMOVED - causes walking through visible blocks
+  // Mark target as cleared so subsequent BFS can traverse it.
+  // The small buffer above prevents walking through a still-visible block.
+  gridState.clear(nextTarget.x, nextTarget.y);
 
   // Record that we've visited this target so it's not targeted again
   visited.add(targetKey);
