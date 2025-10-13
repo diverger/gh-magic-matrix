@@ -176,7 +176,7 @@ export function generateJungleAdventurerSVG(
       }
     });
   });
-  
+
   console.log(`[DEBUG-BLOCKS] Created ${blocks.length} blocks and ${pathTargets.length} pathTargets`);
   console.log(`[DEBUG-BLOCKS] First 5 blocks:`, blocks.slice(0, 5).map(b => `(${b.x},${b.y})`));
   console.log(`[DEBUG-BLOCKS] First 5 pathTargets:`, pathTargets.slice(0, 5).map(t => `grid(${t.x},${t.y})`));
@@ -390,7 +390,7 @@ export function generateJungleAdventurerSVG(
     return hitTimes.has(blockId);
   });
   console.log(`[BLOCKS] Rendering ${reachableBlocks.length}/${blocks.length} blocks (only those that can be reached and shot)`);
-  
+
   // DEBUG: Show block distribution
   const blocksByGridX = new Map<number, number>();
   const blocksByGridY = new Map<number, number>();
@@ -402,7 +402,7 @@ export function generateJungleAdventurerSVG(
   });
   console.log(`[DEBUG] All blocks by gridX:`, Array.from(blocksByGridX.entries()).sort((a,b) => a[0] - b[0]).slice(0, 10));
   console.log(`[DEBUG] All blocks by gridY:`, Array.from(blocksByGridY.entries()).sort((a,b) => a[0] - b[0]).slice(0, 10));
-  
+
   const reachableByGridX = new Map<number, number>();
   const reachableByGridY = new Map<number, number>();
   reachableBlocks.forEach(b => {
