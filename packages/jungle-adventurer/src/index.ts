@@ -418,12 +418,14 @@ export function generateJungleAdventurerSVG(
     characterPath.map((p, index) => {
       const seg = pathForShooting[index];
       const isShooting = seg?.action === 'idle_shoot';
+      const isReloading = seg?.action === 'reload';
 
       return {
         x: p.x,
         y: p.y,
         duration: index === 0 ? 0 : p.time - characterPath[index - 1].time,
         isShooting,
+        isReloading,
         targetX: seg?.targetX,
         targetY: seg?.targetY,
       };

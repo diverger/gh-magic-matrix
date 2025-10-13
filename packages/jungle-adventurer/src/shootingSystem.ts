@@ -81,13 +81,13 @@ export function calculateBulletDuration(
  * Since pathForShooting contains the original smartSegment times for idle_shoot actions,
  * we need to find the last segment in the sequence of stationary shooting points
  */
-function findLastShootingTime(
+function findShootingTimes(
   characterPath: any[],
   currentSegmentTime: number,
   shootingX: number,
   shootingY: number,
   debugKey?: string
-): number {
+): { firstShootTime: number; lastShootTime: number } {
   let lastShootTime = currentSegmentTime;
   let firstShootTime = currentSegmentTime;
   let count = 0;
@@ -113,7 +113,7 @@ function findLastShootingTime(
     console.log(`[SHOOT-TIME] ${debugKey}: firstShoot=${firstShootTime.toFixed(2)}s, lastShoot=${lastShootTime.toFixed(2)}s, holdDuration=${holdDuration.toFixed(2)}s, segments=${count}, currentSegTime=${currentSegmentTime.toFixed(2)}s`);
   }
 
-  return lastShootTime;
+  return { firstShootTime, lastShootTime };
 }
 
 /**
@@ -257,34 +257,37 @@ export function generateBullets(
       });
     }
 
-    // Find when character finishes the shooting hold period
+    // Find when character starts and finishes the shooting hold period
     // pathForShooting contains the original smartSegment times for idle_shoot
-    // We need to find the LAST shooting segment at this position
     const debugKey = debugCount < 5 ? targetKey : undefined;
-    const lastShootingTime = findLastShootingTime(characterPath, segment.time, characterCenterX, characterCenterY, debugKey);
+    const { firstShootTime, lastShootTime } = findShootingTimes(characterPath, segment.time, characterCenterX, characterCenterY, debugKey);
 
-    // Block should destroy DURING the shooting animation, not after
-    // Shooting animation: 6 frames @ 12 FPS = 0.5s
-    // We hold for 0.33s (4 frames), want block to destroy at ~frame 4-5 (0.25-0.33s into hold)
-    // Destroy block slightly before the hold ends so character doesn't start moving before it's gone
-    const hitTimeOffset = -0.08; // Destroy 80ms BEFORE hold ends (keeps character still)
+    // === TIMING: Block destroys when muzzle flash appears (frame 3 of 8) ===
+    // Shooting animation: 8 frames @ 12 FPS = 0.67s total
+    // Muzzle flash typically appears in frame 2-3 (earlier in the animation)
+    // Frame 3 timing: 3 frames ÷ 12 FPS = 0.25s
+    const SHOOTING_FRAMES = 8;
+    const FPS = 12;
+    const MUZZLE_FLASH_FRAME = 3; // Earlier in the 8-frame animation
+    const MUZZLE_FLASH_DELAY = MUZZLE_FLASH_FRAME / FPS; // 0.25s
     debugCount++;
 
     // Check if too close (less than 1 grid cell = 14px) - don't draw trace
     const minShootDistance = 14;
     if (bulletTravelDistance < minShootDistance) {
-      // Too close — destroy block near end of shooting hold
+      // Too close — destroy at muzzle flash moment
       if (target) {
-        const proposed = lastShootingTime + hitTimeOffset;
+        const proposed = firstShootTime + MUZZLE_FLASH_DELAY;
         if (target.hitTime === undefined || proposed > target.hitTime) {
           if (debugKey) {
             console.log('[SHOOT] Close-target hitTime', {
               targetKey,
               proposed: proposed.toFixed(2),
               segmentTime: segment.time.toFixed(2),
-              lastShoot: lastShootingTime.toFixed(2),
-              offset: hitTimeOffset,
-              totalDelay: (proposed - lastShootingTime).toFixed(2)
+              firstShoot: firstShootTime.toFixed(2),
+              lastShoot: lastShootTime.toFixed(2),
+              muzzleFlashDelay: MUZZLE_FLASH_DELAY,
+              totalDelay: (proposed - firstShootTime).toFixed(2)
             });
           }
           target.hitTime = proposed;
@@ -294,19 +297,22 @@ export function generateBullets(
     }
 
     // Far enough — add bullet travel time
-    const visualBasedHitTime = lastShootingTime + bulletTravelTime;
+    // For far targets: muzzle flash + bullet travel time
+    const visualBasedHitTime = firstShootTime + MUZZLE_FLASH_DELAY + bulletTravelTime;
 
     if (target) {
-      const proposed = visualBasedHitTime + hitTimeOffset;
+      const proposed = visualBasedHitTime;
       if (target.hitTime === undefined || proposed > target.hitTime) {
         if (debugKey) {
           console.log('[SHOOT] Far-target hitTime', {
             targetKey,
             proposed: proposed.toFixed(2),
             segmentTime: segment.time.toFixed(2),
-            lastShoot: lastShootingTime.toFixed(2),
+            firstShoot: firstShootTime.toFixed(2),
+            lastShoot: lastShootTime.toFixed(2),
+            muzzleFlashDelay: MUZZLE_FLASH_DELAY,
             bulletTravel: bulletTravelTime,
-            totalDelay: (proposed - lastShootingTime).toFixed(2)
+            totalDelay: (proposed - firstShootTime).toFixed(2)
           });
         }
         target.hitTime = proposed;

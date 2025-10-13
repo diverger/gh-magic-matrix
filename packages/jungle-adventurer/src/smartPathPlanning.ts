@@ -18,7 +18,7 @@ export interface GridTarget {
 }
 
 export interface ActionSegment extends PathPoint {
-  action: 'idle' | 'walk' | 'run' | 'shoot' | 'idle_shoot';
+  action: 'idle' | 'walk' | 'run' | 'shoot' | 'idle_shoot' | 'reload';
   targetX?: number; // shooting target position
   targetY?: number;
 }
@@ -200,7 +200,8 @@ function findShootableBlocker(
   targetX: number,
   targetY: number,
   gridState: GridState,
-  targets: GridTarget[]
+  targets: GridTarget[],
+  visited: Set<string>
 ): GridTarget | null {
   // Check if there's a blocker in our path
   // For horizontal movement
@@ -208,9 +209,10 @@ function findShootableBlocker(
     const step = currentX < targetX ? 1 : -1;
     for (let x = currentX + step; x !== targetX; x += step) {
       if (!gridState.canStandAt(x, currentY)) {
-        // Found a blocker! Check if it's a target we can shoot
+        // Found a blocker! Check if it's a target we can shoot (and haven't visited yet)
         const blockerTarget = targets.find(t => t.x === x && t.y === currentY);
-        if (blockerTarget && hasLineOfSight(currentX, currentY, x, currentY)) {
+        const blockerKey = blockerTarget ? `${blockerTarget.x},${blockerTarget.y}` : '';
+        if (blockerTarget && !visited.has(blockerKey) && hasLineOfSight(currentX, currentY, x, currentY)) {
           return blockerTarget;
         }
       }
@@ -222,9 +224,10 @@ function findShootableBlocker(
     const step = currentY < targetY ? 1 : -1;
     for (let y = currentY + step; y !== targetY; y += step) {
       if (!gridState.canStandAt(currentX, y)) {
-        // Found a blocker! Check if it's a target we can shoot
+        // Found a blocker! Check if it's a target we can shoot (and haven't visited yet)
         const blockerTarget = targets.find(t => t.x === currentX && t.y === y);
-        if (blockerTarget && hasLineOfSight(currentX, currentY, currentX, y)) {
+        const blockerKey = blockerTarget ? `${blockerTarget.x},${blockerTarget.y}` : '';
+        if (blockerTarget && !visited.has(blockerKey) && hasLineOfSight(currentX, currentY, currentX, y)) {
           return blockerTarget;
         }
       }
@@ -585,6 +588,30 @@ export function createSmartPath(
     const shootPos = gridToPixel(currentX, currentY);
     const targetPos = gridToPixel(nextTarget.x, nextTarget.y);
 
+    // Add reload action BEFORE shooting so we can visually confirm reload happens
+    // Reload animation: use 8-frame reload sprites (walk_while_reloading_* exist)
+    const reloadHoldDuration = 0.5; // 500ms reload (approx)
+    const reloadSteps = 4; // break reload into a few segments so it's visible
+    segments.push({
+      x: shootPos.x,
+      y: shootPos.y,
+      time: currentTime,
+      action: 'reload',
+      targetX: targetPos.x,  // Face the target while reloading
+      targetY: targetPos.y,
+    });
+    for (let r = 1; r <= reloadSteps; r++) {
+      currentTime += reloadHoldDuration / reloadSteps;
+      segments.push({
+        x: shootPos.x,
+        y: shootPos.y,
+        time: currentTime,
+        action: 'reload',
+        targetX: targetPos.x,  // Keep facing target
+        targetY: targetPos.y,
+      });
+    }
+
     // Add shooting action
     segments.push({
       x: shootPos.x,
@@ -596,10 +623,10 @@ export function createSmartPath(
     });
 
     // Hold duration for shooting animation
-    // Shooting sprite: 6 frames @ 12 FPS = 0.5s total animation
-    // Hold for ~4 frames (0.33s) so block destroys mid-to-late in animation
-    const shootingHoldDuration = 0.33; // ~4 frames worth - balanced timing
-    const holdSteps = 4; // 4 stationary points for smooth hold
+    // Shooting sprite: 8 frames @ 12 FPS = 0.67s total animation
+    // Play the complete 8-frame animation (includes muzzle flash naturally)
+    const shootingHoldDuration = 8 / 12; // Full 8-frame animation = 0.67s
+    const holdSteps = 8; // 8 stationary points for 8-frame animation
 
     for (let i = 1; i <= holdSteps; i++) {
       currentTime += shootingHoldDuration / holdSteps;
@@ -625,10 +652,13 @@ export function createSmartPath(
       action: 'idle', // Brief idle to ensure block is gone
     });
 
-  // Mark target cell as cleared (can now walk through it)
-  gridState.clear(nextTarget.x, nextTarget.y);
+  // DON'T mark target cell as cleared in gridState
+  // This prevents pathfinding from routing through cells that still have visible blocks
+  // The block won't actually disappear until its hitTime (which is after we finish shooting)
+  //
+  // gridState.clear(nextTarget.x, nextTarget.y);  // REMOVED - causes walking through visible blocks
 
-  // Record that we've visited (cleared) this target so it's not targeted again
+  // Record that we've visited this target so it's not targeted again
   visited.add(targetKey);
 
     // Character now pauses during shooting for visual clarity

@@ -337,6 +337,33 @@ function shouldFlipSprite(fromX: number, toX: number): boolean {
 /**
  * Determine animation direction based on movement vector
  */
+/**
+ * Determine shooting direction - ONLY 4 cardinal directions (no diagonals)
+ * Used for shooting/reloading actions where we only support up/down/left/right
+ */
+export function determineShootingDirection(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number
+): Direction8 {
+  const deltaX = toX - fromX;
+  const deltaY = toY - fromY;
+
+  // For shooting, only use 4 cardinal directions
+  // Compare absolute differences to determine primary direction
+  const absDeltaX = Math.abs(deltaX);
+  const absDeltaY = Math.abs(deltaY);
+
+  if (absDeltaX > absDeltaY) {
+    // Horizontal shooting (left or right)
+    return deltaX > 0 ? Direction8.Right : Direction8.Left;
+  } else {
+    // Vertical shooting (up or down)
+    return deltaY > 0 ? Direction8.Down : Direction8.Up;
+  }
+}
+
 export function determineDirection(
   fromX: number,
   fromY: number,
@@ -378,21 +405,37 @@ export function determineDirection(
     result = Direction8.RightUp;
   }
 
-  // Log for pure vertical/horizontal shooting
-  if (Math.abs(deltaX) < 0.1 || Math.abs(deltaY) < 0.1) {
-    console.log(`[DIR] dx=${deltaX.toFixed(1)}, dy=${deltaY.toFixed(1)}, angle=${angle.toFixed(1)}° => ${result}`);
-  }
-
   return result;
 }
 
 /**
  * Get sprite key for given direction and action
+ * For shooting/reloading: only use 4 cardinal directions (no diagonals)
+ * This simplifies gameplay - character only shoots straight (up/down/left/right)
  */
 export function getSpriteKey(
   direction: Direction8,
   action: 'run' | 'shoot' | 'reload' = 'run'
 ): keyof MultiDirectionalSprites {
+  // For shooting and reloading, map diagonal directions to nearest cardinal direction
+  // This ensures we only shoot/reload in 4 directions, not 8
+  let effectiveDirection = direction;
+
+  if (action === 'shoot' || action === 'reload') {
+    const cardinalMapping: Record<Direction8, Direction8> = {
+      [Direction8.Right]: Direction8.Right,
+      [Direction8.Left]: Direction8.Left,
+      [Direction8.Up]: Direction8.Up,
+      [Direction8.Down]: Direction8.Down,
+      // Map diagonals to nearest cardinal direction based on dominant axis
+      [Direction8.RightUp]: Direction8.Up,      // Favor vertical
+      [Direction8.RightDown]: Direction8.Down,  // Favor vertical
+      [Direction8.LeftUp]: Direction8.Up,       // Favor vertical
+      [Direction8.LeftDown]: Direction8.Down,   // Favor vertical
+    };
+    effectiveDirection = cardinalMapping[direction];
+  }
+
   const directionMap: Record<Direction8, string> = {
     [Direction8.Right]: 'Right',
     [Direction8.Left]: 'Left',
@@ -405,7 +448,7 @@ export function getSpriteKey(
   };
 
   const actionPrefix = action === 'run' ? 'run' : action === 'shoot' ? 'shoot' : 'reload';
-  return `${actionPrefix}${directionMap[direction]}` as keyof MultiDirectionalSprites;
+  return `${actionPrefix}${directionMap[effectiveDirection]}` as keyof MultiDirectionalSprites;
 }
 
 /**
@@ -485,6 +528,12 @@ export interface MultiDirectionalSprites {
   reloadRightDown?: SpriteSheetConfig;
   reloadLeftUp?: SpriteSheetConfig;
   reloadLeftDown?: SpriteSheetConfig;
+
+  // Static reloading (single-direction) sprites if present
+  reloadStaticRight?: SpriteSheetConfig;
+  reloadStaticLeft?: SpriteSheetConfig;
+  reloadStaticUp?: SpriteSheetConfig;
+  reloadStaticDown?: SpriteSheetConfig;
 }
 
 /**
@@ -623,7 +672,7 @@ function generateSVGPath(points: { x: number; y: number }[]): string {
  */
 export function createMultiDirectionalSpriteElement(
   sprites: MultiDirectionalSprites,
-  pathPoints: { x: number; y: number; duration: number; isShooting?: boolean; targetX?: number; targetY?: number }[],
+  pathPoints: { x: number; y: number; duration: number; isShooting?: boolean; isReloading?: boolean; targetX?: number; targetY?: number }[],
   scale: number = 1.0,
   animationId: string,
   fps: number = 12
@@ -647,19 +696,32 @@ export function createMultiDirectionalSpriteElement(
     const to = pathPoints[i + 1];
     const duration = to.duration;
 
-    // Determine direction based on shooting target or movement
+    // Determine direction and action
     let direction: Direction8;
     const isShooting = from.isShooting || to.isShooting || false;
+    const isReloading = from.isReloading || to.isReloading || false;
 
-    if (isShooting && from.targetX !== undefined && from.targetY !== undefined) {
-      // When shooting, face the TARGET, not the movement direction
-      direction = determineDirection(from.x, from.y, from.targetX, from.targetY);
+    // For shooting and reloading, use ONLY 4 cardinal directions
+    if ((isShooting || isReloading) && from.targetX !== undefined && from.targetY !== undefined) {
+      direction = determineShootingDirection(from.x, from.y, from.targetX, from.targetY);
+    } else if (isReloading) {
+      // Reloading without target - face the direction we're moving (or last direction)
+      direction = determineDirection(from.x, from.y, to.x, to.y);
+      // Snap to cardinal direction for reload
+      if (direction === Direction8.RightUp || direction === Direction8.RightDown) {
+        direction = Direction8.Right;
+      } else if (direction === Direction8.LeftUp || direction === Direction8.LeftDown) {
+        direction = Direction8.Left;
+      }
     } else {
-      // When running, use movement direction
+      // Running - use full 8 directions
       direction = determineDirection(from.x, from.y, to.x, to.y);
     }
 
-    const action = isShooting ? 'shoot' : 'run';
+    let action: 'run' | 'shoot' | 'reload' = 'run';
+    if (isShooting) action = 'shoot';
+    else if (isReloading) action = 'reload';
+
     const spriteKey = getSpriteKey(direction, action);
 
     segments.push({

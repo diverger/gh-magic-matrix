@@ -101,6 +101,12 @@ export function loadBuiltInSprites(): MultiDirectionalSprites {
         reloadRightDown: 'walk_while_reloading_right_down.png',
         reloadLeftUp: 'walk_while_reloading_left_up.png',
         reloadLeftDown: 'walk_while_reloading_left_down.png',
+
+        // Static reloading sprites (if available)
+        reloadStaticRight: 'reloading_right.png',
+        reloadStaticLeft: 'reloading_left.png',
+        reloadStaticUp: 'reloading_up.png',
+        reloadStaticDown: 'reloading_down.png',
     };
 
     // Load all sprites
