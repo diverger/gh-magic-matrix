@@ -344,12 +344,19 @@ export function generateJungleAdventurerSVG(
   // Create hit time map from shootingTargets
   // IMPORTANT: Use block CORNER coordinates (not center) as key to match createBlockWithEffect
   const hitTimes = new Map<string, number>();
+  let debugHitTimeCount = 0;
   shootingTargets.forEach((target, index) => {
     if (target.hitTime !== undefined) {
       // Convert center coordinates back to corner coordinates to match blocks array
       const block = blocks[index];
       const blockId = `block-${block.x}-${block.y}`;
       hitTimes.set(blockId, target.hitTime);
+
+      // DEBUG: Log first few mappings
+      if (debugHitTimeCount < 5) {
+        console.log(`[HITTIME-MAP] index=${index}, targetCenter=(${target.x.toFixed(1)},${target.y.toFixed(1)}), blockCorner=(${block.x},${block.y}), blockId=${blockId}, hitTime=${target.hitTime.toFixed(2)}s`);
+        debugHitTimeCount++;
+      }
     }
   });
 
@@ -370,6 +377,14 @@ export function generateJungleAdventurerSVG(
   } else {
     console.log('[HITTIMES] All blocks have hitTimes:', hitCount);
   }
+
+  // IMPORTANT: Filter out blocks that were never shot (no hitTime)
+  // These blocks can't be reached by the character and shouldn't be displayed
+  const reachableBlocks = blocks.filter((b, index) => {
+    const blockId = `block-${b.x}-${b.y}`;
+    return hitTimes.has(blockId);
+  });
+  console.log(`[BLOCKS] Rendering ${reachableBlocks.length}/${blocks.length} blocks (only those that can be reached and shot)`);
 
   // Calculate total animation duration
   const totalDuration = characterPath[characterPath.length - 1].time + 2; // +2s buffer
@@ -401,7 +416,7 @@ export function generateJungleAdventurerSVG(
 
   <!-- Blocks layer (with destroy effects) -->
   <g class="blocks-layer">
-    ${createAllBlocksWithEffects(blocks, hitTimes, blockDestroyEffect)}
+    ${createAllBlocksWithEffects(reachableBlocks, hitTimes, blockDestroyEffect)}
   </g>
 
   <!-- Impact flashes layer -->
@@ -414,9 +429,39 @@ export function generateJungleAdventurerSVG(
     ${createMultiDirectionalSpriteElement(
     sprites,
     // Convert PathPoint[] with cumulative time to path segments with duration per segment
-    // Use the merged path (pathForShooting) so shooting flags align with visual timing
+    // Map by TIME instead of index, because smoothPath inserts extra points
     characterPath.map((p, index) => {
-      const seg = pathForShooting[index];
+      // Find the segment that contains this time point
+      // Use binary search for efficiency (pathForShooting is sorted by time)
+      let seg = undefined;
+      let left = 0;
+      let right = pathForShooting.length - 1;
+
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        const segTime = pathForShooting[mid].time;
+
+        // If within 10ms of this segment's time, consider it a match
+        if (Math.abs(segTime - p.time) < 0.01) {
+          seg = pathForShooting[mid];
+          break;
+        }
+
+        // Otherwise, check if this segment is active during this time
+        // A segment is active from its time until the next segment's time
+        const nextSegTime = mid < pathForShooting.length - 1 ? pathForShooting[mid + 1].time : Infinity;
+        if (p.time >= segTime && p.time < nextSegTime) {
+          seg = pathForShooting[mid];
+          break;
+        }
+
+        if (segTime < p.time) {
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+
       const isShooting = seg?.action === 'idle_shoot';
       const isReloading = seg?.action === 'reload';
 
