@@ -60,8 +60,14 @@ export class Grid {
 
 
   setColor(x: number, y: number, color: Color | Empty): void {
-    // Remove branding for storage
-    this.data[this.getIndex(x, y)] = (color as number) || 0;
+    if (!this.isInside(x, y)) {
+      throw new RangeError(`setColor out of bounds: (${x},${y}) not in ${this.width}x${this.height}`);
+    }
+    const n = color as number;
+    if (!Number.isFinite(n) || n < 0 || n > 9) {
+      throw new RangeError(`Color out of range: ${n}. Expected 0..9`);
+    }
+    this.data[this.getIndex(x, y)] = n;
   }
 
 
