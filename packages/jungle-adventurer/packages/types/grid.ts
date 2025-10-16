@@ -21,14 +21,23 @@ export class Grid {
     return x >= 0 && y >= 0 && x < this.width && y < this.height;
   }
 
+  /**
+   * Checks if the coordinate (x, y) is inside the grid, allowing for a margin (buffer) of m cells
+   * beyond the normal grid boundaries. This expands the valid area by m in all directions.
+   *
+   * @param m - The margin (number of cells to expand the boundary)
+   * @param x - The x coordinate to check
+   * @param y - The y coordinate to check
+   * @returns true if (x, y) is within the expanded area, false otherwise
+   */
   isInsideLarge(m: number, x: number, y: number): boolean {
     return x >= -m && y >= -m && x < this.width + m && y < this.height + m;
   }
 
+
   private getIndex(x: number, y: number): number {
     return x * this.height + y;
   }
-
 
   getColor(x: number, y: number): Color | Empty {
     // Type assertion for branding; actual runtime value is just a number
