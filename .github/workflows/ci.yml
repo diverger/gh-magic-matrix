@@ -71,7 +71,7 @@ jobs:
           INPUT_FADE_IN_DURATION: "0.2"
           INPUT_FADE_OUT_DURATION: "0.4"
           INPUT_TEXT_FRAME_DURATION: "2.0"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          INPUT_COLOR_LEVELS: "#ebedf0, #9be9a8, #40c463, #30a14e, #216e39"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate blinking contribution (dark theme)
@@ -84,7 +84,8 @@ jobs:
           INPUT_FADE_OUT_DURATION: "0.4"
           INPUT_ENDING_TEXT: "diverger"
           INPUT_TEXT_FRAME_DURATION: "2.0"
-          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          # Five vivid custom colors for dark theme
+          INPUT_COLOR_LEVELS: "#22223b, #4a4e69, #9a8c98, #f2e9e4, #f72585"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Jungle Adventurer animation
