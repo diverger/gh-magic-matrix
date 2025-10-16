@@ -31,12 +31,17 @@ export class Grid {
 
 
   getColor(x: number, y: number): Color | Empty {
-    // Type assertion for branding; actual runtime value is just a number
-    const value = this.data[this.getIndex(x, y)];
-    if (value === 0) {
-      return EMPTY;
+    if (!this.isInside(x, y)) {
+      throw new RangeError(
+        `getColor out of bounds: (${x},${y}) not in ${this.width}x${this.height}`
+      );
     }
-    return value as Color;
+    const value = this.data[this.getIndex(x, y)];
+    if (value === 0) return EMPTY;
+    if (value >= 1 && value <= 9) return value as Color;
+    throw new RangeError(
+      `Invalid color value ${value} at (${x},${y}); expected 0..9`
+    );
   }
 
 
