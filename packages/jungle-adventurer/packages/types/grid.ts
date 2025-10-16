@@ -95,7 +95,7 @@ export class Grid {
 
   equals(other: Grid): boolean {
     if (this.width !== other.width || this.height !== other.height) return false;
-    return this.data.every((_, i) => this.data[i] === other.data[i]);
+    return this.data.every((val, i) => val === other.data[i]);
   }
 
   clone(): Grid {
