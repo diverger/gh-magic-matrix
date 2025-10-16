@@ -8,9 +8,23 @@ export class Grid {
   data: Uint8Array;
 
   constructor(width: number, height: number, data?: Uint8Array) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+      throw new RangeError(`Invalid grid size: ${width}x${height}. Must be positive integers.`);
+    }
     this.width = width;
     this.height = height;
-    this.data = data ? Uint8Array.from(data) : new Uint8Array(width * height);
+    const expected = width * height;
+    if (data !== undefined) {
+      if (!(data instanceof Uint8Array)) {
+        throw new TypeError("data must be a Uint8Array");
+      }
+      if (data.length !== expected) {
+        throw new RangeError(`data.length (${data.length}) must equal width*height (${expected}).`);
+      }
+      this.data = new Uint8Array(data);
+    } else {
+      this.data = new Uint8Array(expected);
+    }
   }
 
   static createEmpty(width: number, height: number): Grid {
@@ -40,18 +54,29 @@ export class Grid {
   }
 
   getColor(x: number, y: number): Color | Empty {
-    // Type assertion for branding; actual runtime value is just a number
-    const value = this.data[this.getIndex(x, y)];
-    if (value === 0) {
-      return EMPTY;
+    if (!this.isInside(x, y)) {
+      throw new RangeError(
+        `getColor out of bounds: (${x},${y}) not in ${this.width}x${this.height}`
+      );
     }
-    return value as Color;
+    const value = this.data[this.getIndex(x, y)];
+    if (value === 0) return EMPTY;
+    if (value >= 1 && value <= 9) return value as Color;
+    throw new RangeError(
+      `Invalid color value ${value} at (${x},${y}); expected 0..9`
+    );
   }
 
 
   setColor(x: number, y: number, color: Color | Empty): void {
-    // Remove branding for storage
-    this.data[this.getIndex(x, y)] = (color as number) || 0;
+    if (!this.isInside(x, y)) {
+      throw new RangeError(`setColor out of bounds: (${x},${y}) not in ${this.width}x${this.height}`);
+    }
+    const n = color as number;
+    if (!Number.isFinite(n) || n < 0 || n > 9) {
+      throw new RangeError(`Color out of range: ${n}. Expected 0..9`);
+    }
+    this.data[this.getIndex(x, y)] = n;
   }
 
 
