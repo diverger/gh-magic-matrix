@@ -3,9 +3,33 @@ export type Empty = 0 & { _tag: "__Empty__" };
 export const EMPTY: Empty = 0 as Empty;
 
 export class Grid {
+
   width: number;
   height: number;
   data: Uint8Array;
+
+  /**
+   * Default random function for randomlyFill
+   */
+  static defaultRand(a: number, b: number): number {
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+  }
+
+  /**
+   * Fills the grid with random colors and empty cells.
+   * @param options - { colors?: Color[]; emptyP?: number }
+   * @param rand - Optional random function
+   */
+  randomlyFill(options?: { colors?: Color[]; emptyP?: number }, rand?: (a: number, b: number) => number) {
+    const { colors = [1, 2, 3] as Color[], emptyP = 2 } = options || {};
+    const randomFn = rand || Grid.defaultRand;
+    for (let x = this.width; x--; )
+      for (let y = this.height; y--; ) {
+        const k = randomFn(-emptyP, colors.length - 1);
+        if (k >= 0) this.setColor(x, y, colors[k]);
+        else this.setColorEmpty(x, y);
+      }
+  }
 
   constructor(width: number, height: number, data?: Uint8Array) {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
