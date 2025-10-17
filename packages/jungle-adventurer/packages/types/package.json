@@ -1,0 +1,6 @@
+{
+  "name": "@jungle-adventurer/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for jungle-adventurer packages.",
+  "private": true
+}

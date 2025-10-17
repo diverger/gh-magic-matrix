@@ -101,7 +101,6 @@ jobs:
           ls -la dist/
           ls -la dist/breathing-contrib/
           ls -la dist/blinking-contrib/
-          ls -la dist/jungle-adventurer/ || echo "⚠️  Jungle Adventurer output not found"
           test -f dist/breathing-contrib/light.svg
           test -f dist/breathing-contrib/dark.svg
           test -f dist/blinking-contrib/light.svg
@@ -116,7 +115,6 @@ jobs:
           path: |
             dist/breathing-contrib/*.svg
             dist/blinking-contrib/*.svg
-            dist/jungle-adventurer/*.svg
           retention-days: 7
 
       - name: Publish to output branch
