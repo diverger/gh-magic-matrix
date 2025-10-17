@@ -88,13 +88,13 @@ jobs:
           INPUT_COLOR_LEVELS: "#22223b, #4a4e69, #9a8c98, #f2e9e4, #f72585"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate Jungle Adventurer animation
-        run: bun dist/jungle-adventurer/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/jungle-adventurer/animation.svg
-          INPUT_COLOR_SCHEME: "github-green"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Generate Jungle Adventurer animation
+      #   run: bun dist/jungle-adventurer/index.js
+      #   env:
+      #     INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+      #     INPUT_OUTPUT_PATH: dist/jungle-adventurer/animation.svg
+      #     INPUT_COLOR_SCHEME: "github-green"
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify all outputs exist
         run: |
@@ -106,7 +106,6 @@ jobs:
           test -f dist/breathing-contrib/dark.svg
           test -f dist/blinking-contrib/light.svg
           test -f dist/blinking-contrib/dark.svg
-          test -f dist/jungle-adventurer/animation.svg || echo "⚠️  Jungle Adventurer animation not generated"
           echo "✅ All output files generated successfully"
 
       - name: Upload PR preview artifacts
