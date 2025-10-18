@@ -113,7 +113,13 @@ jobs:
 
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git add breathing-contrib/action.yml blinking-contrib/action.yml snake/action.yml package.json packages/*/package.json dist/
+          git add \
+            breathing-contrib/action.yml \
+            blinking-contrib/action.yml \
+            snake/action.yml \
+            package.json \
+            packages/*/package.json \
+            dist/
           git commit -m "🚀 Release v$VERSION"
           git tag v$VERSION
           git push origin main --tags
