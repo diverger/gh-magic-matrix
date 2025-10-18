@@ -3,7 +3,28 @@ import { Point, neighbors4 } from "../types/point";
 import { Snake } from "../types/snake";
 import { OutsideGrid } from "./OutsideGrid";
 
+//! Note:
+// Path refers to a sequence of points (cells) that the snake will traverse. It is a general term for any route or movement,
+// such as the result of A* pathfinding, or the steps needed to reach a target cell. Paths can be short (single move), long
+// (full clearing), or even disconnected.
+
+// Tunnel is a special kind of path. It represents a round-trip route that the snake can safely traverse to consume cells
+// and then return to a safe area (usually the grid boundary or an "outside" cell). Tunnels are validated to ensure the
+// snake can both enter and exit without getting stuck, and are used for two-phase clearing strategies (residual color
+// clearing and clean color clearing).
+
+//! Because the snake can't traverse 'backward', so a safe path (not dead) must be a round trip path -- 'route'
+
+// Summary:
+
+// path: Any sequence of points for snake movement (generic, may not be safe for round-trip).
+// tunnel: A validated, round-trip path that guarantees the snake can enter, consume, and exit safely (used for optimal clearing).
+// Tunnels are a subset of paths, with additional safety and round-trip guarantees.
+
+// There may be 'dead path', but won't be 'dead route'.
+
 export class Tunnel {
+  // A tunnel is a special path formed with a series of points
   private path: Point[];
 
   constructor(path: Point[] = []) {
