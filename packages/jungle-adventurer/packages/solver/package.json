@@ -1,0 +1,7 @@
+{
+  "name": "@jungle-adventurer/solver",
+  "version": "1.0.0",
+  "description": "Pathfinding and grid solving algorithms for jungle-adventurer.",
+  "license": "MIT",
+  "private": true
+}
