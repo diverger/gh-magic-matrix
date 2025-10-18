@@ -117,10 +117,6 @@ echo ""
 echo "🚀 Running snake action..."
 bun dist/index.js
 
-# Run the snake action
-echo "🚀 Running snake action..."
-node dist/index.js
-
 # Return to original directory
 cd - > /dev/null
 
