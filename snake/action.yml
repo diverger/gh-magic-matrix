@@ -1,0 +1,64 @@
+name: 'Snake GitHub Contribution Graph'
+description: 'Generate an animated SVG showing a snake eating GitHub contributions using pathfinding algorithms'
+author: 'diverger'
+
+branding:
+  icon: 'activity'
+  color: 'green'
+
+inputs:
+  github_user_name:
+    description: 'GitHub username to fetch contributions for'
+    required: true
+  github_token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+  output_path:
+    description: 'Path where the SVG will be saved'
+    required: false
+    default: 'snake.svg'
+  svg_width:
+    description: 'SVG canvas width in pixels'
+    required: false
+    default: '800'
+  svg_height:
+    description: 'SVG canvas height in pixels'
+    required: false
+    default: '200'
+  cell_size:
+    description: 'Size of each contribution cell in pixels'
+    required: false
+    default: '12'
+  cell_gap:
+    description: 'Gap between cells in pixels'
+    required: false
+    default: '2'
+  cell_radius:
+    description: 'Border radius of cells in pixels'
+    required: false
+    default: '2'
+  snake_length:
+    description: 'Length of the snake in segments'
+    required: false
+    default: '6'
+  animation_duration:
+    description: 'Total animation duration in seconds'
+    required: false
+    default: '20'
+  colors:
+    description: 'Comma-separated color levels (empty, L1, L2, L3, L4)'
+    required: false
+    default: '#161b22,#0e4429,#006d32,#26a641,#39d353'
+
+outputs:
+  svg_path:
+    description: 'Path to the generated SVG file'
+  moves_count:
+    description: 'Total number of moves in the snake path'
+  cells_eaten:
+    description: 'Number of contribution cells consumed'
+
+runs:
+  using: 'docker'
+  image: 'docker://diverger/gh-magic-matrix-snake:latest'

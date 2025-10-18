@@ -1,0 +1,22 @@
+# Snake GitHub Action Dockerfile
+FROM oven/bun:1-alpine
+
+LABEL maintainer="diverger"
+LABEL description="Snake GitHub contribution graph animation using advanced pathfinding algorithms"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY packages/snake/package.json ./
+
+# Copy source code
+COPY packages/snake/src ./src/
+COPY packages/snake/packages ./packages/
+
+# Install dependencies and build
+RUN bun install
+RUN bun build src/index.ts --outdir dist --target node
+
+# Set entry point
+ENTRYPOINT ["bun", "dist/index.js"]

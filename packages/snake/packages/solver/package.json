@@ -1,0 +1,6 @@
+{
+  "name": "@snake/solver",
+  "version": "1.0.0",
+  "description": "Snake pathfinding and route optimization algorithms.",
+  "private": true
+}

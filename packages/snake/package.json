@@ -1,0 +1,19 @@
+{
+  "name": "@snake/action",
+  "version": "1.0.0",
+  "description": "Snake GitHub contribution graph animation using advanced pathfinding algorithms",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "start": "bun dist/index.js",
+    "dev": "bun --watch src/index.ts",
+    "test": "bun src/test.ts"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "private": true
+}

@@ -1,0 +1,389 @@
+import { Grid, Color, EMPTY } from "../types/grid";
+import { Point, neighbors4 } from "../types/point";
+import { Snake } from "../types/snake";
+import { OutsideGrid } from "./OutsideGrid";
+
+export class Tunnel {
+  private path: Point[];
+
+  constructor(path: Point[] = []) {
+    this.path = [...path];
+  }
+
+  /**
+   * Get the tunnel path as array of points
+   */
+  toArray(): Point[] {
+    return [...this.path];
+  }
+
+  /**
+   * Check if tunnel is empty
+   */
+  isEmpty(): boolean {
+    return this.path.length === 0;
+  }
+
+  /**
+   * Get tunnel length
+   */
+  getLength(): number {
+    return this.path.length;
+  }
+
+  /**
+   * Trim empty cells from the start of tunnel
+   */
+  trimStart(grid: Grid): void {
+    while (this.path.length > 0) {
+      const point = this.path[0];
+      if (this.isEmptySafe(grid, point.x, point.y)) {
+        this.path.shift();
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Trim empty cells from the end of tunnel
+   */
+  trimEnd(grid: Grid): void {
+    while (this.path.length > 0) {
+      const lastIndex = this.path.length - 1;
+      const point = this.path[lastIndex];
+      if (
+        this.isEmptySafe(grid, point.x, point.y) ||
+        this.path.findIndex((p) => p.x === point.x && p.y === point.y) < lastIndex
+      ) {
+        this.path.pop();
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Trim both ends
+   */
+  trim(grid: Grid): void {
+    this.trimStart(grid);
+    this.trimEnd(grid);
+  }
+
+  /**
+   * Update tunnel by removing consumed points
+   */
+  update(grid: Grid, toDelete: Point[]): void {
+    // Remove consumed points from start
+    while (this.path.length > 0) {
+      const point = this.path[0];
+      if (
+        this.isEmptySafe(grid, point.x, point.y) ||
+        toDelete.some((p) => p.x === point.x && p.y === point.y)
+      ) {
+        this.path.shift();
+      } else {
+        break;
+      }
+    }
+
+    // Remove consumed points from end
+    while (this.path.length > 0) {
+      const point = this.path[this.path.length - 1];
+      if (
+        this.isEmptySafe(grid, point.x, point.y) ||
+        toDelete.some((p) => p.x === point.x && p.y === point.y)
+      ) {
+        this.path.pop();
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Calculate priority score for this tunnel
+   */
+  getPriority(grid: Grid, targetColor: Color): number {
+    let colorCount = 0;
+    let lowerColorWeight = 0;
+
+    for (let i = 0; i < this.path.length; i++) {
+      const point = this.path[i];
+      const color = this.getColorSafe(grid, point.x, point.y);
+
+      // Only count unique cells (first occurrence)
+      if (
+        !grid.isEmptyCell(color) &&
+        i === this.path.findIndex((p) => p.x === point.x && p.y === point.y)
+      ) {
+        if ((color as number) === (targetColor as number)) {
+          colorCount += 1;
+        } else {
+          lowerColorWeight += (targetColor as number) - (color as number);
+        }
+      }
+    }
+
+    if (colorCount === 0) return 99999; // Infinite priority for pure lower-color tunnels
+    return lowerColorWeight / colorCount; // Favor tunnels with higher lower/current ratio
+  }
+
+  /**
+   * Clone this tunnel
+   */
+  clone(): Tunnel {
+    return new Tunnel(this.path);
+  }
+
+  /**
+   * Convert tunnel to snake movement sequence
+   */
+  toSnakeMovements(startSnake: Snake): Snake[] {
+    const movements: Snake[] = [];
+    let currentSnake = startSnake;
+
+    for (let i = 1; i < this.path.length; i++) {
+      const currentHead = currentSnake.getHead();
+      const target = this.path[i];
+      const dx = target.x - currentHead.x;
+      const dy = target.y - currentHead.y;
+
+      currentSnake = currentSnake.nextSnake(dx, dy);
+      movements.unshift(currentSnake);
+    }
+
+    return movements;
+  }
+
+  /**
+   * Get the sequence of snake to cross the tunnel
+   */
+  getTunnelPath(snake0: Snake): Snake[] {
+    const chain: Snake[] = [];
+    let snake = snake0;
+
+    for (let i = 1; i < this.path.length; i++) {
+      const head = snake.getHead();
+      const dx = this.path[i].x - head.x;
+      const dy = this.path[i].y - head.y;
+      snake = snake.nextSnake(dx, dy);
+      chain.unshift(snake);
+    }
+
+    return chain;
+  }
+
+  /**
+   * Update tunnel assuming grid changed and colors got deleted
+   */
+  updateTunnel(grid: Grid, toDelete: Point[]): void {
+    while (this.path.length > 0) {
+      const point = this.path[0];
+      if (
+        this.isEmptySafe(grid, point.x, point.y) ||
+        toDelete.some((p) => p.x === point.x && p.y === point.y)
+      ) {
+        this.path.shift();
+      } else {
+        break;
+      }
+    }
+
+    while (this.path.length > 0) {
+      const point = this.path[this.path.length - 1];
+      if (
+        this.isEmptySafe(grid, point.x, point.y) ||
+        toDelete.some((p) => p.x === point.x && p.y === point.y)
+      ) {
+        this.path.pop();
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Remove empty cells from start
+   */
+  trimTunnelStart(grid: Grid): void {
+    while (this.path.length > 0) {
+      const point = this.path[0];
+      if (this.isEmptySafe(grid, point.x, point.y)) {
+        this.path.shift();
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Remove empty cells from end
+   */
+  trimTunnelEnd(grid: Grid): void {
+    while (this.path.length > 0) {
+      const i = this.path.length - 1;
+      const point = this.path[i];
+      if (
+        this.isEmptySafe(grid, point.x, point.y) ||
+        this.path.findIndex((p) => p.x === point.x && p.y === point.y) < i
+      ) {
+        this.path.pop();
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Find the best tunnel from a specific cell to outside
+   */
+  static findBestTunnel(
+    grid: Grid,
+    outsideGrid: OutsideGrid,
+    startX: number,
+    startY: number,
+    maxColor: Color,
+    snakeLength: number
+  ): Tunnel | null {
+    const startPoint = new Point(startX, startY);
+    const snake = Snake.fromSinglePoint(startPoint, snakeLength);
+
+    // Phase 1: Find path from start to outside
+    const pathToOutside = this.findEscapePath(grid, outsideGrid, snake, maxColor);
+    if (!pathToOutside) return null;
+
+    // Phase 2: Simulate consumption and find return path
+    const gridAfterConsumption = grid.clone();
+    for (const point of pathToOutside) {
+      this.setEmptySafe(gridAfterConsumption, point.x, point.y);
+    }
+
+    // Create snake at target position with correct length
+    const snakeAtTarget = this.createSnakeAtPosition(pathToOutside, snakeLength);
+    const pathFromTarget = this.findEscapePath(gridAfterConsumption, outsideGrid, snakeAtTarget, maxColor);
+    if (!pathFromTarget) return null;
+
+    // Combine paths
+    const completePath = [...pathToOutside.slice().reverse(), ...pathFromTarget];
+    const tunnel = new Tunnel(completePath);
+    tunnel.trim(grid);
+
+    return tunnel;
+  }
+
+  /**
+   * Find escape path from snake position to outside using BFS with cost
+   */
+  private static findEscapePath(
+    grid: Grid,
+    outsideGrid: OutsideGrid,
+    snake: Snake,
+    maxColor: Color
+  ): Point[] | null {
+    interface SearchNode {
+      snake: Snake;
+      parent: SearchNode | null;
+      cost: number;
+    }
+
+    const openList: SearchNode[] = [{ snake, parent: null, cost: 0 }];
+    const closedList: Snake[] = [];
+
+    while (openList.length > 0) {
+      const current = openList.shift()!;
+      const head = current.snake.getHead();
+
+      // Check if we reached outside
+      if (outsideGrid.isOutside(head.x, head.y)) {
+        return this.reconstructPath(current);
+      }
+
+      // Try all directions
+      for (const direction of neighbors4) {
+        const newX = head.x + direction.x;
+        const newY = head.y + direction.y;
+        const cellColor = this.getColorSafe(grid, newX, newY);
+
+        if (
+          (cellColor as number) <= (maxColor as number) &&
+          !current.snake.willSelfCollide(direction.x, direction.y)
+        ) {
+          const newSnake = current.snake.nextSnake(direction.x, direction.y);
+
+          if (!closedList.some((s) => s.equals(newSnake))) {
+            // Higher cost for target color cells to discourage their use
+            const moveCost = (cellColor as number) === (maxColor as number) ? 1000 : 1;
+            const cost = current.cost + 1 + moveCost;
+
+            this.sortedInsert(openList, { snake: newSnake, parent: current, cost });
+            closedList.push(newSnake);
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Reconstruct path from search node
+   */
+  private static reconstructPath(goalNode: { snake: Snake; parent: any | null }): Point[] {
+    const path: Point[] = [];
+    let current = goalNode;
+
+    while (current) {
+      path.push(current.snake.getHead());
+      current = current.parent;
+    }
+
+    return path;
+  }
+
+  /**
+   * Create snake at specific position with given length
+   */
+  private static createSnakeAtPosition(path: Point[], length: number): Snake {
+    const cells = path.slice(0, length);
+    while (cells.length < length) {
+      cells.push(cells[cells.length - 1]);
+    }
+    return new Snake(cells);
+  }
+
+  /**
+   * Insert node in sorted order by cost
+   */
+  private static sortedInsert(list: any[], node: any): void {
+    let insertIndex = 0;
+    while (insertIndex < list.length && node.cost >= list[insertIndex].cost) {
+      insertIndex++;
+    }
+    list.splice(insertIndex, 0, node);
+  }
+
+  /**
+   * Safe color getter
+   */
+  private getColorSafe(grid: Grid, x: number, y: number): Color | typeof EMPTY {
+    return grid.isInside(x, y) ? grid.getColor(x, y) : EMPTY;
+  }
+
+  /**
+   * Safe empty checker
+   */
+  private isEmptySafe(grid: Grid, x: number, y: number): boolean {
+    return !grid.isInside(x, y) || grid.isEmptyCell(grid.getColor(x, y));
+  }
+
+  /**
+   * Safe empty setter
+   */
+  private static setEmptySafe(grid: Grid, x: number, y: number): void {
+    if (grid.isInside(x, y)) {
+      grid.setColorEmpty(x, y);
+    }
+  }
+}
