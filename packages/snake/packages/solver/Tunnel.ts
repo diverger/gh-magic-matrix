@@ -132,7 +132,7 @@ export class Tunnel {
 
     for (let i = 0; i < this.path.length; i++) {
       const point = this.path[i];
-      const color = this.getColorSafe(grid, point.x, point.y);
+      const color = Tunnel.getColorSafe(grid, point.x, point.y);
 
       // Only count unique cells (first occurrence)
       if (
@@ -259,6 +259,20 @@ export class Tunnel {
 
   /**
    * Find the best tunnel from a specific cell to outside
+   *
+   * \brief Creates a validated round-trip tunnel from a start position to the outside grid
+   * \param grid The game grid containing colors and empty cells
+   * \param outsideGrid Helper class that defines the "outside" boundary areas
+   * \param startX X coordinate of the starting position
+   * \param startY Y coordinate of the starting position
+   * \param maxColor Maximum allowed color value for pathfinding (higher colors are blocked)
+   * \param snakeLength Length of the snake (affects collision detection and positioning)
+   * \return A valid Tunnel object if a round-trip path exists, null otherwise
+   *
+   * \details This method performs a two-phase tunnel construction:
+   *          Phase 1: Find escape path from start to outside boundary
+   *          Phase 2: Simulate consumption and find return path to outside
+   *          The resulting tunnel is trimmed to remove empty cells at both ends
    */
   static findBestTunnel(
     grid: Grid,
@@ -326,7 +340,7 @@ export class Tunnel {
       for (const direction of neighbors4) {
         const newX = head.x + direction.x;
         const newY = head.y + direction.y;
-        const cellColor = this.getColorSafe(grid, newX, newY);
+        const cellColor = Tunnel.getColorSafe(grid, newX, newY);
 
         if (
           (cellColor as number) <= (maxColor as number) &&
@@ -394,7 +408,7 @@ export class Tunnel {
   /**
    * Safe color getter
    */
-  private getColorSafe(grid: Grid, x: number, y: number): Color | typeof EMPTY {
+  private static getColorSafe(grid: Grid, x: number, y: number): Color | typeof EMPTY {
     return grid.isInside(x, y) ? grid.getColor(x, y) : EMPTY;
   }
 
