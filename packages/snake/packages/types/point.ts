@@ -1,3 +1,5 @@
+
+//! Note that it assume the top left is (0,0), so the coord is counter-clockwise rotating
 export const neighbors4  = [
   { x: 1, y: 0 },   // right
   { x: 0, y: -1 },  // up

@@ -317,6 +317,7 @@ export class Tunnel {
       const head = current.snake.getHead();
 
       // Check if we reached outside
+      //! For BFS, the first one will be the shortest one
       if (outsideGrid.isOutside(head.x, head.y)) {
         return this.reconstructPath(current);
       }
@@ -333,11 +334,15 @@ export class Tunnel {
         ) {
           const newSnake = current.snake.nextSnake(direction.x, direction.y);
 
+          //! Here the closedList avoids duplicate snake positions (body positions), that means the same cell can be
+          //! 'visited' multiple times
           if (!closedList.some((s) => s.equals(newSnake))) {
-            // Higher cost for target color cells to discourage their use
+            //! Higher cost for target color cells to discourage their use, only when cell color equal to maxColor, it
+            //! will have a much higher cost
             const moveCost = (cellColor as number) === (maxColor as number) ? 1000 : 1;
             const cost = current.cost + 1 + moveCost;
 
+            //! This makes sure the one with lowest cost will be chosen first
             this.sortedInsert(openList, { snake: newSnake, parent: current, cost });
             closedList.push(newSnake);
           }
@@ -355,6 +360,7 @@ export class Tunnel {
     const path: Point[] = [];
     let current = goalNode;
 
+    //! The last is pushed first
     while (current) {
       path.push(current.snake.getHead());
       current = current.parent;
