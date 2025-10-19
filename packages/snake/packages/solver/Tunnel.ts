@@ -297,6 +297,10 @@ export class Tunnel {
 
     // Create snake at target position with correct length
     const snakeAtTarget = this.createSnakeAtPosition(pathToOutside, snakeLength);
+
+    //! In phase 1, we actually only find the escape path for the snake head. In the 'simulation', we empty the path
+    //! found in the grid clone, just like try to let the snake escape then search escape path again to make sure we
+    //! still have escape path after the snake head reaching the outside of the grid.
     const pathFromTarget = this.findEscapePath(gridAfterConsumption, outsideGrid, snakeAtTarget, maxColor);
     if (!pathFromTarget) return null;
 
@@ -309,7 +313,18 @@ export class Tunnel {
   }
 
   /**
-   * Find escape path from snake position to outside using BFS with cost
+   * \brief Find an escape path for the snake's head to the outside boundary using BFS.
+   *
+   * This function searches for a path from the current snake position to any cell considered "outside"
+   * the grid, using a breadth-first search (BFS) algorithm with a cost function. The search only considers
+   * valid moves (no self-collision, color constraints) and returns the shortest path found for the snake's head.
+   *
+   * \param grid The game grid containing colors and empty cells
+   * \param outsideGrid Helper class that defines the "outside" boundary areas
+   * \param snake The current snake instance (position and body)
+   * \param maxColor Maximum allowed color value for traversable cells
+   * \return An array of Points representing the head positions along the escape path, or null if no path exists
+   * \note This function actually only finds a escape path for the snake's head!
    */
   private static findEscapePath(
     grid: Grid,
