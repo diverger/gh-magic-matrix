@@ -177,7 +177,11 @@ export class Tunnel {
     }
 
     if (colorCount === 0) return 99999; // Infinite priority for pure lower-color tunnels
-    return lowerColorWeight / colorCount; // Favor tunnels with higher lower/current ratio
+
+    //! Favor tunnels with higher lower/current ratio
+    //! When the count of the cells with lower color is more, and the count of the cells with target color is lesser,
+    //! the priority is higher and should be the tunnel preferred
+    return lowerColorWeight / colorCount;
   }
 
   /**
