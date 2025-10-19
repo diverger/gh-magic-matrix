@@ -1,7 +1,7 @@
 import { Grid, Color } from "../packages/types/grid";
 import { Point } from "../packages/types/point";
 import { Snake } from "../packages/types/snake";
-import { SnakeSolver } from "../packages/solver/SnakeSolver";
+import { SnakeSolver } from "../packages/solver/snake-solver";
 
 interface SnakeActionInputs {
   github_user_name: string;
