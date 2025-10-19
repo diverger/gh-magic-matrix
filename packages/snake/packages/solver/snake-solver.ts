@@ -61,23 +61,19 @@ export class SnakeSolver {
   }
 
   /**
-   * \brief Clear residual colored cells using prioritized tunnels
+   * Clears residual colored cells using prioritized tunnels.
    *
-   * This method builds a list of candidate tunnel entry points and ranks them
-   * by a priority score (see Tunnel::getPriority). It repeatedly picks the
-   * highest-priority tunnel, navigates to its start, traverses it (consuming
-   * cells), updates the internal grid copy, updates the `outside` helper and
-   * re-evaluates remaining candidates. Tunnel candidates are re-scored after
-   * each mutation to the grid and invalid tunnels are removed.
+   * @description
+   * Builds a list of candidate tunnel entry points and ranks them by a priority score (see Tunnel.getPriority).
+   * Repeatedly picks the highest-priority tunnel, navigates to its start, traverses it (consuming cells), updates the internal grid copy,
+   * updates the `outside` helper, and re-evaluates remaining candidates. Tunnel candidates are re-scored after each mutation to the grid
+   * and invalid tunnels are removed. May perform per-cell tunnel discovery and rescoring; runtime depends on grid area and tunnel finding cost.
    *
-   * Complexity: the function may perform per-cell tunnel discovery and
-   * rescoring; runtime depends on grid area and the cost of tunnel finding.
-   *
-   * \param snake Starting Snake state used for pathfinding and collision checks.
-   * \param targetColor The color level being targeted; only cells with color < targetColor are considered for residual clearing.
-   * \return Array<Snake> Sequence of snake states representing the performed movements (from newest to oldest).
-   * \note The solver works on an internal clone of the grid and mutates that copy by marking consumed cells empty via `setEmptySafe`.
-   * \note The `outside` helper is updated after each tunnel traversal and tunnel priorities are recalculated after grid modifications.
+   * @param {Snake} snake Starting Snake state used for pathfinding and collision checks.
+   * @param {Color} targetColor The color level being targeted; only cells with color < targetColor are considered for residual clearing.
+   * @returns {Snake[]} Sequence of snake states representing the performed movements (from newest to oldest).
+   * @note The solver works on an internal clone of the grid and mutates that copy by marking consumed cells empty via `setEmptySafe`.
+   * @note The `outside` helper is updated after each tunnel traversal and tunnel priorities are recalculated after grid modifications.
    */
   private clearResidualColoredLayer(snake: Snake, targetColor: Color): Snake[] {
     const snakeLength = snake.getLength();

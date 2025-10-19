@@ -28,7 +28,15 @@ export class OutsideGrid {
   }
 
   /**
-   * Flood fill to mark cells reachable from outside
+   * Performs a flood fill to mark cells reachable from the outside boundaries.
+   *
+   * @description
+   * Iteratively updates the outside grid by marking cells as empty if they are reachable from the boundary
+   * and their color is below or equal to the threshold. Used to maintain the outside grid after changes to the base grid.
+   *
+   * @param {Grid} outside The outside grid to update.
+   * @param {Grid} grid The base grid used for color checks.
+   * @param {Color | typeof EMPTY} color The color threshold for marking outside cells.
    */
   private fillOutside(outside: Grid, grid: Grid, color: Color | typeof EMPTY): void {
     let changed = true;
@@ -76,7 +84,15 @@ export class OutsideGrid {
   }
 
   /**
-   * Update the outside grid after grid changes
+   * Updates the outside grid after changes to the base grid.
+   *
+   * @description
+   * Recomputes which cells are reachable from the boundaries by performing a flood fill on the outside grid
+   * using the provided base grid and color threshold. Should be called after any mutation to the base grid
+   * that affects cell accessibility.
+   *
+   * @param {Grid} baseGrid The grid to use for recalculating outside cells.
+   * @param {Color | typeof EMPTY} [color=EMPTY] The color threshold for marking outside cells.
    */
   update(baseGrid: Grid, color: Color | typeof EMPTY = EMPTY): void {
     this.fillOutside(this.grid, baseGrid, color);

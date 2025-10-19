@@ -26,18 +26,18 @@ export class Pathfinder {
   }
 
   /**
-   * \brief Finds a path for the snake from its current position to the target coordinates using the A* algorithm.
+   * Finds a path for the snake from its current position to the target coordinates using the A* algorithm.
    *
-   * \details
-   * This method performs A* search to compute a sequence of snake states that move the snake from its current position
-   * to the specified (targetX, targetY) cell. It considers grid boundaries, self-collision, and cell validity. The path
-   * is reconstructed from the goal node back to the start. If no path is found, null is returned. Used for tunnel entry
-   * navigation and general movement planning.
+   * @description
+   * Performs A* search to compute a sequence of snake states that move the snake from its current position
+   * to the specified (targetX, targetY) cell. Considers grid boundaries, self-collision, and cell validity.
+   * The path is reconstructed from the goal node back to the start. Returns null if no path is found.
+   * Used for tunnel entry navigation and general movement planning.
    *
-   * \param snake The starting Snake instance (position and body).
-   * \param targetX The x-coordinate of the target cell.
-   * \param targetY The y-coordinate of the target cell.
-   * \return Array of Snake states representing the path, or null if unreachable.
+   * @param {Snake} snake The starting Snake instance (position and body).
+   * @param {number} targetX The x-coordinate of the target cell.
+   * @param {number} targetY The y-coordinate of the target cell.
+   * @returns {Snake[] | null} Array of Snake states representing the path, or null if unreachable.
    */
   findPath(snake: Snake, targetX: number, targetY: number): Snake[] | null {
     const openList: PathNode[] = [new PathNode(snake)];
@@ -86,7 +86,16 @@ export class Pathfinder {
   }
 
   /**
-   * Find path to match a specific snake pose
+   * Finds a path for the snake to match a specific target pose.
+   *
+   * @description
+   * Computes a sequence of snake states that move the snake from its current position and body configuration
+   * to match the targetSnake pose. Uses a bounding box for search optimization and avoids forbidden cells
+   * (target snake's body segments). Returns null if no path is found. Used for advanced movement planning and pose matching.
+   *
+   * @param {Snake} snake The starting Snake instance (position and body).
+   * @param {Snake} targetSnake The target Snake pose to match.
+   * @returns {Snake[] | null} Array of Snake states representing the path to the target pose, or null if unreachable.
    */
   findPathToPose(snake: Snake, targetSnake: Snake): Snake[] | null {
     if (snake.equals(targetSnake)) {
