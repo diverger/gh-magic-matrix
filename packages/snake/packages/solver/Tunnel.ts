@@ -397,6 +397,9 @@ export class Tunnel {
    */
   private static createSnakeAtPosition(path: Point[], length: number): Snake {
     const cells = path.slice(0, length);
+
+    //! The path length may shorter than the required length of a snake, we padding it repeatedly with the last element
+    //!  of the path. Visually it's a 'short' snake without tail
     while (cells.length < length) {
       cells.push(cells[cells.length - 1]);
     }
