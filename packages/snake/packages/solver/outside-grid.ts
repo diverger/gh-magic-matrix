@@ -37,7 +37,8 @@ export class OutsideGrid {
    * @param {Grid} outside The outside grid to update.
    * @param {Grid} grid The base grid used for color checks.
    * @param {Color | typeof EMPTY} color The color threshold for marking outside cells.
-   * @note The outside grid itself is always regular rectangle, but the 'edge' (the boundary between empty and non-empty
+   * @note The 'outside' grid itself is always regular rectangle with the same size with the base grid, but the empty
+   *       region may not be a regular rectangle. And the 'edge' (the boundary between empty and non-empty
    *       region) may not be a regular rectangle.
    */
   private fillOutside(outside: Grid, grid: Grid, color: Color | typeof EMPTY): void {
@@ -61,7 +62,18 @@ export class OutsideGrid {
   }
 
   /**
-   * Check if a position is outside (reachable from boundaries)
+   * Checks if a position is outside (reachable from boundaries).
+   *
+   * @description
+   * Determines whether a cell is considered "outside"—that is, reachable from the grid's boundary according to the outside grid.
+   * Can be called with either coordinates (using the internal outside grid) or with an explicit grid and coordinates.
+   * A cell is outside if it is out of bounds or marked empty in the grid, even if it's a isolated empty region with other
+   * empty region.
+   *
+   * @param {number} x The x-coordinate of the cell (when using the internal outside grid).
+   * @param {number} y The y-coordinate of the cell (when using the internal outside grid).
+   * @param {Grid} [grid] The grid to check (optional, for explicit grid version).
+   * @returns {boolean} True if the cell is outside, false otherwise.
    */
   isOutside(x: number, y: number): boolean;
   isOutside(grid: Grid, x: number, y: number): boolean;
