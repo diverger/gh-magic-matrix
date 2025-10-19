@@ -295,12 +295,11 @@ export class Tunnel {
       this.setEmptySafe(gridAfterConsumption, point.x, point.y);
     }
 
-    // Create snake at target position with correct length
+    // Create snake at target position with correct length, the head at the end of the path found
     const snakeAtTarget = this.createSnakeAtPosition(pathToOutside, snakeLength);
 
-    //! In phase 1, we actually only find the escape path for the snake head. In the 'simulation', we empty the path
-    //! found in the grid clone, just like try to let the snake escape then search escape path again to make sure we
-    //! still have escape path after the snake head reaching the outside of the grid.
+    //! In phase 1, we actually only find the escape path for the snake head. We simulate that when the snake head have
+    //! reached the outside of the grid, if we still can find a escape path
     const pathFromTarget = this.findEscapePath(gridAfterConsumption, outsideGrid, snakeAtTarget, maxColor);
     if (!pathFromTarget) return null;
 
@@ -389,7 +388,7 @@ export class Tunnel {
     const path: Point[] = [];
     let current = goalNode;
 
-    //! Draw the path with only the snake head, the last is pushed first
+    //! Draw the path with only the snake head, the last is pushed first, that is the end of path is stored first
     while (current) {
       path.push(current.snake.getHead());
       current = current.parent;
