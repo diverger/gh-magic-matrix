@@ -37,6 +37,8 @@ export class OutsideGrid {
    * @param {Grid} outside The outside grid to update.
    * @param {Grid} grid The base grid used for color checks.
    * @param {Color | typeof EMPTY} color The color threshold for marking outside cells.
+   * @note The outside grid itself is always regular rectangle, but the 'edge' (the boundary between empty and non-empty
+   *       region) may not be a regular rectangle.
    */
   private fillOutside(outside: Grid, grid: Grid, color: Color | typeof EMPTY): void {
     let changed = true;
