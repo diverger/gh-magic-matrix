@@ -26,7 +26,18 @@ export class Pathfinder {
   }
 
   /**
-   * Find path from snake's current position to target coordinates using A*
+   * \brief Finds a path for the snake from its current position to the target coordinates using the A* algorithm.
+   *
+   * \details
+   * This method performs A* search to compute a sequence of snake states that move the snake from its current position
+   * to the specified (targetX, targetY) cell. It considers grid boundaries, self-collision, and cell validity. The path
+   * is reconstructed from the goal node back to the start. If no path is found, null is returned. Used for tunnel entry
+   * navigation and general movement planning.
+   *
+   * \param snake The starting Snake instance (position and body).
+   * \param targetX The x-coordinate of the target cell.
+   * \param targetY The y-coordinate of the target cell.
+   * \return Array of Snake states representing the path, or null if unreachable.
    */
   findPath(snake: Snake, targetX: number, targetY: number): Snake[] | null {
     const openList: PathNode[] = [new PathNode(snake)];

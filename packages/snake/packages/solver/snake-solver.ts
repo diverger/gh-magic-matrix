@@ -98,6 +98,7 @@ export class SnakeSolver {
         bestTunnel.toArray()[0].x,
         bestTunnel.toArray()[0].y
       );
+
       if (pathToTunnel) {
         chain.unshift(...pathToTunnel);
       }
