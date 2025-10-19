@@ -86,7 +86,7 @@ export class OutsideGrid {
    * Determines whether a cell is considered "outside"—that is, reachable from the grid's boundary according to the outside grid.
    * Can be called with either coordinates (using the internal outside grid) or with an explicit grid and coordinates.
    *
-   * Note: A cell is outside if it is out of bounds or marked empty in the grid, even if it's an isolated empty region not connected to the boundary.
+   * Note: A cell is considered outside if it is out of bounds or marked empty in the grid, even if it's an isolated empty region not connected to the boundary.
    *
    * @param x - The x-coordinate of the cell (when using the internal outside grid).
    * @param y - The y-coordinate of the cell (when using the internal outside grid).
