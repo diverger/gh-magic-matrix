@@ -25,6 +25,21 @@ export class SnakeSolver {
 
   /**
    * \brief Compute the optimal route for the snake to clear all colored cells on the grid.
+   *
+   * The solver iterates over color levels from 1..N. For each color it performs
+   * two phases: (1) residual clearing to remove cells with color lower than the
+   * current target using prioritized tunnels, and (2) clean color clearing to
+   * remove cells equal to the current color using a nearest-first strategy.
+   * The method constructs an array of Snake states (movement history) by
+   * prepending moves as they are discovered; callers typically reverse the
+   * returned array to obtain chronological order.
+   *
+   * Edge cases handled include empty grids (returns the start snake) and
+   * unreachable cells which are skipped when the pathfinder cannot reach them.
+   *
+   * \param startSnake The initial Snake instance (position and length) used as starting state.
+   * \return Array<Snake> Sequence of snake states representing the computed route (from newest to oldest).
+   * \note The solver clones the provided grid during construction; the caller's grid is not modified.
    */
   solve(startSnake: Snake): Snake[] {
     const colors = this.extractColors();
@@ -45,6 +60,25 @@ export class SnakeSolver {
     return chain.reverse();
   }
 
+  /**
+   * \brief Clear residual colored cells using prioritized tunnels
+   *
+   * This method builds a list of candidate tunnel entry points and ranks them
+   * by a priority score (see Tunnel::getPriority). It repeatedly picks the
+   * highest-priority tunnel, navigates to its start, traverses it (consuming
+   * cells), updates the internal grid copy, updates the `outside` helper and
+   * re-evaluates remaining candidates. Tunnel candidates are re-scored after
+   * each mutation to the grid and invalid tunnels are removed.
+   *
+   * Complexity: the function may perform per-cell tunnel discovery and
+   * rescoring; runtime depends on grid area and the cost of tunnel finding.
+   *
+   * \param snake Starting Snake state used for pathfinding and collision checks.
+   * \param targetColor The color level being targeted; only cells with color < targetColor are considered for residual clearing.
+   * \return Array<Snake> Sequence of snake states representing the performed movements (from newest to oldest).
+   * \note The solver works on an internal clone of the grid and mutates that copy by marking consumed cells empty via `setEmptySafe`.
+   * \note The `outside` helper is updated after each tunnel traversal and tunnel priorities are recalculated after grid modifications.
+   */
   private clearResidualColoredLayer(snake: Snake, targetColor: Color): Snake[] {
     const snakeLength = snake.getLength();
     let tunnelablePoints = this.getTunnelablePoints(snakeLength, targetColor, true);
@@ -123,6 +157,22 @@ export class SnakeSolver {
     return chain;
   }
 
+  /**
+   * \brief Discover tunnelable points for the given target color.
+   *
+   * For each grid cell that satisfies the eligibility test (based on
+   * `isResidual` and `targetColor`), the function attempts to construct a validated Tunnel by simulating escape and return paths
+   * (Tunnel::findBestTunnel). Each successful tunnel is wrapped into a TunnelablePoint with a computed priority value. The returned
+   * list is unsorted; consumers typically sort by priority before selecting tunnels to process.
+   *
+   * \param snakeLength Length of the snake used for tunnel validation/simulation.
+   * \param targetColor The color threshold used to decide which cells are eligible.
+   * \param isResidual When true, only cells with color < targetColor are considered; otherwise cells with color <= targetColor are allowed.
+   * \return TunnelablePoint[] An array of TunnelablePoint objects (each extends Point) containing `tunnel` and `priority` metadata.
+   *
+   * \note The function reads the internal grid but does not mutate it. Tunnel generation may be expensive (per-cell pathfinding/simulation).
+   * \note The returned Tunnel objects may be invalidated by subsequent grid mutations; consumers should revalidate via `updateTunnelablePoints`.
+   */
   private getTunnelablePoints(snakeLength: number, targetColor: Color, isResidual: boolean): TunnelablePoint[] {
     const points: TunnelablePoint[] = [];
 
@@ -193,6 +243,17 @@ export class SnakeSolver {
     return points;
   }
 
+  /**
+   * \brief Selects the best tunnel from a list of candidates based on priority and proximity to the snake's head.
+   *
+   * Among tunnels with the highest priority, this method chooses the one whose starting point is closest to the snake's head
+   * (using squared Euclidean distance). The input list must be sorted by priority in descending order. If multiple tunnels share
+   * the highest priority, the closest one is selected. This is used during residual clearing to optimize tunnel traversal order.
+   *
+   * \param tunnelablePoints Array of TunnelablePoint objects, sorted by priority (highest first).
+   * \param snake The current Snake instance, used to determine proximity.
+   * \return Tunnel The selected tunnel with highest priority and minimal distance to the snake's head.
+   */
   private getNextTunnel(tunnelablePoints: TunnelablePoint[], snake: Snake): Tunnel {
     let minDistance = Infinity;
     let bestTunnel: Tunnel | null = null;

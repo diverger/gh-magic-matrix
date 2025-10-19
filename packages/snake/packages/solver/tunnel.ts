@@ -142,8 +142,19 @@ export class Tunnel {
   }
 
   /**
-   * Calculate priority score for this tunnel
+   * \brief Compute a priority score for the tunnel.
+   *
+   * The score balances two factors: the count of cells equal to
+   * targetColor (primary benefit) and the cumulative difference of lower-color cells relative to the target color
+   * (secondary weight). Duplicate positions are counted only once (first occurrence). The implementation iterates over
+   * the tunnel path, counts unique cells with `targetColor` and accumulates weight for lower-color cells; it then
+   * returns lowerColorWeight / colorCount unless colorCount == 0, in which case a sentinel 99999 is returned to indicate an extreme preference.
+   *
+   * \param grid The current Grid used to inspect cell colors.
+   * \param targetColor The color level being targeted.
+   * \return number Numeric score: lower values indicate a better tunnel. Returns 99999 when the tunnel contains no targetColor cells.
    */
+
   getPriority(grid: Grid, targetColor: Color): number {
     let colorCount = 0;
     let lowerColorWeight = 0;
@@ -400,7 +411,16 @@ export class Tunnel {
   }
 
   /**
-   * Safe color getter
+   * \brief Safely retrieves the color value at the specified grid coordinates.
+   *
+   * Returns the cell color if (x, y) is inside the grid; otherwise returns EMPTY.
+   * This method prevents out-of-bounds errors by checking grid boundaries before accessing cell color.
+   * It is commonly used in tunnel validation and pathfinding routines to ensure safe color queries.
+   *
+   * \param grid The Grid object to query.
+   * \param x The x-coordinate of the cell.
+   * \param y The y-coordinate of the cell.
+   * \return Color | EMPTY The color value at (x, y) or EMPTY if out of bounds.
    */
   private static getColorSafe(grid: Grid, x: number, y: number): Color | typeof EMPTY {
     return grid.isInside(x, y) ? grid.getColor(x, y) : EMPTY;
