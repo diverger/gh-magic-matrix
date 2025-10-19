@@ -12,6 +12,9 @@ export class Grid {
    * Default random function for randomlyFill
    */
   static defaultRand(a: number, b: number): number {
+    if (b < a) {
+      throw new RangeError(`Invalid range: b (${b}) < a (${a}) in Grid.defaultRand.`);
+    }
     return Math.floor(Math.random() * (b - a + 1)) + a;
   }
 

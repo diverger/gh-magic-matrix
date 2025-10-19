@@ -374,7 +374,7 @@ export class Tunnel {
     const path: Point[] = [];
     let current = goalNode;
 
-    //! The last is pushed first
+    //! Draw the path with only the snake head, the last is pushed first
     while (current) {
       path.push(current.snake.getHead());
       current = current.parent;
@@ -384,7 +384,16 @@ export class Tunnel {
   }
 
   /**
-   * Create snake at specific position with given length
+   * \brief Create a snake at a specific position with a given length
+   *
+   * This function constructs a snake whose body follows the given path.
+   * The path is an array of positions (from earliest to latest), where the first element
+   * becomes the tail and the last element becomes the head. If the path is shorter than
+   * the required snake length, the last position is repeated to pad the body.
+   *
+   * \param path Array of positions representing the movement history (tail to head)
+   * \param length Desired length of the snake
+   * \return A Snake instance with its body constructed from the path
    */
   private static createSnakeAtPosition(path: Point[], length: number): Snake {
     const cells = path.slice(0, length);
