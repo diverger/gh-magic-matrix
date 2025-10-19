@@ -55,10 +55,23 @@ jobs:
             ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.event.inputs.version }}
             ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
 
+      - name: Build and push snake Docker image
+        uses: docker/build-push-action@v5
+        id: docker-build-snake
+        with:
+          context: .
+          file: ./Dockerfile.snake
+          push: true
+          tags: |
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:${{ github.event.inputs.version }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:latest
+
       - name: Update action.yml files with new image digests
         run: |
           sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}|" breathing-contrib/action.yml
           sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}|" blinking-contrib/action.yml
+          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}|" snake/action.yml
 
       - uses: oven-sh/setup-bun@v1
 
@@ -81,6 +94,10 @@ jobs:
           test -f dist/blinking-contrib/index.js || { echo "❌ ERROR: blinking-contrib build not found at dist/blinking-contrib/index.js"; exit 1; }
           echo "✅ blinking-contrib build verified"
 
+          echo "Verifying snake build..."
+          test -d packages/snake/dist || { echo "❌ ERROR: snake build not found at packages/snake/dist"; exit 1; }
+          echo "✅ snake build verified"
+
           echo "✅ All build artifacts verified successfully"
 
       - name: Bump package version
@@ -88,6 +105,7 @@ jobs:
           sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' package.json
           sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' packages/breathing-contrib/package.json
           sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' packages/blinking-contrib/package.json
+          sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' packages/snake/package.json
 
       - name: Commit and tag release
         run: |
@@ -95,7 +113,13 @@ jobs:
 
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git add breathing-contrib/action.yml blinking-contrib/action.yml package.json packages/*/package.json dist/
+          git add \
+            breathing-contrib/action.yml \
+            blinking-contrib/action.yml \
+            snake/action.yml \
+            package.json \
+            packages/*/package.json \
+            dist/
           git commit -m "🚀 Release v$VERSION"
           git tag v$VERSION
           git push origin main --tags

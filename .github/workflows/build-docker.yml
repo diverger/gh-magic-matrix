@@ -54,11 +54,27 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
           cache-to: type=inline
 
+      - name: Build and push snake Docker image
+        uses: docker/build-push-action@v5
+        id: docker-build-snake
+        with:
+          context: .
+          file: ./Dockerfile.snake
+          push: true
+          tags: |
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:${{ github.sha }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:${{ github.ref_name }}
+            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:latest
+          cache-from: type=registry,ref=${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:latest
+          cache-to: type=inline
+
       - name: Image digests
         run: |
           echo "Breathing image digest: ${{ steps.docker-build-breathing.outputs.digest }}"
           echo "Blinking image digest: ${{ steps.docker-build-blinking.outputs.digest }}"
+          echo "Snake image digest: ${{ steps.docker-build-snake.outputs.digest }}"
           echo ""
           echo "To use these images, update action.yml files with:"
           echo "  breathing-contrib: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}"
           echo "  blinking-contrib: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}"
+          echo "  snake: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}"

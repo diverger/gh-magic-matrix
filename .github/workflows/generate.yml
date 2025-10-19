@@ -67,15 +67,41 @@ jobs:
           INPUT_ENDING_TEXT: ""  # Will use username by default
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create snake output directory
+        run: mkdir -p dist/snake
+
+      - name: Generate snake with light theme
+        run: cd packages/snake && bun install && bun build src/index.ts --outdir dist --target node && bun dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: ../../dist/snake/light.svg
+          INPUT_SNAKE_LENGTH: "6"
+          INPUT_ANIMATION_DURATION: "20"
+          INPUT_COLORS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with dark theme
+        run: cd packages/snake && bun dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: ../../dist/snake/dark.svg
+          INPUT_SNAKE_LENGTH: "6"
+          INPUT_ANIMATION_DURATION: "20"
+          INPUT_COLORS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify outputs
         run: |
           ls -la dist/
           ls -la dist/breathing-contrib/
           ls -la dist/blinking-contrib/
+          ls -la dist/snake/
           test -f dist/breathing-contrib/light.svg
           test -f dist/breathing-contrib/dark.svg
           test -f dist/blinking-contrib/dark.svg
           test -f dist/blinking-contrib/light.svg
+          test -f dist/snake/light.svg
+          test -f dist/snake/dark.svg
           echo "✅ All example files generated successfully"
 
       - name: Publish to output branch
