@@ -1,7 +1,7 @@
 import { Grid, Color, EMPTY } from "../types/grid";
 import { Point, neighbors4 } from "../types/point";
 import { Snake } from "../types/snake";
-import { OutsideGrid } from "./OutsideGrid";
+import { OutsideGrid } from "./outside-grid";
 
 //! Note:
 // Path refers to a sequence of points (cells) that the snake will traverse. It is a general term for any route or movement,
@@ -194,6 +194,24 @@ export class Tunnel {
     }
 
     return movements;
+  }
+
+  /**
+   * Get the sequence of snake to cross the tunnel
+   */
+  getTunnelPath(snake0: Snake): Snake[] {
+    const chain: Snake[] = [];
+    let snake = snake0;
+
+    for (let i = 1; i < this.path.length; i++) {
+      const head = snake.getHead();
+      const dx = this.path[i].x - head.x;
+      const dy = this.path[i].y - head.y;
+      snake = snake.nextSnake(dx, dy);
+      chain.unshift(snake);
+    }
+
+    return chain;
   }
 
 

@@ -1,11 +1,13 @@
 import { Grid, Color, EMPTY } from "../types/grid";
 import { Point } from "../types/point";
 import { Snake } from "../types/snake";
-import { OutsideGrid } from "./OutsideGrid";
-import { Pathfinder } from "./Pathfinder";
-import { Tunnel } from "./Tunnel";
+import { OutsideGrid } from "./outside-grid";
+import { Pathfinder } from "./pathfinder";
+import { Tunnel } from "./tunnel";
 
-interface TunnelablePoint extends Point {
+interface TunnelablePoint {
+  x: number;
+  y: number;
   tunnel: Tunnel;
   priority: number;
 }
@@ -22,7 +24,7 @@ export class SnakeSolver {
   }
 
   /**
-   * Main solver function - finds the best route to clear all colors
+   * \brief Compute the optimal route for the snake to clear all colored cells on the grid.
    */
   solve(startSnake: Snake): Snake[] {
     const colors = this.extractColors();
@@ -43,9 +45,6 @@ export class SnakeSolver {
     return chain.reverse();
   }
 
-  /**
-   * Clear residual colored cells (lower than target color) using priority-based tunneling
-   */
   private clearResidualColoredLayer(snake: Snake, targetColor: Color): Snake[] {
     const snakeLength = snake.getLength();
     let tunnelablePoints = this.getTunnelablePoints(snakeLength, targetColor, true);
@@ -92,9 +91,6 @@ export class SnakeSolver {
     return chain;
   }
 
-  /**
-   * Clear all cells of the current color using closest-first strategy
-   */
   private clearCleanColoredLayer(snake: Snake, targetColor: Color): Snake[] {
     const snakeLength = snake.getLength();
     let tunnelablePoints = this.getTunnelablePointsForColor(snakeLength, targetColor);
@@ -127,9 +123,6 @@ export class SnakeSolver {
     return chain;
   }
 
-  /**
-   * Get all tunnelable points for residual clearing
-   */
   private getTunnelablePoints(snakeLength: number, targetColor: Color, isResidual: boolean): TunnelablePoint[] {
     const points: TunnelablePoint[] = [];
 
@@ -154,7 +147,10 @@ export class SnakeSolver {
 
           if (tunnel && !tunnel.isEmpty()) {
             const priority = tunnel.getPriority(this.grid, targetColor);
-            points.push({ x, y, tunnel, priority });
+            const pt = new Point(x, y);
+            (pt as any).tunnel = tunnel;
+            (pt as any).priority = priority;
+            points.push(pt as unknown as TunnelablePoint);
           }
         }
       }
@@ -163,9 +159,6 @@ export class SnakeSolver {
     return points;
   }
 
-  /**
-   * Get tunnelable points for current color clearing
-   */
   private getTunnelablePointsForColor(snakeLength: number, targetColor: Color): Point[] {
     const points: Point[] = [];
 
@@ -200,9 +193,6 @@ export class SnakeSolver {
     return points;
   }
 
-  /**
-   * Get the next best tunnel to process
-   */
   private getNextTunnel(tunnelablePoints: TunnelablePoint[], snake: Snake): Tunnel {
     let minDistance = Infinity;
     let bestTunnel: Tunnel | null = null;
@@ -228,9 +218,6 @@ export class SnakeSolver {
     return bestTunnel!;
   }
 
-  /**
-   * Update tunnelable points after grid changes
-   */
   private updateTunnelablePoints(
     tunnelablePoints: TunnelablePoint[],
     snakeLength: number,
@@ -264,9 +251,6 @@ export class SnakeSolver {
     }
   }
 
-  /**
-   * Find path to next closest tunnelable point using BFS
-   */
   private findPathToNextPoint(snake: Snake, targetColor: Color, points: Point[]): Snake[] | null {
     interface SearchNode {
       snake: Snake;
@@ -315,9 +299,6 @@ export class SnakeSolver {
     return null;
   }
 
-  /**
-   * Reconstruct snake path from search node
-   */
   private reconstructSnakePath(goalNode: { snake: Snake; parent: any | null }): Snake[] {
     const path: Snake[] = [];
     let current = goalNode;
@@ -330,40 +311,25 @@ export class SnakeSolver {
     return path;
   }
 
-  /**
-   * Extract all colors present in the grid
-   */
   private extractColors(): Color[] {
     const maxColor = Math.max(...Array.from(this.grid.data));
     return Array.from({ length: maxColor }, (_, i) => (i + 1) as Color);
   }
 
-  /**
-   * Safe color getter
-   */
   private getColorSafe(x: number, y: number): number {
     return this.grid.isInside(x, y) ? (this.grid.getColor(x, y) as number) : 0;
   }
 
-  /**
-   * Safe empty setter
-   */
   private setEmptySafe(x: number, y: number): void {
     if (this.grid.isInside(x, y)) {
       this.grid.setColorEmpty(x, y);
     }
   }
 
-  /**
-   * Safe empty checker
-   */
   private isEmptySafe(x: number, y: number): boolean {
     return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
   }
 
-  /**
-   * Get the current grid state
-   */
   getGrid(): Grid {
     return this.grid;
   }
