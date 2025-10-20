@@ -142,7 +142,7 @@ export class Tunnel {
   }
 
   /**
-   * \brief Compute a priority score for the tunnel.
+   * Compute a priority score for the tunnel.
    *
    * The score balances two factors: the count of cells equal to
    * targetColor (primary benefit) and the cumulative difference of lower-color cells relative to the target color
@@ -150,9 +150,9 @@ export class Tunnel {
    * the tunnel path, counts unique cells with `targetColor` and accumulates weight for lower-color cells; it then
    * returns lowerColorWeight / colorCount unless colorCount == 0, in which case a sentinel 99999 is returned to indicate an extreme preference.
    *
-   * \param grid The current Grid used to inspect cell colors.
-   * \param targetColor The color level being targeted.
-   * \return number Numeric score: lower values indicate a better tunnel. Returns 99999 when the tunnel contains no targetColor cells.
+   * @param grid - The current Grid used to inspect cell colors.
+   * @param targetColor - The color level being targeted.
+   * @returns Numeric score: higher values indicate a better tunnel (higher priority). Returns 99999 when the tunnel contains no targetColor cells (most desirable for residual clearing).
    */
 
   getPriority(grid: Grid, targetColor: Color): number {

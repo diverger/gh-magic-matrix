@@ -114,7 +114,10 @@ export class SnakeSolver {
       // Update tunnelable points list
       this.updateTunnelablePoints(tunnelablePoints, snakeLength, targetColor);
 
-      // Re-sort by priority
+      //! Re-sort by priority
+      // The sort function sort((a, b) => b.priority - a.priority) orders the array in descending order of priority.
+      // That means elements with higher priority values will come first in the array, and elements with lower priority
+      // values will come later.
       tunnelablePoints.sort((a, b) => b.priority - a.priority);
     }
 
