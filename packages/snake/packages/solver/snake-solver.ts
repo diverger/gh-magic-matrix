@@ -130,10 +130,26 @@ export class SnakeSolver {
       tunnelablePoints.sort((a, b) => b.priority - a.priority);
     }
 
-    chain.pop(); // Remove initial snake position
+    //! Remove initial snake position which is at the tail of the chain
+    chain.pop();
     return chain;
   }
 
+  /**
+   * Clears all cells of the target color using a nearest-first strategy.
+   *
+   * @remarks
+   * This method is used in the "clean" phase for each color. It repeatedly finds the closest reachable cell of the target color
+   * (using BFS), moves the snake to that cell, and marks it as empty. The process continues until no more reachable cells remain.
+   * Unlike the residual phase, this phase does not use tunnel priorities; it simply visits all cells of the current color in order of proximity.
+   *
+   * The method mutates the internal grid by marking visited cells as empty and updates the `outside` helper at the end.
+   * The returned array contains the sequence of snake states (from newest to oldest) representing the performed movements.
+   *
+   * @param snake - The starting Snake state for this phase.
+   * @param targetColor - The color value to clear (cells with color <= targetColor are considered).
+   * @returns Sequence of snake states representing the performed movements (from newest to oldest).
+   */
   private clearCleanColoredLayer(snake: Snake, targetColor: Color): Snake[] {
     const snakeLength = snake.getLength();
     let tunnelablePoints = this.getTunnelablePointsForColor(snakeLength, targetColor);
@@ -162,7 +178,9 @@ export class SnakeSolver {
     }
 
     this.outside.update(this.grid);
-    chain.pop(); // Remove initial snake position
+
+    //! Remove initial snake position which is at the tail of the chain
+    chain.pop();
     return chain;
   }
 
@@ -219,6 +237,19 @@ export class SnakeSolver {
     return points;
   }
 
+  /**
+   * Discovers all reachable points for the given target color, using tunnel validation.
+   *
+   * @remarks
+   * Differs from {@link getTunnelablePoints}:
+   * - Returns only Point[] (no tunnel/priority metadata)
+   * - Always uses color <= targetColor (no residual/clean distinction)
+   * - Used for clean clearing, not residual clearing
+   *
+   * @param snakeLength - The length of the snake used for tunnel validation.
+   * @param targetColor - The color value to target (cells with color <= targetColor are considered).
+   * @returns An array of Points representing all reachable cells for the given color, each validated by tunnel logic.
+   */
   private getTunnelablePointsForColor(snakeLength: number, targetColor: Color): Point[] {
     const points: Point[] = [];
 
