@@ -290,6 +290,13 @@ export class SnakeSolver {
     return bestTunnel!;
   }
 
+  /**
+   * Updates the list of tunnelable points by removing invalid or empty cells and recalculating tunnels and priorities.
+   *
+   * @param tunnelablePoints - The array of TunnelablePoint objects to update in-place.
+   * @param snakeLength - The current length of the snake, used for tunnel validation.
+   * @param targetColor - The color threshold for tunnel eligibility and scoring.
+   */
   private updateTunnelablePoints(
     tunnelablePoints: TunnelablePoint[],
     snakeLength: number,
@@ -300,6 +307,7 @@ export class SnakeSolver {
 
       // Remove if cell is now empty
       if (this.grid.isEmptyCell(this.grid.getColor(point.x, point.y))) {
+        //! Remove the empty cell at index i from tunnelablePoints
         tunnelablePoints.splice(i, 1);
         continue;
       }
