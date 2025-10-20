@@ -77,31 +77,40 @@ export class SnakeSolver {
    */
   private clearResidualColoredLayer(snake: Snake, targetColor: Color): Snake[] {
     const snakeLength = snake.getLength();
+
+    //! Get the best tunnel for each cell in the grid (if there is one)
     let tunnelablePoints = this.getTunnelablePoints(snakeLength, targetColor, true);
 
-    // Sort by priority (highest first)
+    //! Sort by priority (highest first)
+    // The best tunnel at first
     tunnelablePoints.sort((a, b) => b.priority - a.priority);
 
     const chain: Snake[] = [snake];
 
     while (tunnelablePoints.length > 0) {
-      // Get the best tunnel among those with highest priority
+      //! Get the best tunnel among those with highest priority
       const bestTunnel = this.getNextTunnel(tunnelablePoints, chain[0]);
 
-      // Navigate to tunnel start
+      //! Navigate to tunnel start using A* algorithm
       const pathToTunnel = this.pathfinder.findPath(
         chain[0],
         bestTunnel.toArray()[0].x,
         bestTunnel.toArray()[0].y
       );
 
+      //! This actually append the snake to the path to tunnel, so use 'chain'
       if (pathToTunnel) {
         chain.unshift(...pathToTunnel);
       }
 
       // Navigate through tunnel
       const tunnelMoves = bestTunnel.toSnakeMovements(chain[0]);
+
+      //! This will prepend the tunnel moves to the chain
       chain.unshift(...tunnelMoves);
+
+      //! After above steps, the chain is like this: [tunnelMoves, pathToTunnel, snake].
+      //! This is because the snake head is at index 0.
 
       // Update grid by removing consumed cells
       for (const point of bestTunnel.toArray()) {

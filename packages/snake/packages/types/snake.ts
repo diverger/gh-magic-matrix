@@ -80,7 +80,13 @@ export class Snake {
   }
 
   /**
-   * Create the next snake state by moving in a direction
+   * Returns a new Snake instance representing the next state after moving the head by (dx, dy).
+   *
+   * Every segment of the snake is shifted back by one position, and the head is moved by (dx, dy).
+   *
+   * @param dx - The change in x-coordinate for the head movement.
+   * @param dy - The change in y-coordinate for the head movement.
+   * @returns A new Snake object with the head moved and the body shifted accordingly.
    */
   nextSnake(dx: number, dy: number): Snake {
     const copy = new Uint8Array(this.data.length);
@@ -88,6 +94,7 @@ export class Snake {
     for (let i = 2; i < this.data.length; i++) {
       copy[i] = this.data[i - 2];
     }
+    
     // Set new head position
     copy[0] = this.data[0] + dx;
     copy[1] = this.data[1] + dy;

@@ -192,7 +192,10 @@ export class Tunnel {
   }
 
   /**
-   * Convert tunnel to snake movement sequence
+   * Converts the tunnel path into a sequence of Snake states representing each movement along the tunnel.
+   *
+   * @param startSnake - The initial Snake state before entering the tunnel.
+   * @returns An array of Snake states, each representing the snake after a move along the tunnel (in movement order).
    */
   toSnakeMovements(startSnake: Snake): Snake[] {
     const movements: Snake[] = [];
