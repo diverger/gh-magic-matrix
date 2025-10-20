@@ -157,7 +157,10 @@ export class SnakeSolver {
     const chain: Snake[] = [snake];
 
     while (tunnelablePoints.length > 0) {
-      // Find closest reachable point using BFS
+      //! Find closest reachable point using BFS
+      //! Here we use BFS to find the shortest path to any of the remaining tunnelable points (any next point may be a
+      //! best candidate), not like that in residual clearing which uses prioritized tunnels (the residual color has
+      //! higher priority than the clean color) and need find a shortest path to the given point.
       const pathToNext = this.findPathToNextPoint(chain[0], targetColor, tunnelablePoints);
       if (!pathToNext) break;
 
@@ -362,6 +365,20 @@ export class SnakeSolver {
     }
   }
 
+  /**
+   * Finds the shortest path from the current snake state to any of a set of target points.
+   *
+   * @remarks
+   * This method performs a breadth-first search (BFS) over all possible snake states, searching for the shortest path
+   * to any of the provided target points (cells of the target color). It is optimized for the clean phase, where the goal
+   * is to reach the nearest cell among many candidates. The search stops as soon as any target is reached, returning the
+   * sequence of snake states representing the path. If no target is reachable, it returns null.
+   *
+   * @param snake - The starting Snake state.
+   * @param targetColor - The color value being targeted (used for movement constraints).
+   * @param points - The array of target Points to reach (any of which is a valid goal).
+   * @returns The sequence of Snake states from start to the reached target (oldest to newest), or null if unreachable.
+   */
   private findPathToNextPoint(snake: Snake, targetColor: Color, points: Point[]): Snake[] | null {
     interface SearchNode {
       snake: Snake;
