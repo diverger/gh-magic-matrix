@@ -30,7 +30,7 @@ const runAction = async (): Promise<void> => {
       ],
     );
     const githubToken =
-      process.env.GITHUB_TOKEN ?? core.getInput("github_token");
+      core.getInput("github_token") || process.env.GITHUB_TOKEN || "";
 
     if (!userName) {
       throw new Error("github_user_name input is required");

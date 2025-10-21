@@ -70,10 +70,6 @@ export const generateContributionSnake = async (
     throw new Error("Username is required for contribution snake generation");
   }
 
-  if (!githubToken) {
-    throw new Error("GitHub token is required for fetching contribution data");
-  }
-
   console.log(`🐍 Starting snake generation for ${userName}`);
 
   // Step 1: Fetch GitHub contribution data
