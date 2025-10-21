@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as core from "@actions/core";
 import { parseOutputsOption } from "./outputs-options";
+import { generateContributionSnake } from "./generate-contribution-snake";
 
 /**
  * Main action execution function.
@@ -37,9 +38,6 @@ const runAction = async (): Promise<void> => {
 
     console.log(`🐍 Starting snake generation for user: ${userName}`);
     console.log(`📝 Processing ${outputs.length} output(s)`);
-
-    // Dynamically import the main generation function
-    const { generateContributionSnake } = await import("./generate-contribution-snake");
 
     const results = await generateContributionSnake(userName, outputs, {
       githubToken,

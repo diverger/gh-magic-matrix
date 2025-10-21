@@ -13,6 +13,7 @@ import { SnakeSolver } from "../solver/snake-solver";
 import { Snake } from "../types/snake";
 import { Point } from "../types/point";
 import type { OutputConfig } from "./outputs-options";
+import { renderAnimatedSvgGrid } from "../svg-creator";
 
 /**
  * Options for snake generation process.
@@ -122,7 +123,6 @@ export const generateContributionSnake = async (
         switch (format) {
           case "svg": {
             console.log(`🖌️ Creating SVG (output ${index})`);
-            const { renderAnimatedSvgGrid } = await import("../svg-creator");
 
             // Convert grid and route data for SVG rendering
             const animatedCells = convertRouteToAnimatedCells(grid, route);

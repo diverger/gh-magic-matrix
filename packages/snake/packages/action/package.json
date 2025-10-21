@@ -16,7 +16,7 @@
   ],
   "author": "diverger",
   "scripts": {
-    "build": "ncc build --external canvas --out ../../../../dist/snake ./index.ts",
+    "build": "ncc build --out ../../../../dist/snake ./index.ts",
     "test": "bun test",
     "start": "bun ../../../dist/snake/index.js"
   },
