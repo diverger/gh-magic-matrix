@@ -11,7 +11,7 @@ inputs:
     description: 'GitHub username'
     required: true
   github_token:
-    description: 'GitHub token used to fetch the contribution calendar. Default to the action token if empty.'
+    description: 'GitHub token used to fetch the contribution calendar. Defaults to the action token if empty.'
     required: false
     default: ${{ github.token }}
   outputs:
