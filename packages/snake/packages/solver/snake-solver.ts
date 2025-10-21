@@ -91,7 +91,9 @@ export class SnakeSolver {
       //! Get the best tunnel among those with highest priority
       const bestTunnel = this.getNextTunnel(tunnelablePoints, chain[0]);
 
-      //! Navigate to tunnel start using A* algorithm
+      //! Navigate to tunnel start using A* algorithm, note that 'findPath' doesn't consider color rules, cell consumption
+      //! or game objectives, it just find a valid (usually shortest or lowest-cost) path for the snake to reach the given
+      //! position.
       const pathToTunnel = this.pathfinder.findPath(
         chain[0],
         bestTunnel.toArray()[0].x,
