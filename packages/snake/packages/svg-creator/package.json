@@ -1,0 +1,30 @@
+{
+  "name": "@snake/svg-creator",
+  "version": "1.0.0",
+  "description": "Generate animated SVG visualizations from grids and snake paths",
+  "main": "index.ts",
+  "types": "index.ts",
+  "keywords": [
+    "svg",
+    "animation",
+    "grid",
+    "snake",
+    "visualization",
+    "css"
+  ],
+  "author": "gh-magic-matrix",
+  "license": "MIT",
+  "dependencies": {
+    "@snake/solver": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./grid": "./svg-grid-renderer.ts",
+    "./snake": "./svg-snake-renderer.ts",
+    "./stack": "./svg-stack-renderer.ts",
+    "./utils": "./svg-utils.ts"
+  }
+}

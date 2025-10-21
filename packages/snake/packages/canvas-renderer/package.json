@@ -1,0 +1,29 @@
+{
+  "name": "@snake/canvas-renderer",
+  "version": "1.0.0",
+  "description": "Canvas rendering utilities for grids, snakes, and visual elements",
+  "main": "index.ts",
+  "types": "index.ts",
+  "keywords": [
+    "canvas",
+    "rendering",
+    "grid",
+    "snake",
+    "visualization"
+  ],
+  "author": "gh-magic-matrix",
+  "license": "MIT",
+  "dependencies": {
+    "@snake/solver": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./grid": "./grid-renderer.ts",
+    "./snake": "./snake-renderer.ts",
+    "./world": "./world-renderer.ts",
+    "./utils": "./canvas-utils.ts"
+  }
+}
