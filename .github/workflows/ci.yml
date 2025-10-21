@@ -94,17 +94,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake contribution (light theme)
-        run: cd packages/snake/packages/action && npm install && npm run build && node dist/index.js
+        run: bun dist/snake/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUTS: "../../dist/snake/light.svg?palette=github-light"
+          INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake contribution (dark theme)
-        run: cd packages/snake/packages/action && node dist/index.js
+        run: bun dist/snake/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUTS: "../../dist/snake/dark.svg?palette=github-dark"
+          INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify all outputs exist
