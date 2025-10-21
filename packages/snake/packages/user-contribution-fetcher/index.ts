@@ -95,7 +95,10 @@ export const fetchUserContributions = async (
     body: JSON.stringify({ variables, query }),
   });
 
-  if (!res.ok) throw new Error(await res.text().catch(() => res.statusText));
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(`GitHub API request failed for user '${userName}': ${errorText}`);
+  }
 
   const { data, errors } = (await res.json()) as {
     data: GraphQLResponse;
