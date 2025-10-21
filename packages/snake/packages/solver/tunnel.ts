@@ -11,7 +11,6 @@ import { OutsideGrid } from "./outside-grid";
    *
    * @param grid - The grid used to determine whether a cell is empty.
    */
-// clearing and clean color clearing).
 
 //! Because the snake can't traverse 'backward', so a safe path (not dead) must be a round trip path -- 'route'
 
