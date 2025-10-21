@@ -140,7 +140,7 @@ export const parseEntry = (entry: string): OutputConfig | null => {
 
   const animationOptions: AnimationOptions = {
     step: 1,
-    frameDuration: 100,
+    frameDuration: 200,
   };
 
   // Apply palette configuration
