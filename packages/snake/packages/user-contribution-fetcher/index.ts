@@ -102,7 +102,7 @@ export const fetchUserContributions = async (
     errors?: { message: string }[];
   };
 
-  if (errors?.[0]) throw errors[0];
+  if (errors?.[0]) throw new Error(errors[0].message);
 
   return data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
     ({ contributionDays }, x) =>

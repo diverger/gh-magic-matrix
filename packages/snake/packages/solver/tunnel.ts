@@ -2,15 +2,6 @@ import { Grid, Color, EMPTY } from "../types/grid";
 import { Point, neighbors4 } from "../types/point";
 import { Snake } from "../types/snake";
 import { OutsideGrid } from "./outside-grid";
-  /**
-   * Removes empty cells from the start (tail side) of the tunnel path.
-   *
-   * Iteratively removes leading positions from the tunnel while those positions
-   * are considered empty in the provided grid. This is useful to discard already
-   * consumed or irrelevant cells at the start of a tunnel.
-   *
-   * @param grid - The grid used to determine whether a cell is empty.
-   */
 
 //! Because the snake can't traverse 'backward', so a safe path (not dead) must be a round trip path -- 'route'
 
