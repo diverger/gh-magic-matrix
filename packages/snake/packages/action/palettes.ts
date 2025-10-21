@@ -44,9 +44,9 @@ export const basePalettes: Record<string, ColorPalette> = {
 
   "github-dark": {
     colorDotBorder: "#1b1f230a",
-    colorEmpty: "#161b22",
-    colorDots: ["#161b22", "#01311f", "#034525", "#0f6d31", "#00c647"],
-    colorSnake: "#a855f7", // Lighter purple for dark theme
+    colorEmpty: "#0d1117", // Darker background for better contrast
+    colorDots: ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"], // Updated to match GitHub's actual dark theme
+    colorSnake: "#f85149", // GitHub red for better visibility against dark background
   },
 
   "ocean": {

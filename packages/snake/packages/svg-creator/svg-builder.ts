@@ -14,9 +14,9 @@ import { renderAnimatedSvgGrid, createAnimatedGridCells } from "./svg-grid-rende
 import { createElement } from "./svg-utils";
 
 /**
- * Drawing options for SVG rendering.
+ * SVG rendering configuration options.
  */
-export interface DrawOptions {
+export interface SvgRenderOptions {
   /** Color for each contribution level */
   colorDots: Record<number, string>;
   /** Color for empty cells */
@@ -62,7 +62,7 @@ export const createSvg = (
   grid: Grid,
   cells: Point[] | null,
   chain: Snake[],
-  drawOptions: DrawOptions,
+  drawOptions: SvgRenderOptions,
   animationOptions: Pick<AnimationOptions, "frameDuration">,
 ): string => {
   const width = (grid.width + 2) * drawOptions.sizeCell;
@@ -121,7 +121,7 @@ export const createSvg = (
 /**
  * Generates CSS variables for theming.
  */
-const generateColorVar = (drawOptions: DrawOptions): string => {
+const generateColorVar = (drawOptions: SvgRenderOptions): string => {
   let css = `
     :root {
       --cb: ${drawOptions.colorDotBorder};

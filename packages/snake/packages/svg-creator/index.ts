@@ -18,7 +18,7 @@ export * from "./svg-snake-renderer";
 export * from "./svg-stack-renderer";
 
 // Main SVG creation function
-export * from "./create-svg";
+export * from "./svg-builder";
 
 // Type definitions for convenience
 export type {
@@ -44,6 +44,6 @@ export type {
 } from "./css-utils";
 
 export type {
-  DrawOptions,
+  SvgRenderOptions,
   AnimationOptions,
-} from "./create-svg";
+} from "./svg-builder";
