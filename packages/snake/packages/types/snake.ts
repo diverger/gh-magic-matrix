@@ -94,7 +94,6 @@ export class Snake {
     for (let i = 2; i < this.data.length; i++) {
       copy[i] = this.data[i - 2];
     }
-    
     // Set new head position
     copy[0] = this.data[0] + dx;
     copy[1] = this.data[1] + dy;
