@@ -11,7 +11,21 @@ export class OutsideGrid {
   }
 
   /**
-   * Create an outside grid marking reachable cells from boundaries
+   * Creates an outside grid marking cells that are reachable from the boundaries.
+   *
+   * @remarks
+   * Initializes a grid of the same size as the base grid, sets all cells as "inside" by default, and then
+   * performs a flood fill to mark cells as empty if they are reachable from the boundary and meet the color threshold.
+   * Used to track which cells are accessible from the grid's edge for pathfinding and tunnel validation.
+   *
+   * @param grid - The base grid to use for outside calculation.
+   * @param color - The color threshold for marking outside cells.
+   * @returns The initialized outside grid with reachable cells marked.
+   *
+   * @example
+   * ```ts
+   * const outside = createOutside(baseGrid, EMPTY);
+   * ```
    */
   private createOutside(grid: Grid, color: Color | typeof EMPTY): Outside {
     const outside = Grid.createEmpty(grid.width, grid.height) as Outside;
@@ -28,7 +42,22 @@ export class OutsideGrid {
   }
 
   /**
-   * Flood fill to mark cells reachable from outside
+   * Performs a flood fill to mark cells reachable from the outside boundaries.
+   *
+   * @remarks
+   * Iteratively updates the outside grid by marking cells as empty if they are reachable from the boundary
+   * and their color is below or equal to the threshold. Used to maintain the outside grid after changes to the base grid.
+   *
+   * Note: The 'outside' grid itself is always a regular rectangle with the same size as the base grid, but the empty region and its edge may be irregular.
+   *
+   * @param outside - The outside grid to update.
+   * @param grid - The base grid used for color checks.
+   * @param color - The color threshold for marking outside cells.
+   *
+   * @example
+   * ```ts
+   * fillOutside(outsideGrid, baseGrid, EMPTY);
+   * ```
    */
   private fillOutside(outside: Grid, grid: Grid, color: Color | typeof EMPTY): void {
     let changed = true;
@@ -51,7 +80,18 @@ export class OutsideGrid {
   }
 
   /**
-   * Check if a position is outside (reachable from boundaries)
+   * Checks if a position is outside (reachable from boundaries).
+   *
+   * @remarks
+   * Determines whether a cell is considered "outside"—that is, reachable from the grid's boundary according to the outside grid.
+   * Can be called with either coordinates (using the internal outside grid) or with an explicit grid and coordinates.
+   *
+   * Note: A cell is considered outside if it is out of bounds or marked empty in the grid, even if it's an isolated empty region not connected to the boundary.
+   *
+   * @param x - The x-coordinate of the cell (when using the internal outside grid).
+   * @param y - The y-coordinate of the cell (when using the internal outside grid).
+   * @param grid - The grid to check (optional, for explicit grid version).
+   * @returns True if the cell is outside, false otherwise.
    */
   isOutside(x: number, y: number): boolean;
   isOutside(grid: Grid, x: number, y: number): boolean;
@@ -76,7 +116,17 @@ export class OutsideGrid {
   }
 
   /**
-   * Update the outside grid after grid changes
+   * Updates the outside grid after changes to the base grid.
+   *
+   * @remarks
+   * Recomputes which cells are reachable from the boundaries by performing a flood fill on the outside grid
+   * using the provided base grid and color threshold. Should be called after any mutation to the base grid
+   * that affects cell accessibility.
+   *
+   * Note: The outside grid remains a regular rectangle, but the region marked as outside may change and become irregular after updates.
+   *
+   * @param baseGrid - The grid to use for recalculating outside cells.
+   * @param color - The color threshold for marking outside cells. Defaults to EMPTY.
    */
   update(baseGrid: Grid, color: Color | typeof EMPTY = EMPTY): void {
     this.fillOutside(this.grid, baseGrid, color);

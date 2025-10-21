@@ -21,12 +21,30 @@ export class PathNode {
 export class Pathfinder {
   private grid: Grid;
 
+  /**
+   * Constructs a new Pathfinder instance for the given grid.
+   *
+   * @param grid - The grid to use for pathfinding operations.
+   */
   constructor(grid: Grid) {
     this.grid = grid;
   }
 
   /**
-   * Find path from snake's current position to target coordinates using A*
+   * Finds a path for the snake from its current position to the target coordinates using the A* algorithm.
+   *
+   * @remarks
+   * Performs A* search to compute a sequence of snake states that move the snake from its current position
+   * to the specified (targetX, targetY) cell. Considers grid boundaries, self-collision, and cell validity.
+   * The path is reconstructed from the goal node back to the start. Returns null if no path is found.
+   * Used for tunnel entry navigation and general movement planning.
+   *
+   * Note: The returned array is ordered from oldest to newest (chronological order).
+   *
+   * @param snake - The starting Snake instance (position and body).
+   * @param targetX - The x-coordinate of the target cell.
+   * @param targetY - The y-coordinate of the target cell.
+   * @returns Array of Snake states representing the path, or null if unreachable.
    */
   findPath(snake: Snake, targetX: number, targetY: number): Snake[] | null {
     const openList: PathNode[] = [new PathNode(snake)];
@@ -75,7 +93,18 @@ export class Pathfinder {
   }
 
   /**
-   * Find path to match a specific snake pose
+   * Finds a path for the snake to match a specific target pose.
+   *
+   * @remarks
+   * Computes a sequence of snake states that move the snake from its current position and body configuration
+   * to match the targetSnake pose. Uses a bounding box for search optimization and avoids forbidden cells
+   * (target snake's body segments). Returns null if no path is found. Used for advanced movement planning and pose matching.
+   *
+   * Note: The returned array is ordered from oldest to newest (chronological order).
+   *
+   * @param snake - The starting Snake instance (position and body).
+   * @param targetSnake - The target Snake pose to match.
+   * @returns Array of Snake states representing the path to the target pose, or null if unreachable.
    */
   findPathToPose(snake: Snake, targetSnake: Snake): Snake[] | null {
     if (snake.equals(targetSnake)) {
@@ -142,14 +171,23 @@ export class Pathfinder {
   }
 
   /**
-   * Check if a move is valid (empty cell or out of bounds)
+   * Checks if a move is valid (empty cell or out of bounds).
+   *
+   * @param x - The x-coordinate to check.
+   * @param y - The y-coordinate to check.
+   * @returns True if the cell is empty or out of bounds, false otherwise.
    */
   private isValidMove(x: number, y: number): boolean {
     return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
   }
 
   /**
-   * Check if a move is valid within bounding box (for pose pathfinding)
+   * Checks if a move is valid within the bounding box (for pose pathfinding).
+   *
+   * @param x - The x-coordinate to check.
+   * @param y - The y-coordinate to check.
+   * @param box - The bounding box for valid movement.
+   * @returns True if the cell is within the bounding box and valid, false otherwise.
    */
   private isValidMoveForPose(x: number, y: number, box: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
     return (
@@ -162,7 +200,10 @@ export class Pathfinder {
   }
 
   /**
-   * Reconstruct path from goal node back to start
+   * Reconstructs the path from the goal node back to the start node.
+   *
+   * @param goalNode - The final PathNode in the search.
+   * @returns Array of Snake states from start to goal (chronological order).
    */
   private reconstructPath(goalNode: PathNode): Snake[] {
     const path: Snake[] = [];
@@ -179,7 +220,10 @@ export class Pathfinder {
   }
 
   /**
-   * Insert node into list maintaining sorted order by total cost
+   * Inserts a PathNode into the list maintaining sorted order by total cost.
+   *
+   * @param list - The list of PathNodes to insert into.
+   * @param node - The PathNode to insert.
    */
   private sortedInsert(list: PathNode[], node: PathNode): void {
     let left = 0;
