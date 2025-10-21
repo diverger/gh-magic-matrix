@@ -1,0 +1,23 @@
+{
+  "name": "@snake/user-contribution-fetcher",
+  "version": "1.0.0",
+  "description": "Fetches GitHub user contribution data via GraphQL API",
+  "main": "index.ts",
+  "types": "index.ts",
+  "keywords": [
+    "github",
+    "contributions",
+    "graphql",
+    "api",
+    "fetcher"
+  ],
+  "author": "gh-magic-matrix",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "exports": {
+    ".": "./index.ts"
+  }
+}
