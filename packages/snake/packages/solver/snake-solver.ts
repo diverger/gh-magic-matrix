@@ -396,6 +396,7 @@ export class SnakeSolver {
 
       // Check if we reached any target point
       const reachedPointIndex = points.findIndex((p) => p.x === head.x && p.y === head.y);
+
       if (reachedPointIndex >= 0) {
         points.splice(reachedPointIndex, 1);
         return this.reconstructSnakePath(current);
@@ -429,6 +430,17 @@ export class SnakeSolver {
     return null;
   }
 
+  /**
+   * Reconstructs the path of snake states from a goal node back to the start node.
+   *
+   * @remarks
+   * This method is used after a search (such as BFS) to recover the sequence of snake states that led to a target.
+   * It follows parent links from the goal node back to the root, collecting each snake state in order. The returned
+   * array contains the path from the goal to the start (newest to oldest); callers may reverse it for chronological order.
+   *
+   * @param goalNode - The final search node containing the target snake state and parent links.
+   * @returns An array of Snake states representing the reconstructed path from goal to start.
+   */
   private reconstructSnakePath(goalNode: { snake: Snake; parent: any | null }): Snake[] {
     const path: Snake[] = [];
     let current = goalNode;
