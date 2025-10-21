@@ -13,7 +13,7 @@ import { SnakeSolver } from "../solver/snake-solver";
 import { Snake } from "../types/snake";
 import { Point } from "../types/point";
 import type { OutputConfig } from "./outputs-options";
-import { renderAnimatedSvgGrid } from "../svg-creator";
+import { createSvg } from "../svg-creator";
 
 /**
  * Options for snake generation process.
@@ -120,21 +120,37 @@ export const generateContributionSnake = async (
           case "svg": {
             console.log(`🖌️ Creating SVG (output ${index})`);
 
-            // Convert grid and route data for SVG rendering
-            const animatedCells = convertRouteToAnimatedCells(grid, route);
-            const svgResult = renderAnimatedSvgGrid(animatedCells, {
-              colorDots: drawOptions.colorDots.reduce((acc, color, level) => {
-                acc[level] = color;
-                return acc;
-              }, {} as Record<number, string>),
-              colorEmpty: drawOptions.colorEmpty,
-              colorDotBorder: drawOptions.colorDotBorder,
-              cellSize: drawOptions.sizeCell,
-              dotSize: drawOptions.sizeDot,
-              dotBorderRadius: drawOptions.sizeDotBorderRadius,
-            }, animationOptions.frameDuration * route.length);
+            // Create complete SVG using the comprehensive createSvg function
+            const svgContent = createSvg(
+              grid,
+              null, // Use all cells
+              route,
+              {
+                colorDots: drawOptions.colorDots.reduce((acc, color, level) => {
+                  acc[level] = color;
+                  return acc;
+                }, {} as Record<number, string>),
+                colorEmpty: drawOptions.colorEmpty,
+                colorDotBorder: drawOptions.colorDotBorder,
+                colorSnake: drawOptions.colorSnake,
+                sizeCell: drawOptions.sizeCell,
+                sizeDot: drawOptions.sizeDot,
+                sizeDotBorderRadius: drawOptions.sizeDotBorderRadius,
+                // Add dark mode support if available
+                dark: drawOptions.dark ? {
+                  colorDots: drawOptions.dark.colorDots.reduce((acc, color, level) => {
+                    acc[level] = color;
+                    return acc;
+                  }, {} as Record<number, string>),
+                  colorEmpty: drawOptions.dark.colorEmpty,
+                  colorDotBorder: drawOptions.dark.colorDotBorder,
+                  colorSnake: drawOptions.dark.colorSnake,
+                } : undefined,
+              },
+              { frameDuration: animationOptions.frameDuration }
+            );
 
-            return `<svg>${svgResult.svgElements.join('')}</svg><style>${svgResult.styles.join('')}</style>`;
+            return svgContent;
           }
 
           case "gif": {
@@ -158,33 +174,4 @@ export const generateContributionSnake = async (
 
   console.log("✅ Snake generation completed successfully");
   return results;
-};
-
-/**
- * Converts snake route data to animated grid cells for SVG rendering.
- *
- * @param grid - The pathfinding grid.
- * @param route - Array of snake states representing the movement.
- * @returns Array of animated grid cells.
- */
-const convertRouteToAnimatedCells = (grid: any, route: any[]) => {
-  // This is a simplified conversion - in a real implementation,
-  // this would need to properly map the route data to animated cells
-  const cells = [];
-
-  for (let x = 0; x < grid.width; x++) {
-    for (let y = 0; y < grid.height; y++) {
-      const color = grid.getColor(x, y);
-      if (color !== 0) { // Not empty
-        cells.push({
-          x,
-          y,
-          color,
-          animationTime: Math.random(), // Simplified timing
-        });
-      }
-    }
-  }
-
-  return cells;
 };

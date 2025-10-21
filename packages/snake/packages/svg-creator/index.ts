@@ -17,6 +17,9 @@ export * from "./svg-grid-renderer";
 export * from "./svg-snake-renderer";
 export * from "./svg-stack-renderer";
 
+// Main SVG creation function
+export * from "./create-svg";
+
 // Type definitions for convenience
 export type {
   SvgGridRenderOptions,
@@ -39,3 +42,8 @@ export type {
 export type {
   AnimationKeyframe,
 } from "./css-utils";
+
+export type {
+  DrawOptions,
+  AnimationOptions,
+} from "./create-svg";
