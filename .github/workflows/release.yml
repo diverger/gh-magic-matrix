@@ -39,9 +39,9 @@ jobs:
           file: ./Dockerfile.breathing
           push: true
           tags: |
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:${{ github.sha }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:${{ github.event.inputs.version }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing:latest
+            diverger/gh-magic-matrix-breathing:${{ github.sha }}
+            diverger/gh-magic-matrix-breathing:${{ github.event.inputs.version }}
+            diverger/gh-magic-matrix-breathing:latest
 
       - name: Build and push blinking-contrib Docker image
         uses: docker/build-push-action@v5
@@ -51,9 +51,9 @@ jobs:
           file: ./Dockerfile.blinking
           push: true
           tags: |
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.sha }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:${{ github.event.inputs.version }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking:latest
+            diverger/gh-magic-matrix-blinking:${{ github.sha }}
+            diverger/gh-magic-matrix-blinking:${{ github.event.inputs.version }}
+            diverger/gh-magic-matrix-blinking:latest
 
       - name: Build and push snake Docker image
         uses: docker/build-push-action@v5
@@ -63,15 +63,15 @@ jobs:
           file: ./Dockerfile.snake
           push: true
           tags: |
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:${{ github.sha }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:${{ github.event.inputs.version }}
-            ${{ secrets.DCKR_USR }}/gh-magic-matrix-snake:latest
+            diverger/gh-magic-matrix-snake:${{ github.sha }}
+            diverger/gh-magic-matrix-snake:${{ github.event.inputs.version }}
+            diverger/gh-magic-matrix-snake:latest
 
       - name: Update action.yml files with new image digests
         run: |
-          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}|" breathing-contrib/action.yml
-          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}|" blinking-contrib/action.yml
-          sed -i "s|image: .*|image: docker://${{ secrets.DCKR_USR }}/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}|" snake/action.yml
+          sed -i "s|image: .*|image: docker://diverger/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}|" breathing-contrib/action.yml
+          sed -i "s|image: .*|image: docker://diverger/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}|" blinking-contrib/action.yml
+          sed -i "s|image: .*|image: docker://diverger/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}|" snake/action.yml
 
       - uses: oven-sh/setup-bun@v1
 

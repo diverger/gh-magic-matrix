@@ -71,23 +71,17 @@ jobs:
         run: mkdir -p dist/snake
 
       - name: Generate snake with light theme
-        run: cd packages/snake && bun install && bun build src/index.ts --outdir dist --target node && bun dist/index.js
+        run: bun packages/snake/dist/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: ../../dist/snake/light.svg
-          INPUT_SNAKE_LENGTH: "6"
-          INPUT_ANIMATION_DURATION: "20"
-          INPUT_COLORS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with dark theme
-        run: cd packages/snake && bun dist/index.js
+        run: bun packages/snake/dist/index.js
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: ../../dist/snake/dark.svg
-          INPUT_SNAKE_LENGTH: "6"
-          INPUT_ANIMATION_DURATION: "20"
-          INPUT_COLORS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify outputs

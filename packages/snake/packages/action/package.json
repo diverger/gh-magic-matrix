@@ -1,0 +1,35 @@
+{
+  "name": "@gh-magic-matrix/snake",
+  "version": "1.0.0",
+  "description": "GitHub Action for generating snake contribution animations with advanced pathfinding",
+  "main": "../../../dist/snake/index.js",
+  "types": "../../../dist/snake/index.d.ts",
+  "license": "MIT",
+  "private": true,
+  "keywords": [
+    "github-action",
+    "snake",
+    "contributions",
+    "animation",
+    "pathfinding",
+    "svg"
+  ],
+  "author": "diverger",
+  "scripts": {
+    "build": "ncc build --external canvas --out ../../../../dist/snake ./index.ts",
+    "test": "bun test",
+    "start": "bun ../../../dist/snake/index.js"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@snake/user-contribution-fetcher": "1.0.0",
+    "@snake/solver": "1.0.0",
+    "@snake/svg-creator": "1.0.0",
+    "@snake/types": "1.0.0"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.3",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
