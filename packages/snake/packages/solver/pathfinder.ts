@@ -21,6 +21,11 @@ export class PathNode {
 export class Pathfinder {
   private grid: Grid;
 
+  /**
+   * Constructs a new Pathfinder instance for the given grid.
+   *
+   * @param grid - The grid to use for pathfinding operations.
+   */
   constructor(grid: Grid) {
     this.grid = grid;
   }
@@ -166,14 +171,23 @@ export class Pathfinder {
   }
 
   /**
-   * Check if a move is valid (empty cell or out of bounds)
+   * Checks if a move is valid (empty cell or out of bounds).
+   *
+   * @param x - The x-coordinate to check.
+   * @param y - The y-coordinate to check.
+   * @returns True if the cell is empty or out of bounds, false otherwise.
    */
   private isValidMove(x: number, y: number): boolean {
     return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
   }
 
   /**
-   * Check if a move is valid within bounding box (for pose pathfinding)
+   * Checks if a move is valid within the bounding box (for pose pathfinding).
+   *
+   * @param x - The x-coordinate to check.
+   * @param y - The y-coordinate to check.
+   * @param box - The bounding box for valid movement.
+   * @returns True if the cell is within the bounding box and valid, false otherwise.
    */
   private isValidMoveForPose(x: number, y: number, box: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
     return (
@@ -186,7 +200,10 @@ export class Pathfinder {
   }
 
   /**
-   * Reconstruct path from goal node back to start
+   * Reconstructs the path from the goal node back to the start node.
+   *
+   * @param goalNode - The final PathNode in the search.
+   * @returns Array of Snake states from start to goal (chronological order).
    */
   private reconstructPath(goalNode: PathNode): Snake[] {
     const path: Snake[] = [];
@@ -203,7 +220,10 @@ export class Pathfinder {
   }
 
   /**
-   * Insert node into list maintaining sorted order by total cost
+   * Inserts a PathNode into the list maintaining sorted order by total cost.
+   *
+   * @param list - The list of PathNodes to insert into.
+   * @param node - The PathNode to insert.
    */
   private sortedInsert(list: PathNode[], node: PathNode): void {
     let left = 0;
