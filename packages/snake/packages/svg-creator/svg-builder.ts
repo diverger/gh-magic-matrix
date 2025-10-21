@@ -90,9 +90,7 @@ export const createSvg = (
       head: drawOptions.colorSnake,
     },
     cellSize: drawOptions.sizeCell,
-    thickness: 0.6, // Snake thickness as percentage of cell size
-    borderRadius: 2,
-    animationDuration: duration / 1000, // Convert to seconds
+    animationDuration: duration, // Keep in milliseconds
   });
 
   // Create viewBox

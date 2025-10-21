@@ -1,161 +1,71 @@
-/**
- * SVG Snake Renderer
- *
- * Provides functionality for rendering animated snake SVG elements with smooth path animations.
- * Generates SVG paths that follow the snake's movement with configurable styling and timing.
- *
- * @module svg-snake-renderer
- */
-
 import type { Snake } from "../types/snake";
-import type { Point } from "../types/point";
-import { createKeyframeAnimation, type AnimationKeyframe } from "./css-utils";
-import { createElement } from "./svg-utils";
 
-/**
- * Snake visual styling configuration.
- */
-export interface SnakeColorConfig {
-  /** Snake body color */
-  body: string;
-  /** Snake head color */
-  head: string;
-  /** Optional body border color */
-  bodyBorder?: string;
-  /** Optional head border color */
-  headBorder?: string;
-}
-
-/**
- * Configuration options for SVG snake rendering.
- */
 export interface SvgSnakeConfig {
-  /** Snake visual styling options */
-  styling: SnakeColorConfig;
   /** Size of each grid cell in pixels */
   cellSize: number;
-  /** Snake body thickness as percentage of cell size (0-1) */
-  thickness: number;
-  /** Corner radius for snake segments */
-  borderRadius: number;
-  /** Animation duration in seconds */
+  /** Animation duration in milliseconds */
   animationDuration: number;
+  /** Visual styling options */
+  styling: {
+    /** Color for snake head */
+    head: string;
+    /** Color for snake body */
+    body: string;
+    /** Optional border color */
+    bodyBorder?: string;
+  };
 }
 
-/**
- * Result of SVG snake rendering containing path elements and animations.
- */
 export interface SvgSnakeResult {
-  /** SVG path element strings representing the snake */
+  /** Array of SVG element strings */
   elements: string[];
-  /** CSS animation styles */
+  /** CSS styles for animations */
   styles: string;
-  /** Total animation duration in seconds */
+  /** Total animation duration */
   duration: number;
 }
 
+interface AnimationKeyframe {
+  t: number; // Time from 0 to 1
+  style: string;
+}
+
 /**
- * Creates an SVG path string for a snake segment between two points.
- *
- * @param from - Starting point of the segment.
- * @param to - Ending point of the segment.
- * @param config - Snake rendering configuration.
- * @returns SVG path string for the segment.
+ * Creates a CSS keyframe animation from an array of keyframes
  */
-export const createSnakeSegmentPath = (
-  from: Point,
-  to: Point,
-  config: SvgSnakeConfig
-): string => {
-  const { cellSize, thickness, borderRadius } = config;
-  const segmentWidth = cellSize * thickness;
-  const halfWidth = segmentWidth / 2;
-
-  // Calculate segment center points
-  const fromCenter = {
-    x: from.x * cellSize + cellSize / 2,
-    y: from.y * cellSize + cellSize / 2,
-  };
-  const toCenter = {
-    x: to.x * cellSize + cellSize / 2,
-    y: to.y * cellSize + cellSize / 2,
-  };
-
-  // Determine direction and create appropriate path
-  if (from.x === to.x) {
-    // Vertical movement
-    const minY = Math.min(fromCenter.y, toCenter.y) - halfWidth;
-    const maxY = Math.max(fromCenter.y, toCenter.y) + halfWidth;
-    const x = fromCenter.x;
-
-    return `M ${x - halfWidth} ${minY + borderRadius}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${x - halfWidth + borderRadius} ${minY}
-            L ${x + halfWidth - borderRadius} ${minY}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${x + halfWidth} ${minY + borderRadius}
-            L ${x + halfWidth} ${maxY - borderRadius}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${x + halfWidth - borderRadius} ${maxY}
-            L ${x - halfWidth + borderRadius} ${maxY}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${x - halfWidth} ${maxY - borderRadius}
-            Z`;
-  } else {
-    // Horizontal movement
-    const minX = Math.min(fromCenter.x, toCenter.x) - halfWidth;
-    const maxX = Math.max(fromCenter.x, toCenter.x) + halfWidth;
-    const y = fromCenter.y;
-
-    return `M ${minX + borderRadius} ${y - halfWidth}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${minX} ${y - halfWidth + borderRadius}
-            L ${minX} ${y + halfWidth - borderRadius}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${minX + borderRadius} ${y + halfWidth}
-            L ${maxX - borderRadius} ${y + halfWidth}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${maxX} ${y + halfWidth - borderRadius}
-            L ${maxX} ${y - halfWidth + borderRadius}
-            A ${borderRadius} ${borderRadius} 0 0 1 ${maxX - borderRadius} ${y - halfWidth}
-            Z`;
-  }
+const createKeyframeAnimation = (name: string, keyframes: AnimationKeyframe[]): string => {
+  const keyframeRules = keyframes
+    .map(({ t, style }) => `${(t * 100).toFixed(2)}% { ${style} }`)
+    .join('\n    ');
+  
+  return `@keyframes ${name} {\n    ${keyframeRules}\n  }`;
 };
 
 /**
- * Creates an SVG circle element for the snake head.
- *
- * @param position - Head position.
- * @param config - Snake rendering configuration.
- * @returns SVG circle element string.
+ * Creates an SVG element with attributes
  */
-export const createSnakeHead = (
-  position: Point,
-  config: SvgSnakeConfig
-): string => {
-  const { cellSize, thickness, styling } = config;
-  const radius = (cellSize * thickness) / 2;
-  const centerX = position.x * cellSize + cellSize / 2;
-  const centerY = position.y * cellSize + cellSize / 2;
-
-  return createElement("circle", {
-    cx: centerX,
-    cy: centerY,
-    r: radius,
-    fill: styling.head,
-    stroke: styling.headBorder || "none",
-    "stroke-width": styling.headBorder ? "1" : "0",
-  });
+const createElement = (tag: string, attributes: Record<string, string>): string => {
+  const attrs = Object.entries(attributes)
+    .map(([key, value]) => `${key}="${value}"`)
+    .join(' ');
+  return `<${tag} ${attrs}/>`;
 };
 
 /**
- * Generates animated snake path elements for a sequence of snake states.
+ * Renders an animated SVG snake that follows a path through the grid.
+ * Creates rectangle elements positioned with CSS transforms, similar to SNK.
  *
- * @param snakeChain - Array of snake states representing movement sequence.
- * @param config - Snake rendering configuration.
- * @returns SVG snake rendering result with animated elements.
+ * @param snakeChain - Array of snake positions over time
+ * @param config - Configuration for rendering (colors, timing, etc.)
+ * @returns SVG elements and CSS styles for the animated snake
  *
  * @example
  * ```typescript
- * const config: SvgSnakeConfig = {
- *   styling: { body: "#4ade80", head: "#22c55e" },
- *   cellSize: 16,
- *   thickness: 0.8,
- *   borderRadius: 2,
- *   animationDuration: 3.0
+ * const snakeChain = [snake1, snake2, snake3]; // Snake positions over time
+ * const config = {
+ *   cellSize: 10,
+ *   animationDuration: 3000,
+ *   styling: { head: '#4CAF50', body: '#8BC34A' }
  * };
  *
  * const result = renderAnimatedSvgSnake(snakeMovement, config);
@@ -173,111 +83,101 @@ export const renderAnimatedSvgSnake = (
     return { elements, styles: "", duration: 0 };
   }
 
-  const finalSnake = snakeChain[snakeChain.length - 1];
-  const bodyChain = finalSnake.toCells();
+  // Get the length of the snake from the first frame
+  const snakeLength = snakeChain[0] ? snakeChain[0].toCells().length : 0;
 
-  // Create body segments
-  for (let i = 0; i < bodyChain.length - 1; i++) {
-    const from = bodyChain[i];
-    const to = bodyChain[i + 1];
+  // Create arrays to store positions for each snake segment across all frames
+  const snakeParts: Array<Array<{ x: number, y: number }>> = Array.from({ length: snakeLength }, () => []);
 
-    const pathData = createSnakeSegmentPath(from, to, config);
-    const pathElement = createElement("path", {
-      d: pathData,
-      fill: config.styling.body,
-      stroke: config.styling.bodyBorder || "none",
-      "stroke-width": config.styling.bodyBorder ? "1" : "0",
-      class: `snake-segment-${i}`,
+  // Collect positions for each segment across all frames
+  for (const snake of snakeChain) {
+    const cells = snake.toCells();
+    for (let i = 0; i < cells.length && i < snakeLength; i++) {
+      snakeParts[i].push(cells[i]);
+    }
+  }
+
+  // Helper function to create transform style
+  const transform = (point: { x: number, y: number }) =>
+    `transform:translate(${point.x * config.cellSize}px,${point.y * config.cellSize}px)`;
+
+  // Create SVG elements for each snake segment
+  snakeParts.forEach((positions, i) => {
+    if (positions.length === 0) return;
+
+    // Compute segment size - head is largest, tail segments get smaller
+    const dMin = config.cellSize * 0.3; // Minimum size for tail
+    const dMax = config.cellSize * 0.9; // Maximum size for head
+    const iMax = Math.min(4, snakeLength);
+    const u = (1 - Math.min(i, iMax) / iMax) ** 2;
+    const size = dMin + (dMax - dMin) * u;
+    
+    const margin = (config.cellSize - size) / 2;
+    const radius = Math.min(4.5, (4 * size) / config.cellSize);
+
+    // Create rectangle element
+    const rectElement = createElement("rect", {
+      class: `snake-segment snake-segment-${i}`,
+      x: margin.toFixed(1),
+      y: margin.toFixed(1),
+      width: size.toFixed(1),
+      height: size.toFixed(1),
+      rx: radius.toFixed(1),
+      ry: radius.toFixed(1),
+      fill: i === 0 ? config.styling.head : config.styling.body,
     });
 
-    // Add appear animation
-    const animationId = `snake-segment-${i}`;
-    const appearTime = (i / bodyChain.length) * config.animationDuration;
+    elements.push(rectElement);
 
-    const keyframes: AnimationKeyframe[] = [
-      { t: 0, style: "opacity: 0; transform: scale(0.5);" },
-      { t: appearTime / config.animationDuration, style: "opacity: 0; transform: scale(0.5);" },
-      { t: (appearTime + 0.2) / config.animationDuration, style: "opacity: 1; transform: scale(1);" },
-      { t: 1, style: "opacity: 1; transform: scale(1);" },
-    ];
+    // Create animation if there are multiple positions
+    if (positions.length > 1) {
+      const animationName = `snake-segment-${i}`;
+      
+      // Create keyframes for movement
+      const keyframes = positions.map((pos, frameIndex) => ({
+        t: frameIndex / (positions.length - 1),
+        style: transform(pos)
+      }));
 
-    const css = createKeyframeAnimation(`${animationId}-appear`, keyframes);
-    animationStyles.push(`
-      .${animationId} {
-        animation: ${animationId}-appear ${config.animationDuration}s ease-out forwards;
-      }
-      ${css}
-    `);
+      const css = createKeyframeAnimation(animationName, keyframes);
+      
+      animationStyles.push(`
+        .snake-segment-${i} {
+          ${transform(positions[0])};
+          animation: ${animationName} ${config.animationDuration}ms linear infinite;
+        }
+        ${css}
+      `);
+    } else {
+      // Static position for single frame
+      animationStyles.push(`
+        .snake-segment-${i} {
+          ${transform(positions[0])};
+        }
+      `);
+    }
+  });
 
-    elements.push(pathElement);
-  }
-
-  // Create animated head
-  const head = finalSnake.getHead();
-  const headElement = createSnakeHead(head, config);
-
-  if (snakeChain.length > 1) {
-    const headAnimationId = "snake-head";
-
-    // Create head movement animation
-    const headPositions = snakeChain.map(snake => snake.getHead());
-    const headKeyframes: AnimationKeyframe[] = headPositions.map((pos, index) => ({
-      t: index / (headPositions.length - 1),
-      style: `transform: translate(${(pos.x - head.x) * config.cellSize}px, ${(pos.y - head.y) * config.cellSize}px);`,
-    }));
-
-    const headCss = createKeyframeAnimation(`${headAnimationId}-move`, headKeyframes);
-    animationStyles.push(`
-      .${headAnimationId} {
-        animation: ${headAnimationId}-move ${config.animationDuration}s ease-in-out forwards;
-        transform-origin: center;
-      }
-      ${headCss}
-    `);
-  }
-
-  elements.push(headElement);
+  // Add base styles for all snake segments
+  animationStyles.unshift(`
+    .snake-segment {
+      shape-rendering: geometricPrecision;
+    }
+  `);
 
   return {
     elements,
-    styles: animationStyles.join("\n"),
-    duration: config.animationDuration,
+    styles: animationStyles.join('\n'),
+    duration: config.animationDuration
   };
 };
 
 /**
  * Creates a static SVG representation of a snake without animations.
- *
- * @param snake - Snake instance to render.
- * @param config - Snake rendering configuration.
- * @returns Array of SVG elements representing the snake.
  */
 export const renderStaticSvgSnake = (
   snake: Snake,
   config: SvgSnakeConfig
-): string[] => {
-  const elements: string[] = [];
-  const bodyChain = snake.toCells();
-
-  // Create body segments
-  for (let i = 0; i < bodyChain.length - 1; i++) {
-    const from = bodyChain[i];
-    const to = bodyChain[i + 1];
-
-    const pathData = createSnakeSegmentPath(from, to, config);
-    const pathElement = createElement("path", {
-      d: pathData,
-      fill: config.styling.body,
-      stroke: config.styling.bodyBorder || "none",
-      "stroke-width": config.styling.bodyBorder ? "1" : "0",
-    });
-
-    elements.push(pathElement);
-  }
-
-  // Create head
-  const head = snake.getHead();
-  elements.push(createSnakeHead(head, config));
-
-  return elements;
+): SvgSnakeResult => {
+  return renderAnimatedSvgSnake([snake], config);
 };
