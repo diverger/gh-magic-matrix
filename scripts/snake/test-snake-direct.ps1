@@ -43,7 +43,7 @@ Write-Host "`n🚀 Running snake action directly..." -ForegroundColor Yellow
 try {
     # Run the action directly
     Push-Location "dist\snake"
-    node index.js
+    bun index.js
     Pop-Location
 
     # Check if output was generated
