@@ -30,7 +30,6 @@ export type {
 export type {
   SvgSnakeConfig,
   SvgSnakeResult,
-  SnakeColorConfig,
 } from "./svg-snake-renderer";
 
 export type {
