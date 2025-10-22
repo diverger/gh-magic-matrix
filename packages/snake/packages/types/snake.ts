@@ -27,9 +27,19 @@ export class Snake {
 
   /**
    * Create a snake with multiple segments at the same position
+   * @deprecated Use createHorizontal instead for a valid snake pose
    */
   static fromSinglePoint(point: Point, length: number): Snake {
     return new Snake(Array.from({ length }, () => point));
+  }
+
+  /**
+   * Create a horizontal snake outside the grid (like SNK's snake4)
+   * The snake starts at y=-1 with segments from x=0 to x=length-1
+   * Example for length=4: [{x:0,y:-1}, {x:1,y:-1}, {x:2,y:-1}, {x:3,y:-1}]
+   */
+  static createHorizontal(length: number): Snake {
+    return new Snake(Array.from({ length }, (_, i) => new Point(i, -1)));
   }
 
   /**

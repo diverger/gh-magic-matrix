@@ -18,11 +18,10 @@ function testSnakeSolver(): void {
 
   console.log("📊 Test grid created with sample colors");
 
-  // Create initial snake
-  const startPoint = new Point(0, 0);
-  const initialSnake = Snake.fromSinglePoint(startPoint, 3);
+  // Create initial snake (horizontal snake outside grid, like SNK)
+  const initialSnake = Snake.createHorizontal(4);
 
-  console.log(`🐍 Initial snake created at (${startPoint.x}, ${startPoint.y}) with length ${initialSnake.getLength()}`);
+  console.log(`🐍 Initial snake created with length ${initialSnake.getLength()}`);
 
   // Test basic snake operations
   console.log("Testing snake operations:");

@@ -98,9 +98,8 @@ export class SnakeSolver {
     const reversedChain = chain.reverse();
 
     //! Add return path to initial pose (like SNK's generateContributionSnake.ts:23)
-    // chain.push(...getPathToPose(chain.slice(-1)[0], snake)!);
     const returnPath = this.pathfinder.findPathToPose(reversedChain[reversedChain.length - 1], initialSnake);
-    if (returnPath) {
+    if (returnPath && returnPath.length > 0) {
       reversedChain.push(...returnPath);
     }
 
