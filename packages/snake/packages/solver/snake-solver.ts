@@ -171,8 +171,12 @@ export class SnakeSolver {
     let tunnelablePoints = this.getTunnelablePointsForColor(snakeLength, targetColor);
 
     const chain: Snake[] = [snake];
+    let iterationCount = 0;
 
     while (tunnelablePoints.length > 0) {
+      iterationCount++;
+      const chainLengthBefore = chain.length;
+
       //! Find closest reachable point using BFS
       //! Here we use BFS to find the shortest path to any of the remaining tunnelable points (any next point may be a
       //! best candidate), not like that in residual clearing which uses prioritized tunnels (the residual color has
@@ -214,6 +218,20 @@ export class SnakeSolver {
       }
 
       chain.unshift(...pathToNext);
+
+      // Check if this iteration created a discontinuity
+      for (let i = 0; i < pathToNext.length; i++) {
+        const idx = i; // position in final chain after unshift
+        if (idx + 1 < chain.length) {
+          const curr = chain[idx].getHead();
+          const next = chain[idx + 1].getHead();
+          const dist = Math.abs(curr.x - next.x) + Math.abs(curr.y - next.y);
+          if (dist !== 1) {
+            console.error(`Iteration ${iterationCount} created discontinuity at chain[${idx}]: (${curr.x},${curr.y}) -> (${next.x},${next.y}), dist=${dist}`);
+            console.error(`  pathToNext.length=${pathToNext.length}, chainLengthBefore=${chainLengthBefore}, chainLengthAfter=${chain.length}`);
+          }
+        }
+      }
     }
 
     this.outside.update(this.grid);
