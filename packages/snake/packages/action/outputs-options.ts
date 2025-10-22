@@ -71,7 +71,7 @@ export interface OutputConfig {
  * ```typescript
  * const outputs = parseOutputsOption([
  *   "dist/snake.svg?palette=github-dark",
- *   "dist/snake.gif?step=2&frameDuration=200"
+ *   "dist/snake-light.svg?step=2&frameDuration=200"
  * ]);
  * ```
  */
@@ -93,11 +93,11 @@ export const parseEntry = (entry: string): OutputConfig | null => {
   const trimmedEntry = entry.trim();
   if (!trimmedEntry) return null;
 
-  // Match filename.ext with optional query params or JSON config
-  const match = trimmedEntry.match(/^(.+\.(svg|gif))(\?(.*)|\s*({.*}))?$/);
+  // Match filename.svg with optional query params or JSON config
+  const match = trimmedEntry.match(/^(.+\.svg)(\?(.*)|\s*({.*}))?$/);
   if (!match) return null;
 
-  const [, filename, format, , queryString, jsonString] = match;
+  const [, filename, , queryString, jsonString] = match;
   const configString = queryString ?? jsonString;
 
   let searchParams = new URLSearchParams();
@@ -152,9 +152,10 @@ export const parseEntry = (entry: string): OutputConfig | null => {
   // Apply animation options
   applyAnimationOptions(animationOptions, searchParams);
 
+  // Snake action only supports SVG format
   return {
     filename,
-    format: format as "svg" | "gif",
+    format: "svg" as const,
     drawOptions,
     animationOptions,
   };

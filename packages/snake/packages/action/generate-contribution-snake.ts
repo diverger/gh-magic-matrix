@@ -110,7 +110,7 @@ export interface GenerationOptions {
  * 1. Fetches GitHub contribution data
  * 2. Converts contributions to a pathfinding grid
  * 3. Computes optimal snake route using advanced pathfinding
- * 4. Generates output files in requested formats (SVG/GIF)
+ * 4. Generates output files in SVG format
  *
  * @param userName - GitHub username to fetch contributions for.
  * @param outputs - Array of output configurations.
@@ -234,14 +234,6 @@ export const generateContributionSnake = async (
             );
 
             return svgContent;
-          }
-
-          case "gif": {
-            console.log(`📹 Creating GIF (output ${index})`);
-            // Note: GIF creation would require additional canvas rendering
-            // For now, return SVG as fallback
-            console.warn("GIF generation not yet implemented, falling back to SVG");
-            return null;
           }
 
           default:
