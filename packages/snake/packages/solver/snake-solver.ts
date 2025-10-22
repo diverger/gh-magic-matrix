@@ -197,6 +197,16 @@ export class SnakeSolver {
 
       pathToNext.pop(); // Remove start position (at end of newest→oldest array)
 
+      // Debug: Check connection between chain[0] and pathToNext[last]
+      if (pathToNext.length > 0) {
+        const chainHead = chain[0].getHead();
+        const pathEnd = pathToNext[pathToNext.length - 1].getHead();
+        const dist = Math.abs(chainHead.x - pathEnd.x) + Math.abs(chainHead.y - pathEnd.y);
+        if (dist !== 1) {
+          console.error(`Connection error: chain[0] at (${chainHead.x},${chainHead.y}) vs pathToNext[last] at (${pathEnd.x},${pathEnd.y}), dist=${dist}`);
+        }
+      }
+
       // Mark consumed cells as empty BEFORE adding to chain (matches SNK order)
       for (const snakeState of pathToNext) {
         const head = snakeState.getHead();
