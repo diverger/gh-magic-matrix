@@ -91,7 +91,7 @@ export const createSvg = (
     },
     cellSize: drawOptions.sizeCell,
     animationDuration: duration, // Keep in milliseconds
-  });
+  }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
 
   // Create viewBox
   const viewBox = [

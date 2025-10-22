@@ -37,7 +37,7 @@ const createKeyframeAnimation = (name: string, keyframes: AnimationKeyframe[]): 
   const keyframeRules = keyframes
     .map(({ t, style }) => `${(t * 100).toFixed(2)}% { ${style} }`)
     .join('\n    ');
-  
+
   return `@keyframes ${name} {\n    ${keyframeRules}\n  }`;
 };
 
@@ -57,24 +57,26 @@ const createElement = (tag: string, attributes: Record<string, string>): string 
  *
  * @param snakeChain - Array of snake positions over time
  * @param config - Configuration for rendering (colors, timing, etc.)
+ * @param dotSize - Size of the contribution dots (affects snake segment sizing)
  * @returns SVG elements and CSS styles for the animated snake
  *
  * @example
  * ```typescript
  * const snakeChain = [snake1, snake2, snake3]; // Snake positions over time
  * const config = {
- *   cellSize: 10,
+ *   cellSize: 16,
  *   animationDuration: 3000,
  *   styling: { head: '#4CAF50', body: '#8BC34A' }
  * };
  *
- * const result = renderAnimatedSvgSnake(snakeMovement, config);
+ * const result = renderAnimatedSvgSnake(snakeMovement, config, 12);
  * document.body.appendChild(result.elements[0]);
  * ```
  */
 export const renderAnimatedSvgSnake = (
   snakeChain: Snake[],
-  config: SvgSnakeConfig
+  config: SvgSnakeConfig,
+  dotSize: number
 ): SvgSnakeResult => {
   const elements: string[] = [];
   const animationStyles: string[] = [];
@@ -105,23 +107,23 @@ export const renderAnimatedSvgSnake = (
   snakeParts.forEach((positions, i) => {
     if (positions.length === 0) return;
 
-    // Compute segment size - head is largest, tail segments get smaller
-    const dMin = config.cellSize * 0.3; // Minimum size for tail
-    const dMax = config.cellSize * 0.9; // Maximum size for head
-    const iMax = Math.min(4, snakeLength);
-    const u = (1 - Math.min(i, iMax) / iMax) ** 2;
-    const size = dMin + (dMax - dMin) * u;
-    
-    const margin = (config.cellSize - size) / 2;
-    const radius = Math.min(4.5, (4 * size) / config.cellSize);
+    // Use SNK SVG creator's exact formula (from snk/packages/svg-creator/snake.ts)
+    const dMin = dotSize * 0.8;              // SNK's minimum size formula
+    const dMax = config.cellSize * 0.9;     // SNK's maximum size formula
+    const iMax = Math.min(4, snakeLength);  // SNK's transition segment count
+    const u = (1 - Math.min(i, iMax) / iMax) ** 2; // SNK's quadratic falloff
+    const s = dMin + (dMax - dMin) * u;     // SNK's linear interpolation (lerp)
+
+    const margin = (config.cellSize - s) / 2;
+    const radius = Math.min(4.5, (4 * s) / dotSize); // SNK's radius formula
 
     // Create rectangle element
     const rectElement = createElement("rect", {
       class: `snake-segment snake-segment-${i}`,
       x: margin.toFixed(1),
       y: margin.toFixed(1),
-      width: size.toFixed(1),
-      height: size.toFixed(1),
+      width: s.toFixed(1),
+      height: s.toFixed(1),
       rx: radius.toFixed(1),
       ry: radius.toFixed(1),
       fill: i === 0 ? config.styling.head : config.styling.body,
@@ -132,7 +134,7 @@ export const renderAnimatedSvgSnake = (
     // Create animation if there are multiple positions
     if (positions.length > 1) {
       const animationName = `snake-segment-${i}`;
-      
+
       // Create keyframes for movement
       const keyframes = positions.map((pos, frameIndex) => ({
         t: frameIndex / (positions.length - 1),
@@ -140,7 +142,7 @@ export const renderAnimatedSvgSnake = (
       }));
 
       const css = createKeyframeAnimation(animationName, keyframes);
-      
+
       animationStyles.push(`
         .snake-segment-${i} {
           ${transform(positions[0])};
@@ -177,7 +179,8 @@ export const renderAnimatedSvgSnake = (
  */
 export const renderStaticSvgSnake = (
   snake: Snake,
-  config: SvgSnakeConfig
+  config: SvgSnakeConfig,
+  dotSize: number
 ): SvgSnakeResult => {
-  return renderAnimatedSvgSnake([snake], config);
+  return renderAnimatedSvgSnake([snake], config, dotSize);
 };
