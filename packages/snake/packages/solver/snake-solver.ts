@@ -456,8 +456,16 @@ export class SnakeSolver {
       if (!newTunnel || newTunnel.isEmpty()) {
         tunnelablePoints.splice(i, 1);
       } else {
-        point.tunnel = newTunnel;
-        point.priority = newTunnel.getPriority(this.grid, targetColor);
+        // Validate that tunnel still starts at the original cell
+        // After trimming, the tunnel might start at a different cell if the original was consumed
+        const tunnelStart = newTunnel.toArray()[0];
+        if (tunnelStart.x !== point.x || tunnelStart.y !== point.y) {
+          // Tunnel no longer starts at the target cell - remove it
+          tunnelablePoints.splice(i, 1);
+        } else {
+          point.tunnel = newTunnel;
+          point.priority = newTunnel.getPriority(this.grid, targetColor);
+        }
       }
     }
   }
