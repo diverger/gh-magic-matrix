@@ -11,16 +11,9 @@
 #
 # Environment variables:
 #   GITHUB_USER         - GitHub username (default: diverger)
-#   SNAKE_LENGTH        - Snake length in segments (default: 6)
-#   ANIMATION_DURATION  - Animation duration in seconds (default: 20)
-#   SVG_WIDTH          - Canvas width (default: 800)
-#   SVG_HEIGHT         - Canvas height (default: 200)
-#   CELL_SIZE          - Cell size in pixels (default: 12)
-#   CELL_GAP           - Gap between cells (default: 2)
-#   CELL_RADIUS        - Cell border radius (default: 2)
 #
-# Example with custom parameters:
-#   GITHUB_USER=octocat SNAKE_LENGTH=8 ./scripts/snake/test-snake.sh light
+# Example with custom user:
+#   GITHUB_USER=octocat ./scripts/snake/test-snake.sh light
 
 set -e
 
@@ -40,60 +33,37 @@ OUTPUT_FILE="$TEST_OUTPUT_DIR/snake-$TIMESTAMP.svg"
 
 # Default test parameters
 GITHUB_USER="${GITHUB_USER:-diverger}"
-SNAKE_LENGTH="${SNAKE_LENGTH:-6}"
-ANIMATION_DURATION="${ANIMATION_DURATION:-20}"
-SVG_WIDTH="${SVG_WIDTH:-800}"
-SVG_HEIGHT="${SVG_HEIGHT:-200}"
-CELL_SIZE="${CELL_SIZE:-12}"
-CELL_GAP="${CELL_GAP:-2}"
-CELL_RADIUS="${CELL_RADIUS:-2}"
 
-# Color schemes
+# Color schemes - using palette names for simplicity
 if [ "$1" = "light" ]; then
-    COLORS="#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
-    THEME="light"
+    THEME="github-light"
 elif [ "$1" = "dark" ]; then
-    COLORS="#161b22,#0e4429,#006d32,#26a641,#39d353"
-    THEME="dark"
+    THEME="github-dark"
 else
-    COLORS="#161b22,#0e4429,#006d32,#26a641,#39d353"
-    THEME="dark"
+    THEME="github-dark"
 fi
 
 # Export environment variables for the snake action
 export INPUT_GITHUB_USER_NAME="$GITHUB_USER"
-export INPUT_OUTPUT_PATH="$OUTPUT_FILE"
-export INPUT_SVG_WIDTH="$SVG_WIDTH"
-export INPUT_SVG_HEIGHT="$SVG_HEIGHT"
-export INPUT_CELL_SIZE="$CELL_SIZE"
-export INPUT_CELL_GAP="$CELL_GAP"
-export INPUT_CELL_RADIUS="$CELL_RADIUS"
-export INPUT_SNAKE_LENGTH="$SNAKE_LENGTH"
-export INPUT_ANIMATION_DURATION="$ANIMATION_DURATION"
-export INPUT_COLORS="$COLORS"
+export INPUT_OUTPUTS="$OUTPUT_FILE?palette=$THEME"
 
 echo "🐍 Testing Snake GitHub Action"
 echo "================================"
 echo "  User: $INPUT_GITHUB_USER_NAME"
 echo "  Theme: $THEME"
-echo "  Snake Length: $INPUT_SNAKE_LENGTH"
-echo "  Animation Duration: ${INPUT_ANIMATION_DURATION}s"
-echo "  Canvas Size: ${INPUT_SVG_WIDTH}x${INPUT_SVG_HEIGHT}"
-echo "  Cell Size: ${INPUT_CELL_SIZE}px (gap: ${INPUT_CELL_GAP}px)"
-echo "  Colors: $INPUT_COLORS"
 echo "  Output: $OUTPUT_FILE"
 echo ""
 
 # Check if snake package exists and build it
-SNAKE_DIR="packages/snake"
-if [ ! -d "$SNAKE_DIR" ]; then
-    echo "❌ Error: Snake package directory not found at $SNAKE_DIR"
+SNAKE_ACTION_DIR="packages/snake/packages/action"
+if [ ! -d "$SNAKE_ACTION_DIR" ]; then
+    echo "❌ Error: Snake action directory not found at $SNAKE_ACTION_DIR"
     echo "   Please run this script from the repository root."
     exit 1
 fi
 
-echo "📦 Building snake package..."
-cd "$SNAKE_DIR"
+echo "📦 Building snake action package..."
+cd "$SNAKE_ACTION_DIR"
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
@@ -101,9 +71,9 @@ if [ ! -d "node_modules" ]; then
     bun install
 fi
 
-# Build with Bun
-echo "🔨 Building with Bun..."
-bun build src/index.ts --outdir dist --target node
+# Build with ncc (matches our package.json)
+echo "🔨 Building with ncc..."
+bun run build
 
 if [ ! -f "dist/index.js" ]; then
     echo "❌ Error: Build failed - dist/index.js not found"
@@ -121,25 +91,25 @@ bun dist/index.js
 cd - > /dev/null
 
 # Check if output was generated
-if [ -f "$INPUT_OUTPUT_PATH" ]; then
+if [ -f "$OUTPUT_FILE" ]; then
   echo ""
   echo "✅ Snake animation generated successfully!"
   echo "📁 Saved to: $OUTPUT_FILE"
-  echo "📊 File size: $(du -h "$INPUT_OUTPUT_PATH" | cut -f1)"
+  echo "📊 File size: $(du -h "$OUTPUT_FILE" | cut -f1)"
 
   # Get file info
-  LINES=$(wc -l < "$INPUT_OUTPUT_PATH")
+  LINES=$(wc -l < "$OUTPUT_FILE")
   echo "📄 Lines: $LINES"
 
   # Check if it contains expected SVG elements
-  if grep -q "<svg" "$INPUT_OUTPUT_PATH" && grep -q "</svg>" "$INPUT_OUTPUT_PATH"; then
+  if grep -q "<svg" "$OUTPUT_FILE" && grep -q "</svg>" "$OUTPUT_FILE"; then
     echo "🎨 SVG structure: Valid"
   else
     echo "⚠️  SVG structure: May be invalid"
   fi
 
   # Check for animation elements
-  if grep -q "animateMotion\|animate" "$INPUT_OUTPUT_PATH"; then
+  if grep -q "animateMotion\|animate" "$OUTPUT_FILE"; then
     echo "🎬 Animation: Detected"
   else
     echo "⚠️  Animation: Not detected"
@@ -157,6 +127,6 @@ if [ -f "$INPUT_OUTPUT_PATH" ]; then
 else
   echo ""
   echo "❌ Failed to generate SVG"
-  echo "   Output file not found: $INPUT_OUTPUT_PATH"
+  echo "   Output file not found: $OUTPUT_FILE"
   exit 1
 fi

@@ -26,7 +26,7 @@ A collection of GitHub Actions for creating various animations and visualization
 
 ## Actions
 
-### 🌊 Breathing Contribution Grid
+### 💨 Breathing Contribution Grid
 
 Generate a breathing light effect animation from your GitHub contribution grid. Each cell breathes with intensity based on contribution count.
 
@@ -45,7 +45,7 @@ Generate a breathing light effect animation from your GitHub contribution grid. 
   />
 </picture>
 
-**[📖 Full Documentation →](./breathing-contrib/README.md)**
+**[📖 Full Documentation](./breathing-contrib/README.md)**
 
 ### ✨ Blinking Contribution Timeline
 
@@ -66,7 +66,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
   />
 </picture>
 
-**[📖 Full Documentation →](./blinking-contrib/README.md)**
+**[📖 Full Documentation](./blinking-contrib/README.md)**
 
 ### 🐍 Snake Contribution Grid
 
@@ -87,9 +87,9 @@ Generate an animated SVG showing a snake eating GitHub contributions using advan
   />
 </picture>
 
-**[� Full Documentation →](./snake/README.md)**
+**[📖 Full Documentation](./snake/README.md)**
 
-> 💡 **Live examples** are automatically generated daily and available in the [`output` branch](../../tree/output)
+> 🎯 **Live examples** are automatically generated daily and available in the [`output` branch](../../tree/output)
 
 ## Quick Reference
 

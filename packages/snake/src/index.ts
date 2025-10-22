@@ -13,7 +13,7 @@ interface SnakeActionInputs {
   cell_gap: number;
   cell_radius: number;
   snake_length: number;
-  animation_duration: number;
+  frame_duration: number; // Duration per frame in milliseconds (like SNK)
   colors: string[];
 }
 
@@ -223,39 +223,42 @@ export class SnakeAction {
    * Add snake animation to SVG
    */
   private addSnakeAnimation(svg: string, snakePath: Snake[]): void {
-    const { cell_size, cell_gap, animation_duration } = this.inputs;
-    const frameDuration = animation_duration / snakePath.length;
+    const { cell_size, cell_gap, frame_duration } = this.inputs;
+    // SNK logic: total duration = frame_duration * path_length (in seconds)
+    const totalDuration = (frame_duration / 1000) * snakePath.length;
+    const frameSeconds = frame_duration / 1000;
 
     // Snake head
     const headPath = snakePath.map((snake, index) => {
       const head = snake.getHead();
       const x = head.x * (cell_size + cell_gap) + cell_size / 2;
       const y = head.y * (cell_size + cell_gap) + cell_size / 2;
-      const time = index * frameDuration;
+      const time = index * frameSeconds;
       return `${x},${y};${time}`;
     }).join(';');
 
     svg += `<circle class="snake-head" r="${cell_size / 3}">`;
-    svg += `<animateMotion dur="${animation_duration}s" repeatCount="indefinite">`;
+    svg += `<animateMotion dur="${totalDuration}s" repeatCount="indefinite">`;
     svg += `<mpath xlinkHref="#snakePath"/>`;
     svg += `</animateMotion>`;
     svg += `</circle>`;
 
     // Snake body segments
     for (let segmentIndex = 1; segmentIndex < this.inputs.snake_length; segmentIndex++) {
-      const segmentPath = snakePath.map((snake, index) => {
-        if (index + segmentIndex < snakePath.length) {
-          const segment = snake.getSegment(Math.min(segmentIndex, snake.getLength() - 1));
+      const bodyPath = snakePath.map((snake, index) => {
+        const cells = snake.toCells();
+        if (segmentIndex < cells.length) {
+          const segment = cells[segmentIndex];
           const x = segment.x * (cell_size + cell_gap) + cell_size / 2;
           const y = segment.y * (cell_size + cell_gap) + cell_size / 2;
           return `${x},${y}`;
         }
-        return null;
-      }).filter(Boolean).join(' ');
+        return '';
+      }).filter(p => p).join(' ');
 
       svg += `<circle class="snake-body" r="${cell_size / 4}">`;
-      svg += `<animateMotion dur="${animation_duration}s" begin="${segmentIndex * frameDuration}s" repeatCount="indefinite">`;
-      svg += `<values>${segmentPath}</values>`;
+      svg += `<animateMotion dur="${totalDuration}s" begin="${segmentIndex * frameSeconds}s" repeatCount="indefinite">`;
+      svg += `<mpath xlinkHref="#snakeBodyPath"/>`;
       svg += `</animateMotion>`;
       svg += `</circle>`;
     }
@@ -265,13 +268,13 @@ export class SnakeAction {
    * Calculate when a cell should fade out
    */
   private calculateFadeTime(snakePath: Snake[], cellX: number, cellY: number): number {
-    const { animation_duration } = this.inputs;
-    const frameDuration = animation_duration / snakePath.length;
+    const { frame_duration } = this.inputs;
+    const frameSeconds = frame_duration / 1000;
 
     for (let i = 0; i < snakePath.length; i++) {
       const head = snakePath[i].getHead();
       if (head.x === cellX && head.y === cellY) {
-        return i * frameDuration;
+        return i * frameSeconds;
       }
     }
 
@@ -300,7 +303,8 @@ export async function run(): Promise<void> {
     cell_gap: parseInt(process.env.INPUT_CELL_GAP || '2'),
     cell_radius: parseInt(process.env.INPUT_CELL_RADIUS || '2'),
     snake_length: parseInt(process.env.INPUT_SNAKE_LENGTH || '6'),
-    animation_duration: parseInt(process.env.INPUT_ANIMATION_DURATION || '20'),
+    // SNK logic: use frame_duration (milliseconds) instead of total animation_duration
+    frame_duration: parseFloat(process.env.INPUT_FRAME_DURATION || '100'), // Default 100ms
     colors: (process.env.INPUT_COLORS || '#161b22,#0e4429,#006d32,#26a641,#39d353').split(','),
   };
 
