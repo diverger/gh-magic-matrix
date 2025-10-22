@@ -130,10 +130,12 @@ export class SnakeSolver {
       const bestTunnel = this.getNextTunnel(tunnelablePoints, chain[0]);
 
       //! Navigate to tunnel start - SNK assumes this always succeeds
+      //! During residual phase, we can traverse cells < targetColor (previous colors that haven't been cleaned yet)
       const pathToTunnel = this.pathfinder.findPath(
         chain[0],
         bestTunnel.toArray()[0].x,
-        bestTunnel.toArray()[0].y
+        bestTunnel.toArray()[0].y,
+        ((targetColor as number) - 1) as Color
       );
 
       if (!pathToTunnel) {

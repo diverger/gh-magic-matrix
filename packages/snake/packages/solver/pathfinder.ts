@@ -20,6 +20,7 @@ export class PathNode {
 
 export class Pathfinder {
   private grid: Grid;
+  private currentMaxColor: Color | typeof EMPTY = EMPTY;
 
   /**
    * Constructs a new Pathfinder instance for the given grid.
@@ -45,9 +46,11 @@ export class Pathfinder {
    * @param snake - The starting Snake instance (position and body).
    * @param targetX - The x-coordinate of the target cell.
    * @param targetY - The y-coordinate of the target cell.
+   * @param maxColor - Maximum color value to traverse (cells with color <= maxColor are valid). Defaults to EMPTY (0).
    * @returns Array of Snake states representing the path, or null if unreachable.
    */
-  findPath(snake: Snake, targetX: number, targetY: number): Snake[] | null {
+  findPath(snake: Snake, targetX: number, targetY: number, maxColor: Color | typeof EMPTY = EMPTY): Snake[] | null {
+    this.currentMaxColor = maxColor;
     const openList: PathNode[] = [new PathNode(snake)];
     const closedList: Snake[] = [];
 
@@ -217,14 +220,16 @@ export class Pathfinder {
   }
 
   /**
-   * Checks if a move is valid (empty cell or out of bounds).
+   * Checks if a move is valid (cell color <= maxColor threshold or out of bounds).
    *
    * @param x - The x-coordinate to check.
    * @param y - The y-coordinate to check.
-   * @returns True if the cell is empty or out of bounds, false otherwise.
+   * @returns True if the cell color is <= currentMaxColor or out of bounds, false otherwise.
    */
   private isValidMove(x: number, y: number): boolean {
-    return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
+    if (!this.grid.isInside(x, y)) return true;
+    const color = this.grid.getColor(x, y);
+    return (color as number) <= (this.currentMaxColor as number);
   }
 
   /**
