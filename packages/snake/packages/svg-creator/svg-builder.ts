@@ -12,6 +12,7 @@ import { Point } from "../types/point";
 import { Snake } from "../types/snake";
 import { renderAnimatedSvgGrid, createAnimatedGridCells } from "./svg-grid-renderer";
 import { renderAnimatedSvgSnake } from "./svg-snake-renderer";
+import { createProgressStack } from "./svg-stack-renderer";
 import { createElement } from "./svg-utils";
 
 /**
@@ -93,6 +94,19 @@ export const createSvg = (
     animationDuration: duration, // Keep in milliseconds
   }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
 
+  // Create progress stack (timeline bar showing cell consumption)
+  // Convert AnimatedGridCell to the format expected by createProgressStack
+  const stackResult = createProgressStack(
+    animatedCells.map(cell => ({
+      t: cell.animationTime,
+      color: cell.color,
+    })),
+    drawOptions.sizeDot,
+    grid.width * drawOptions.sizeCell,
+    (grid.height + 2) * drawOptions.sizeCell,
+    duration,
+  );
+
   // Create viewBox
   const viewBox = [
     -drawOptions.sizeCell,
@@ -102,7 +116,10 @@ export const createSvg = (
   ].join(" ");
 
   // Generate CSS variables and styles
-  const style = generateColorVar(drawOptions) + gridResult.styles.join("\n") + "\n" + snakeResult.styles;
+  const style = generateColorVar(drawOptions) +
+    gridResult.styles.join("\n") + "\n" +
+    snakeResult.styles + "\n" +
+    stackResult.styles.join("\n");
 
   // Create complete SVG structure
   const svg = [
@@ -122,6 +139,7 @@ export const createSvg = (
     "</style>",
 
     ...gridResult.svgElements,
+    ...stackResult.svgElements,
     ...snakeResult.elements,
 
     "</svg>",
