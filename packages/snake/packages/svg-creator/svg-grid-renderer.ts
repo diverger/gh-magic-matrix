@@ -97,11 +97,16 @@ export const renderAnimatedSvgGrid = (
       const animationId = `cell-${(animationIndex++).toString(36)}`;
       classes.push(animationId);
 
-      // Create animation keyframes for color transition
+      // Create animation keyframes with smooth transition (matching SNK's visual effect)
+      // Add a brief fade/scale effect before disappearing
+      const fadeStart = Math.max(0, animationTime - 0.02); // Start fading 2% before
+      const fadeEnd = animationTime + 0.01; // Complete fade 1% after
+
       const keyframes: AnimationKeyframe[] = [
-        { t: animationTime - 0.0001, style: `fill:var(--c${color})` },
-        { t: animationTime + 0.0001, style: `fill:var(--ce)` },
-        { t: 1, style: `fill:var(--ce)` },
+        { t: fadeStart, style: `fill:var(--c${color});opacity:1;transform:scale(1)` },
+        { t: animationTime, style: `fill:var(--c${color});opacity:0.5;transform:scale(0.8)` },
+        { t: fadeEnd, style: `fill:var(--ce);opacity:0;transform:scale(0.3)` },
+        { t: 1, style: `fill:var(--ce);opacity:0;transform:scale(0)` },
       ];
 
       const animationName = `anim-${animationId}`;
@@ -111,6 +116,7 @@ export const renderAnimatedSvgGrid = (
         createCssRule(`.grid-cell.${animationId}`, {
           fill: `var(--c${color})`,
           "animation-name": animationName,
+          "transform-origin": "center",
         })
       );
     }
