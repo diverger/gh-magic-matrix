@@ -98,6 +98,7 @@ jobs:
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"  # SNK default: 100ms per frame
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake contribution (dark theme)
@@ -105,6 +106,7 @@ jobs:
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
+          INPUT_FRAME_DURATION: "100"  # SNK default: 100ms per frame
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify all outputs exist
