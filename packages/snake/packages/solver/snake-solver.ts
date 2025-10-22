@@ -141,20 +141,28 @@ export class SnakeSolver {
       if (pathToTunnel) {
         pathToTunnel.pop(); // Remove start (now included by reconstructPath)
         chain.unshift(...pathToTunnel);
-      }
 
-      // Navigate through tunnel
-      const tunnelMoves = bestTunnel.getTunnelPath(chain[0]);
+        // Navigate through tunnel
+        const tunnelMoves = bestTunnel.getTunnelPath(chain[0]);
 
-      //! This will prepend the tunnel moves to the chain
-      chain.unshift(...tunnelMoves);
+        //! This will prepend the tunnel moves to the chain
+        chain.unshift(...tunnelMoves);
 
-      //! After above steps, the chain is like this: [tunnelMoves, pathToTunnel, snake].
-      //! This is because the snake head is at index 0.
+        //! After above steps, the chain is like this: [tunnelMoves, pathToTunnel, snake].
+        //! This is because the snake head is at index 0.
 
-      // Update grid by removing consumed cells
-      for (const point of bestTunnel.toArray()) {
-        this.setEmptySafe(point.x, point.y);
+        // Update grid by removing consumed cells
+        for (const point of bestTunnel.toArray()) {
+          this.setEmptySafe(point.x, point.y);
+        }
+      } else {
+        // If no path to tunnel found, skip this tunnel
+        console.error(`No path to tunnel at (${bestTunnel.toArray()[0].x}, ${bestTunnel.toArray()[0].y})`);
+        // Remove this tunnel from the list and continue to next one
+        tunnelablePoints = tunnelablePoints.filter(p => 
+          !(p.x === bestTunnel.toArray()[0].x && p.y === bestTunnel.toArray()[0].y)
+        );
+        continue;
       }
 
       // Update outside grid
