@@ -92,20 +92,15 @@ export const renderAnimatedSvgGrid = (
     // Calculate position within cell
     const margin = (options.cellSize - options.dotSize) / 2;
 
-    // Handle animated cells
-    if (animationTime !== null && !Grid.prototype.isEmptyCell(color)) {
+    // Handle animated cells - only animate non-empty cells
+    if (animationTime !== null && color > 0) {
       const animationId = `cell-${(animationIndex++).toString(36)}`;
       classes.push(animationId);
 
-      // Create animation keyframes with smooth fade transition
-      const fadeStart = Math.max(0, animationTime - 0.01); // Start fading 1% before
-      const fadeEnd = animationTime + 0.01; // Complete fade 1% after
-
+      // Create animation keyframes - quick fade like SNK
       const keyframes: AnimationKeyframe[] = [
-        { t: fadeStart, style: `fill:var(--c${color});opacity:1` },
-        { t: animationTime, style: `fill:var(--c${color});opacity:0.5` },
-        { t: fadeEnd, style: `fill:var(--ce);opacity:0` },
-        { t: 1, style: `fill:var(--ce);opacity:0` },
+        { t: animationTime, style: `fill:var(--c${color})` },
+        { t: animationTime + 0.0001, style: `fill:var(--ce)` },
       ];
 
       const animationName = `anim-${animationId}`;
