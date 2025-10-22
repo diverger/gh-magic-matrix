@@ -183,6 +183,16 @@ export class SnakeSolver {
       const pathToNext = this.findPathToNextPoint(chain[0], targetColor, tunnelablePoints);
       if (!pathToNext) break;
 
+      // Debug: Check path continuity
+      for (let i = 0; i < pathToNext.length - 1; i++) {
+        const curr = pathToNext[i].getHead();
+        const next = pathToNext[i + 1].getHead();
+        const dist = Math.abs(curr.x - next.x) + Math.abs(curr.y - next.y);
+        if (dist !== 1) {
+          console.error(`findPathToNextPoint returned discontinuous path at ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), dist=${dist}`);
+        }
+      }
+
       // Note: findPathToNextPoint already removed the reached point from tunnelablePoints via splice
 
       pathToNext.pop(); // Remove start position (at end of newest→oldest array)
