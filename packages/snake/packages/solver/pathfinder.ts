@@ -40,6 +40,12 @@ export class Pathfinder {
    * The path is reconstructed from the goal node back to the start. Returns null if no path is found.
    * Used for tunnel entry navigation and general movement planning.
    *
+   * Implementation enhancement over SNK's getPathTo:
+   * - Added `maxColor` parameter to support traversing colored cells during residual clearing phase.
+   * - When maxColor > EMPTY (0), the pathfinder can traverse cells with color <= maxColor.
+   * - SNK's original getPathTo only allows traversing empty cells (equivalent to maxColor = EMPTY).
+   * - This enhancement enables residual phase to navigate through previous color remnants.
+   *
    * Note: The returned array is ordered from newest to oldest (first element is the immediate next snake state),
    * matching the ordering used in the upstream snk project.
    *

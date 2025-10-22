@@ -106,6 +106,12 @@ export class SnakeSolver {
    * updates the `outside` helper, and re-evaluates remaining candidates. Tunnel candidates are re-scored after each mutation to the grid
    * and invalid tunnels are removed. May perform per-cell tunnel discovery and rescoring; runtime depends on grid area and tunnel finding cost.
    *
+   * Implementation difference from SNK:
+   * - During pathfinding to tunnel start, this implementation uses `maxColor = targetColor - 1` to allow traversing
+   *   cells with color < targetColor (previous colors not yet cleaned). SNK's original only allows traversing empty cells.
+   * - This enhancement enables more flexible residual clearing when previous color remnants block direct paths.
+   * - All other logic (tunnel prioritization, chain ordering, grid/outside updates) matches SNK's implementation exactly.
+   *
    * Note: The solver works on an internal clone of the grid and mutates that copy by marking consumed cells empty via `setEmptySafe`.
    * Note: The `outside` helper is updated after each tunnel traversal and tunnel priorities are recalculated after grid modifications.
    *

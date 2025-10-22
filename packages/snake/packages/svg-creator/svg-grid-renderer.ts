@@ -167,13 +167,13 @@ export const createAnimatedGridCells = (
     if (workingGrid.isInside(head.x, head.y) &&
         !workingGrid.isEmptyCell(workingGrid.getColor(head.x, head.y))) {
 
-      // Mark this cell as consumed after snake passes (next frame)
+      // Mark this cell as consumed at this time (matching SNK)
       workingGrid.setColorEmpty(head.x, head.y);
 
       const cell = animatedCells.find(c => c.x === head.x && c.y === head.y);
       if (cell) {
-        // Use i+1 so cell disappears AFTER snake passes through it
-        cell.animationTime = (i + 1) / snakeChain.length;
+        // SNK uses i / snakeChain.length - cell disappears when snake head touches it
+        cell.animationTime = i / snakeChain.length;
       }
     }
   }
