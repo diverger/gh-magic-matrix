@@ -235,46 +235,45 @@ export class Tunnel {
     maxColor: Color,
     snakeLength: number
   ): Tunnel | null {
+    // Following SNK's getBestTunnel pattern exactly
     const startPoint = new Point(startX, startY);
     const snake = Snake.fromSinglePoint(startPoint, snakeLength);
 
-    // Phase 1: Find path from start to outside
-    const pathToOutside = this.findEscapePath(grid, outsideGrid, snake, maxColor);
-    if (!pathToOutside) return null;
+    // Phase 1: Find escape path from start position (like SNK's first getSnakeEscapePath call)
+    const one = this.findEscapePath(grid, outsideGrid, snake, maxColor);
+    if (!one) return null;
 
-    // Phase 2: Simulate consumption and find return path
-    const gridAfterConsumption = grid.clone();
-    for (const point of pathToOutside) {
-      this.setEmptySafe(gridAfterConsumption, point.x, point.y);
+    // Create snake at target position following SNK's approach
+    const snakeICells = one.slice(0, snakeLength);
+    while (snakeICells.length < snakeLength) {
+      snakeICells.push(snakeICells[snakeICells.length - 1]);
+    }
+    const snakeI = this.createSnakeAtPosition(snakeICells, snakeLength);
+
+    // Remove consumed colors from grid (following SNK's pattern)
+    const gridI = grid.clone();
+    for (const point of one) {
+      this.setEmptySafe(gridI, point.x, point.y);
     }
 
-    // Create snake at target position with correct length, the head at the end of the path found
-    const snakeAtTarget = this.createSnakeAtPosition(pathToOutside, snakeLength);
+    // Phase 2: Find second escape path (like SNK's second getSnakeEscapePath call)
+    const two = this.findEscapePath(gridI, outsideGrid, snakeI, maxColor);
+    if (!two) return null;
 
-    //! In phase 1, we actually only find the escape path for the snake head. We simulate that when the snake head have
-    //! reached the outside of the grid, if we still can find a escape path
-    const pathFromTarget = this.findEscapePath(gridAfterConsumption, outsideGrid, snakeAtTarget, maxColor);
-    if (!pathFromTarget) return null;
+    // Combine paths following SNK's exact pattern:
+    // one.shift() - remove first element
+    // one.reverse() - reverse the path
+    // one.push(...two) - append second path
+    one.shift();           // Remove first element like SNK
+    one.reverse();         // Reverse like SNK
+    one.push(...two);      // Append second path like SNK
 
-    // Combine paths
-    const pathToOutsideReversed = pathToOutside.slice().reverse();
-    const completePath = [...pathToOutsideReversed, ...pathFromTarget];
+    // Apply SNK's trimming
+    const tunnel = new Tunnel(one);
+    tunnel.trimStart(grid);  // SNK's trimTunnelStart
+    tunnel.trimEnd(grid);    // SNK's trimTunnelEnd
 
-    // Validate path continuity and warn about jumps
-    for (let i = 1; i < completePath.length; i++) {
-      const prev = completePath[i - 1];
-      const curr = completePath[i];
-      const dx = Math.abs(curr.x - prev.x);
-      const dy = Math.abs(curr.y - prev.y);
-
-      if (dx > 1 || dy > 1) {
-        console.warn(`🚨 Non-continuous tunnel path at index ${i}: (${prev.x}, ${prev.y}) -> (${curr.x}, ${curr.y}), distance: (${dx}, ${dy})`);
-      }
-    }
-    const tunnel = new Tunnel(completePath);
-    tunnel.trim(grid);
-
-    return tunnel;
+    return tunnel.isEmpty() ? null : tunnel;
   }
 
   /**
