@@ -39,7 +39,8 @@ export class Pathfinder {
    * The path is reconstructed from the goal node back to the start. Returns null if no path is found.
    * Used for tunnel entry navigation and general movement planning.
    *
-   * Note: The returned array is ordered from oldest to newest (chronological order).
+   * Note: The returned array is ordered from newest to oldest (first element is the immediate next snake state),
+   * matching the ordering used in the upstream snk project.
    *
    * @param snake - The starting Snake instance (position and body).
    * @param targetX - The x-coordinate of the target cell.
@@ -253,13 +254,11 @@ export class Pathfinder {
     const path: Snake[] = [];
     let current: PathNode | null = goalNode;
 
-    while (current) {
+    while (current && current.parent) {
       path.push(current.snake);
       current = current.parent;
     }
 
-    path.pop(); // Remove start position
-    path.reverse();
     return path;
   }
 

@@ -362,12 +362,13 @@ export class Tunnel {
     const path: Point[] = [];
     let current = goalNode;
 
-    //! Draw the path with only the snake head, the last is pushed first, that is the end of path is stored first
+    // Collect heads from goal to start, then reverse to match snk ordering (start → goal)
     while (current) {
       path.push(current.snake.getHead());
       current = current.parent;
     }
 
+    path.reverse();
     return path;
   }
 
