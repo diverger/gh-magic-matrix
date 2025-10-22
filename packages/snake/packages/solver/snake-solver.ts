@@ -141,13 +141,19 @@ export class SnakeSolver {
         // Log detailed debug info to understand why
         const tunnelStart = bestTunnel.toArray()[0];
         const snakeHead = chain[0].getHead();
+        const isSnakeHeadOutside = !this.grid.isInside(snakeHead.x, snakeHead.y) || 
+                                   this.outside.isOutside(snakeHead.x, snakeHead.y);
+        const isTunnelStartOutside = !this.grid.isInside(tunnelStart.x, tunnelStart.y) ||
+                                      this.outside.isOutside(tunnelStart.x, tunnelStart.y);
+        
         console.error(`CRITICAL: No path found to tunnel!`);
-        console.error(`  Snake head: (${snakeHead.x}, ${snakeHead.y})`);
-        console.error(`  Tunnel start: (${tunnelStart.x}, ${tunnelStart.y})`);
+        console.error(`  Snake head: (${snakeHead.x}, ${snakeHead.y}), is outside: ${isSnakeHeadOutside}`);
+        console.error(`  Tunnel start: (${tunnelStart.x}, ${tunnelStart.y}), is outside: ${isTunnelStartOutside}`);
         console.error(`  Is tunnel start in grid: ${this.grid.isInside(tunnelStart.x, tunnelStart.y)}`);
         console.error(`  Tunnel start color: ${this.grid.getColor(tunnelStart.x, tunnelStart.y)}`);
         console.error(`  Target color: ${targetColor}`);
         console.error(`  Tunnel length: ${bestTunnel.toArray().length}`);
+        console.error(`  Chain length: ${chain.length}`);
         throw new Error(`Path validation failed - getBestTunnel returned unreachable tunnel at (${tunnelStart.x}, ${tunnelStart.y})`);
       }
 
