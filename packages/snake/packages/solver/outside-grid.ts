@@ -103,12 +103,11 @@ export class OutsideGrid {
       // SNK's pattern: check if not in grid OR if empty in the outside grid
       return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
     } else {
-      // Two parameter version (unused, but keeping for compatibility)
-      // This version is confusing and shouldn't be used - the outside check
-      // should always be against the outside grid, not an arbitrary grid
+      // Three parameter version - check against the provided grid (used in fillOutside)
+      const grid = gridOrX as Grid;
       const x = xOrY!;
       const _y = y!;
-      return !this.grid.isInside(x, _y) || this.grid.isEmptyCell(this.grid.getColor(x, _y));
+      return !grid.isInside(x, _y) || grid.isEmptyCell(grid.getColor(x, _y));
     }
   }
 
