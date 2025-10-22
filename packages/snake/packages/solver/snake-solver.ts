@@ -135,17 +135,17 @@ export class SnakeSolver {
         bestTunnel.toArray()[0].x,
         bestTunnel.toArray()[0].y
       );
-      
+
       if (!pathToTunnel) {
         // This should never happen if tunnel validation is correct!
         // Log detailed debug info to understand why
         const tunnelStart = bestTunnel.toArray()[0];
         const snakeHead = chain[0].getHead();
-        const isSnakeHeadOutside = !this.grid.isInside(snakeHead.x, snakeHead.y) || 
+        const isSnakeHeadOutside = !this.grid.isInside(snakeHead.x, snakeHead.y) ||
                                    this.outside.isOutside(snakeHead.x, snakeHead.y);
         const isTunnelStartOutside = !this.grid.isInside(tunnelStart.x, tunnelStart.y) ||
                                       this.outside.isOutside(tunnelStart.x, tunnelStart.y);
-        
+
         console.error(`CRITICAL: No path found to tunnel!`);
         console.error(`  Snake head: (${snakeHead.x}, ${snakeHead.y}), is outside: ${isSnakeHeadOutside}`);
         console.error(`  Tunnel start: (${tunnelStart.x}, ${tunnelStart.y}), is outside: ${isTunnelStartOutside}`);

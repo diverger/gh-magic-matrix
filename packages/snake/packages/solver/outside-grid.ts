@@ -97,14 +97,18 @@ export class OutsideGrid {
   isOutside(grid: Grid, x: number, y: number): boolean;
   isOutside(gridOrX: Grid | number, xOrY?: number, y?: number): boolean {
     if (typeof gridOrX === "number") {
-      // Single grid version
-      return this.isOutside(this.grid, gridOrX, xOrY!);
+      // Single parameter version - check against our outside grid
+      const x = gridOrX;
+      const y = xOrY!;
+      // SNK's pattern: check if not in grid OR if empty in the outside grid
+      return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
     } else {
-      // Explicit grid version
-      const grid = gridOrX;
+      // Two parameter version (unused, but keeping for compatibility)
+      // This version is confusing and shouldn't be used - the outside check
+      // should always be against the outside grid, not an arbitrary grid
       const x = xOrY!;
       const _y = y!;
-      return !grid.isInside(x, _y) || grid.isEmptyCell(grid.getColor(x, _y));
+      return !this.grid.isInside(x, _y) || this.grid.isEmptyCell(this.grid.getColor(x, _y));
     }
   }
 
