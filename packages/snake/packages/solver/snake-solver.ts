@@ -106,7 +106,7 @@ export class SnakeSolver {
       }
 
       // Navigate through tunnel
-      const tunnelMoves = bestTunnel.toSnakeMovements(chain[0]);
+      const tunnelMoves = bestTunnel.getTunnelPath(chain[0]);
 
       //! This will prepend the tunnel moves to the chain
       chain.unshift(...tunnelMoves);

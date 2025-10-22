@@ -191,7 +191,7 @@ export class Tunnel {
    * @param startSnake - The initial Snake state before entering the tunnel.
    * @returns An array of Snake states, each representing the snake after a move along the tunnel (in movement order).
    */
-  toSnakeMovements(startSnake: Snake): Snake[] {
+  getTunnelPath(startSnake: Snake): Snake[] {
     const movements: Snake[] = [];
     let currentSnake = startSnake;
 
@@ -208,26 +208,7 @@ export class Tunnel {
     return movements;
   }
 
-  /**
-   * Returns the sequence of Snake states to cross the tunnel from a starting snake.
-   *
-   * @param snake0 - The initial Snake state.
-   * @returns An array of Snake states representing the tunnel traversal.
-   */
-  getTunnelPath(snake0: Snake): Snake[] {
-    const chain: Snake[] = [];
-    let snake = snake0;
 
-    for (let i = 1; i < this.path.length; i++) {
-      const head = snake.getHead();
-      const dx = this.path[i].x - head.x;
-      const dy = this.path[i].y - head.y;
-      snake = snake.nextSnake(dx, dy);
-      chain.unshift(snake);
-    }
-
-    return chain;
-  }
 
   /**
    * Finds the best tunnel from a specific cell to the outside boundary.
@@ -276,7 +257,20 @@ export class Tunnel {
     if (!pathFromTarget) return null;
 
     // Combine paths
-    const completePath = [...pathToOutside.slice().reverse(), ...pathFromTarget];
+    const pathToOutsideReversed = pathToOutside.slice().reverse();
+    const completePath = [...pathToOutsideReversed, ...pathFromTarget];
+
+    // CRITICAL FIX: Validate path continuity and warn about jumps
+    for (let i = 1; i < completePath.length; i++) {
+      const prev = completePath[i - 1];
+      const curr = completePath[i];
+      const dx = Math.abs(curr.x - prev.x);
+      const dy = Math.abs(curr.y - prev.y);
+
+      if (dx > 1 || dy > 1) {
+        console.warn(`🚨 Non-continuous tunnel path at index ${i}: (${prev.x}, ${prev.y}) -> (${curr.x}, ${curr.y}), distance: (${dx}, ${dy})`);
+      }
+    }
     const tunnel = new Tunnel(completePath);
     tunnel.trim(grid);
 
