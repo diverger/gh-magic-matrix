@@ -97,12 +97,11 @@ export const renderAnimatedSvgGrid = (
       const animationId = `cell-${(animationIndex++).toString(36)}`;
       classes.push(animationId);
 
-      // Create animation keyframes - cell disappears slightly after snake arrives
-      const disappearTime = Math.min(1, animationTime + 0.005); // Disappear 0.5% after snake arrives
-
+      // Match SNK's behavior: cell disappears when snake eats it and stays gone
       const keyframes: AnimationKeyframe[] = [
-        { t: animationTime, style: `fill:var(--c${color})` },
-        { t: disappearTime, style: `fill:var(--ce)` },
+        { t: animationTime - 0.0001, style: `fill:var(--c${color})` },
+        { t: animationTime + 0.0001, style: `fill:var(--ce)` },
+        { t: 1, style: `fill:var(--ce)` },
       ];
 
       const animationName = `anim-${animationId}`;
