@@ -258,6 +258,10 @@ export class SnakeAction {
 
       svg += `<circle class="snake-body" r="${cell_size / 4}">`;
       svg += `<animateMotion dur="${totalDuration}s" begin="${segmentIndex * frameSeconds}s" repeatCount="indefinite">`;
+      svg += `<mpath xlinkHref="#snakeBodyPath"/>`;
+      svg += `</animateMotion>`;
+      svg += `</circle>`;
+    }
   }
 
   /**

@@ -53,8 +53,8 @@ export interface AnimationOptions {
 export interface OutputConfig {
   /** Output file path */
   filename: string;
-  /** Output format (svg or gif) */
-  format: "svg" | "gif";
+  /** Output format (svg only) */
+  format: "svg";
   /** Drawing/styling options */
   drawOptions: SvgDrawOptions;
   /** Animation timing options */
