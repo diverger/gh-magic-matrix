@@ -166,20 +166,17 @@ export class SnakeSolver {
       const pathToNext = this.findPathToNextPoint(chain[0], targetColor, tunnelablePoints);
       if (!pathToNext) break;
 
-      // Remove the reached point from the list (goal is at index 0 in newest→oldest array)
-      const reachedPoint = pathToNext[0].getHead();
-      tunnelablePoints = tunnelablePoints.filter(
-        (p) => !(p.x === reachedPoint.x && p.y === reachedPoint.y)
-      );
+      // Note: findPathToNextPoint already removed the reached point from tunnelablePoints via splice
 
       pathToNext.pop(); // Remove start position (at end of newest→oldest array)
-      chain.unshift(...pathToNext);
 
-      // Mark consumed cells as empty
+      // Mark consumed cells as empty BEFORE adding to chain (matches SNK order)
       for (const snakeState of pathToNext) {
         const head = snakeState.getHead();
         this.setEmptySafe(head.x, head.y);
       }
+
+      chain.unshift(...pathToNext);
     }
 
     this.outside.update(this.grid);
