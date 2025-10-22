@@ -129,40 +129,43 @@ export class SnakeSolver {
       //! Get the best tunnel among those with highest priority
       const bestTunnel = this.getNextTunnel(tunnelablePoints, chain[0]);
 
-      //! Navigate to tunnel start using A* algorithm, note that 'findPath' doesn't consider color rules, cell consumption
-      //! or game objectives, it just find a valid (usually shortest or lowest-cost) path for the snake to reach the given
-      //! position.
+      //! Navigate to tunnel start - SNK assumes this always succeeds
       const pathToTunnel = this.pathfinder.findPath(
         chain[0],
         bestTunnel.toArray()[0].x,
         bestTunnel.toArray()[0].y
       );
+      
+      if (!pathToTunnel) {
+        // This should never happen if tunnel validation is correct!
+        // Log detailed debug info to understand why
+        const tunnelStart = bestTunnel.toArray()[0];
+        const snakeHead = chain[0].getHead();
+        console.error(`CRITICAL: No path found to tunnel!`);
+        console.error(`  Snake head: (${snakeHead.x}, ${snakeHead.y})`);
+        console.error(`  Tunnel start: (${tunnelStart.x}, ${tunnelStart.y})`);
+        console.error(`  Is tunnel start in grid: ${this.grid.isInside(tunnelStart.x, tunnelStart.y)}`);
+        console.error(`  Tunnel start color: ${this.grid.getColor(tunnelStart.x, tunnelStart.y)}`);
+        console.error(`  Target color: ${targetColor}`);
+        console.error(`  Tunnel length: ${bestTunnel.toArray().length}`);
+        throw new Error(`Path validation failed - getBestTunnel returned unreachable tunnel at (${tunnelStart.x}, ${tunnelStart.y})`);
+      }
 
-      if (pathToTunnel) {
-        pathToTunnel.pop(); // Remove start (now included by reconstructPath)
-        chain.unshift(...pathToTunnel);
+      pathToTunnel.pop(); // Remove start (now included by reconstructPath)
+      chain.unshift(...pathToTunnel);
 
-        // Navigate through tunnel
-        const tunnelMoves = bestTunnel.getTunnelPath(chain[0]);
+      // Navigate through tunnel
+      const tunnelMoves = bestTunnel.getTunnelPath(chain[0]);
 
-        //! This will prepend the tunnel moves to the chain
-        chain.unshift(...tunnelMoves);
+      //! This will prepend the tunnel moves to the chain
+      chain.unshift(...tunnelMoves);
 
-        //! After above steps, the chain is like this: [tunnelMoves, pathToTunnel, snake].
-        //! This is because the snake head is at index 0.
+      //! After above steps, the chain is like this: [tunnelMoves, pathToTunnel, snake].
+      //! This is because the snake head is at index 0.
 
-        // Update grid by removing consumed cells
-        for (const point of bestTunnel.toArray()) {
-          this.setEmptySafe(point.x, point.y);
-        }
-      } else {
-        // If no path to tunnel found, skip this tunnel
-        console.error(`No path to tunnel at (${bestTunnel.toArray()[0].x}, ${bestTunnel.toArray()[0].y})`);
-        // Remove this tunnel from the list and continue to next one
-        tunnelablePoints = tunnelablePoints.filter(p => 
-          !(p.x === bestTunnel.toArray()[0].x && p.y === bestTunnel.toArray()[0].y)
-        );
-        continue;
+      // Update grid by removing consumed cells
+      for (const point of bestTunnel.toArray()) {
+        this.setEmptySafe(point.x, point.y);
       }
 
       // Update outside grid
