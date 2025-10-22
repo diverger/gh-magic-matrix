@@ -58,7 +58,19 @@ export class Pathfinder {
 
       // Check if we reached the target
       if (currentHead.x === targetX && currentHead.y === targetY) {
-        return this.reconstructPath(current);
+        const path = this.reconstructPath(current);
+
+        // Debug: check path continuity
+        for (let i = 0; i < path.length - 1; i++) {
+          const curr = path[i].getHead();
+          const next = path[i + 1].getHead();
+          const dist = Math.abs(curr.x - next.x) + Math.abs(curr.y - next.y);
+          if (dist !== 1) {
+            console.error(`pathfinder.findPath returned discontinuous path at ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), dist=${dist}`);
+          }
+        }
+
+        return path;
       }
 
       // Try all four directions
