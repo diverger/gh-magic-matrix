@@ -48,22 +48,25 @@ export class SnakeSolver {
       // Phase 1: Clear residual colors (lower than current)
       if ((color as number) > 1) {
         const residualMoves = this.clearResidualColoredLayer(chain[0], color);
+        console.log(`Color ${color} residual: added ${residualMoves.length} moves, chain now ${chain.length} -> ${chain.length + residualMoves.length}`);
         chain.unshift(...residualMoves);
       }
 
       // Phase 2: Clear current color
       const cleanMoves = this.clearCleanColoredLayer(chain[0], color);
+      console.log(`Color ${color} clean: added ${cleanMoves.length} moves, chain now ${chain.length} -> ${chain.length + cleanMoves.length}`);
       chain.unshift(...cleanMoves);
     }
 
-    // Verify chain continuity before reversing
+    // Verify chain continuity before reversing (positions are in cells, not pixels)
     for (let i = 0; i < chain.length - 1; i++) {
       const curr = chain[i].getHead();
       const next = chain[i + 1].getHead();
       const dx = Math.abs(curr.x - next.x);
       const dy = Math.abs(curr.y - next.y);
-      if (dx + dy !== 16) {
-        console.error(`Chain discontinuity at index ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), distance=${dx+dy}`);
+      const distance = dx + dy;
+      if (distance !== 1) {
+        console.error(`Chain discontinuity at index ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), distance=${distance} cells`);
       }
     }
 
