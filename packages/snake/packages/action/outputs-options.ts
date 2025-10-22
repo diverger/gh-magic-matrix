@@ -140,7 +140,7 @@ export const parseEntry = (entry: string): OutputConfig | null => {
 
   const animationOptions: AnimationOptions = {
     step: 1,
-    frameDuration: 200,
+    frameDuration: 100, // SNK default: 100ms per frame for proper speed
   };
 
   // Apply palette configuration

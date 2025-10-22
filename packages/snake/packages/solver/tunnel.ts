@@ -260,7 +260,7 @@ export class Tunnel {
     const pathToOutsideReversed = pathToOutside.slice().reverse();
     const completePath = [...pathToOutsideReversed, ...pathFromTarget];
 
-    // CRITICAL FIX: Validate path continuity and warn about jumps
+    // Validate path continuity and warn about jumps
     for (let i = 1; i < completePath.length; i++) {
       const prev = completePath[i - 1];
       const curr = completePath[i];

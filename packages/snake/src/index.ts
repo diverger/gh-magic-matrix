@@ -304,7 +304,7 @@ export async function run(): Promise<void> {
     cell_radius: parseInt(process.env.INPUT_CELL_RADIUS || '2'),
     snake_length: parseInt(process.env.INPUT_SNAKE_LENGTH || '6'),
     // SNK logic: use frame_duration (milliseconds) instead of total animation_duration
-    frame_duration: parseFloat(process.env.INPUT_FRAME_DURATION || '100'), // Default 100ms like SNK
+    frame_duration: parseFloat(process.env.INPUT_FRAME_DURATION || '100'), // Default 100ms
     colors: (process.env.INPUT_COLORS || '#161b22,#0e4429,#006d32,#26a641,#39d353').split(','),
   };
 
