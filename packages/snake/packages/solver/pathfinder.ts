@@ -260,16 +260,16 @@ export class Pathfinder {
    * Reconstructs the path from the goal node back to the start node.
    *
    * @param goalNode - The final PathNode in the search.
-   * @returns Array of Snake states ordered newest→oldest [goal, parent, ..., start+1], excluding the start state.
+   * @returns Array of Snake states ordered newest→oldest [goal, parent, ..., start], INCLUDING the start state.
    */
   private reconstructPath(goalNode: PathNode): Snake[] {
     const path: Snake[] = [];
     let current: PathNode | null = goalNode;
 
     // Walk from goal back to start, pushing each state
-    // This produces [goal, parent, ..., second] order (newest→oldest)
-    // Note: We stop at current.parent to exclude the start state
-    while (current && current.parent) {
+    // This produces [goal, parent, ..., start] order (newest→oldest)
+    // Note: We include ALL nodes including start (matching SNK's unwrap behavior)
+    while (current) {
       path.push(current.snake);
       current = current.parent;
     }

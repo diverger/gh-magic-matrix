@@ -138,8 +138,8 @@ export class SnakeSolver {
         bestTunnel.toArray()[0].y
       );
 
-      //! This actually append the snake to the path to tunnel, so use 'chain'
       if (pathToTunnel) {
+        pathToTunnel.pop(); // Remove start (now included by reconstructPath)
         chain.unshift(...pathToTunnel);
       }
 
