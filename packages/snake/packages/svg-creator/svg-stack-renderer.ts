@@ -399,7 +399,7 @@ export const createProgressStack = (
       `.u.${blockId} {
         fill: var(--c${block.color});
         animation-name: ${animationName};
-        transform-origin: ${x}px 0
+        transform-origin: ${x}px 0;
       }`,
     );
 
