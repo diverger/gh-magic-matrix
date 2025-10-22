@@ -171,8 +171,9 @@ export const createAnimatedGridCells = (
       workingGrid.setColorEmpty(head.x, head.y);
 
       const cell = animatedCells.find(c => c.x === head.x && c.y === head.y);
-      if (cell) {
+      if (cell && cell.animationTime === null) {
         // SNK uses i / snakeChain.length - cell disappears when snake head touches it
+        // Only set animationTime on first visit (for return path, don't re-trigger animation)
         cell.animationTime = i / snakeChain.length;
       }
     }
