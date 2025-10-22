@@ -41,6 +41,7 @@ export class SnakeSolver {
    * @returns Array of Snake states representing the computed route (from oldest to newest).
    */
   solve(startSnake: Snake): Snake[] {
+    const initialSnake = startSnake; // Save for return path
     const colors = this.extractColors();
     const chain: Snake[] = [startSnake];
 
@@ -94,7 +95,16 @@ export class SnakeSolver {
       }
     }
 
-    return chain.reverse();
+    const reversedChain = chain.reverse();
+
+    //! Add return path to initial pose (like SNK's generateContributionSnake.ts:23)
+    // chain.push(...getPathToPose(chain.slice(-1)[0], snake)!);
+    const returnPath = this.pathfinder.findPathToPose(reversedChain[reversedChain.length - 1], initialSnake);
+    if (returnPath) {
+      reversedChain.push(...returnPath);
+    }
+
+    return reversedChain;
   }
 
   /**
