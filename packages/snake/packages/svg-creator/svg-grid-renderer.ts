@@ -98,8 +98,8 @@ export const renderAnimatedSvgGrid = (
       classes.push(animationId);
 
       // Match SNK's behavior: cell disappears when snake eats it and stays gone
-      // Use 0.005 offset for smoother fade (not instant like SNK's 0.0001)
-      const fadeOffset = 0.005;
+      // Use 0.0001 offset for near-instant fade, preventing "sucking" effect
+      const fadeOffset = 0.0001;
       const keyframes: AnimationKeyframe[] = [
         { t: animationTime - fadeOffset, style: `fill:var(--c${color})` },
         { t: animationTime + fadeOffset, style: `fill:var(--ce)` },
