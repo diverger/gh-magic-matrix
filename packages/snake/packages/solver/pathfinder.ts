@@ -104,9 +104,10 @@ export class Pathfinder {
    *
    * @param snake - The starting Snake instance (position and body).
    * @param targetSnake - The target Snake pose to match.
+   * @param grid - Optional grid for additional movement validation.
    * @returns Array of Snake states representing the path to the target pose, or null if unreachable.
    */
-  findPathToPose(snake: Snake, targetSnake: Snake): Snake[] | null {
+  findPathToPose(snake: Snake, targetSnake: Snake, grid?: Grid): Snake[] | null {
     if (snake.equals(targetSnake)) {
       return [];
     }
@@ -135,8 +136,15 @@ export class Pathfinder {
 
       // Check if we reached the target head position
       if (currentHead.x === targetHead.x && currentHead.y === targetHead.y) {
-        const path = this.reconstructPath(current);
-        // Add tunnel path to reach final pose if needed
+        const path: Snake[] = [];
+        let current_node: PathNode | null = current;
+        while (current_node) {
+          path.push(current_node.snake);
+          current_node = current_node.parent;
+        }
+        path.unshift(...this.getTunnelPath(path[0], targetCells));
+        path.pop();
+        path.reverse();
         return path;
       }
 
@@ -148,7 +156,10 @@ export class Pathfinder {
         // Check bounds, collision, and forbidden cells
         if (
           !current.snake.willSelfCollide(direction.x, direction.y) &&
-          this.isValidMoveForPose(newX, newY, box) &&
+          (!grid || this.isEmptySafe(grid, newX, newY)) &&
+          (grid
+            ? grid.isInsideLarge(2, newX, newY)
+            : this.isValidMoveForPose(newX, newY, box)) &&
           !forbidden.some((p) => p.x === newX && p.y === newY)
         ) {
           const newSnake = current.snake.nextSnake(direction.x, direction.y);
@@ -171,6 +182,28 @@ export class Pathfinder {
   }
 
   /**
+   * Generates the tunnel path to match the full target pose (head and body).
+   * Based on the original implementation from snk/packages/solver/tunnel.ts
+   *
+   * @param snake - The current Snake state at the target head position.
+   * @param targetCells - The full target pose as an array of Points (head first).
+   * @returns Array of Snake states representing the tunnel path to match the full pose.
+   */
+  private getTunnelPath(snake: Snake, targetCells: Point[]): Snake[] {
+    const chain: Snake[] = [];
+    let currentSnake = snake;
+
+    for (let i = 1; i < targetCells.length; i++) {
+      const dx = targetCells[i].x - currentSnake.getHeadX();
+      const dy = targetCells[i].y - currentSnake.getHeadY();
+      currentSnake = currentSnake.nextSnake(dx, dy);
+      chain.unshift(currentSnake);
+    }
+
+    return chain;
+  }
+
+  /**
    * Checks if a move is valid (empty cell or out of bounds).
    *
    * @param x - The x-coordinate to check.
@@ -182,20 +215,31 @@ export class Pathfinder {
   }
 
   /**
+   * Checks if a cell is empty or out of bounds in the given grid.
+   *
+   * @param grid - The grid to check.
+   * @param x - The x-coordinate to check.
+   * @param y - The y-coordinate to check.
+   * @returns True if the cell is empty or out of bounds, false otherwise.
+   */
+  private isEmptySafe(grid: Grid, x: number, y: number): boolean {
+    return !grid.isInside(x, y) || grid.isEmptyCell(grid.getColor(x, y));
+  }
+
+  /**
    * Checks if a move is valid within the bounding box (for pose pathfinding).
    *
    * @param x - The x-coordinate to check.
    * @param y - The y-coordinate to check.
    * @param box - The bounding box for valid movement.
-   * @returns True if the cell is within the bounding box and valid, false otherwise.
+   * @returns True if the cell is within the bounding box, false otherwise.
    */
   private isValidMoveForPose(x: number, y: number, box: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
     return (
       x >= box.minX &&
       x <= box.maxX &&
       y >= box.minY &&
-      y <= box.maxY &&
-      this.isValidMove(x, y)
+      y <= box.maxY
     );
   }
 
