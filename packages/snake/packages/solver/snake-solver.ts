@@ -56,6 +56,17 @@ export class SnakeSolver {
       chain.unshift(...cleanMoves);
     }
 
+    // Verify chain continuity before reversing
+    for (let i = 0; i < chain.length - 1; i++) {
+      const curr = chain[i].getHead();
+      const next = chain[i + 1].getHead();
+      const dx = Math.abs(curr.x - next.x);
+      const dy = Math.abs(curr.y - next.y);
+      if (dx + dy !== 16) {
+        console.error(`Chain discontinuity at index ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), distance=${dx+dy}`);
+      }
+    }
+
     return chain.reverse();
   }
 
@@ -163,6 +174,9 @@ export class SnakeSolver {
       //! Here we use BFS to find the shortest path to any of the remaining tunnelable points (any next point may be a
       //! best candidate), not like that in residual clearing which uses prioritized tunnels (the residual color has
       //! higher priority than the clean color) and need find a shortest path to the given point.
+      //!
+      //! CRITICAL: findPathToNextPoint modifies tunnelablePoints in-place via splice() to remove the reached point.
+      //! Do NOT create a new array here - we must maintain the same array reference throughout all iterations.
       const pathToNext = this.findPathToNextPoint(chain[0], targetColor, tunnelablePoints);
       if (!pathToNext) break;
 
