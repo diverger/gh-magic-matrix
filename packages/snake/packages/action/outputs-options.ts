@@ -213,6 +213,10 @@ const applyPaletteOptions = (drawOptions: SvgDrawOptions, searchParams: URLSearc
  *
  * @param drawOptions - The drawing options to modify.
  * @param searchParams - URL search parameters containing color overrides.
+ *
+ * @remarks
+ * Light theme overrides do not clear dark theme settings.
+ * Dark theme must be explicitly overridden with dark_* parameters or will inherit from palette.
  */
 const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearchParams): void => {
   // Light theme color overrides
@@ -224,7 +228,7 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
     const colors = searchParams.get("color_dots")!.split(/[,;]/);
     drawOptions.colorDots = colors;
     drawOptions.colorEmpty = colors[0];
-    drawOptions.dark = undefined; // Clear dark theme when using custom colors
+    // Note: Dark theme is preserved; override separately with dark_color_dots if needed
   }
 
   if (searchParams.has("color_dot_border")) {
@@ -232,14 +236,27 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
   }
 
   // Dark theme color overrides
+  // Initialize dark theme if any dark_* parameter is provided
+  const hasDarkOverrides = searchParams.has("dark_color_dots") ||
+                           searchParams.has("dark_color_dot_border") ||
+                           searchParams.has("dark_color_snake");
+
+  if (hasDarkOverrides && !drawOptions.dark) {
+    // Initialize dark theme with light theme defaults if not already set
+    drawOptions.dark = {
+      colorDotBorder: drawOptions.colorDotBorder,
+      colorEmpty: drawOptions.colorEmpty,
+      colorSnake: drawOptions.colorSnake,
+      colorDots: [...drawOptions.colorDots],
+    };
+  }
+
   if (searchParams.has("dark_color_dots")) {
     const colors = searchParams.get("dark_color_dots")!.split(/[,;]/);
-    drawOptions.dark = {
-      colorDotBorder: drawOptions.dark?.colorDotBorder || drawOptions.colorDotBorder,
-      colorSnake: drawOptions.dark?.colorSnake || drawOptions.colorSnake,
-      colorDots: colors,
-      colorEmpty: colors[0],
-    };
+    if (drawOptions.dark) {
+      drawOptions.dark.colorDots = colors;
+      drawOptions.dark.colorEmpty = colors[0];
+    }
   }
 
   if (searchParams.has("dark_color_dot_border") && drawOptions.dark) {
