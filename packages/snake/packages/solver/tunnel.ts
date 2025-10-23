@@ -309,11 +309,16 @@ export class Tunnel {
     }
 
     const openList: SearchNode[] = [{ snake, parent: null, cost: 0 }];
-    const closedList: Snake[] = [];
+    const visited = new Set<string>();
 
     while (openList.length > 0) {
       const current = openList.shift()!;
       const head = current.snake.getHead();
+
+      // Mark as visited when popping from openList (strict UCS/Dijkstra semantics)
+      const stateKey = current.snake.getRawData().join(',');
+      if (visited.has(stateKey)) continue;
+      visited.add(stateKey);
 
       // Check if we reached outside
       //! For BFS, the first one will be the shortest one
@@ -332,10 +337,11 @@ export class Tunnel {
           !current.snake.willSelfCollide(direction.x, direction.y)
         ) {
           const newSnake = current.snake.nextSnake(direction.x, direction.y);
+          const newStateKey = newSnake.getRawData().join(',');
 
-          //! Here the closedList avoids duplicate snake positions (body positions), that means the same cell can be
-          //! 'visited' multiple times
-          if (!closedList.some((s) => s.equals(newSnake))) {
+          //! Check visited set with O(1) lookup instead of O(n) array scan
+          //! Mark visited only when popping to allow cheaper paths to be discovered
+          if (!visited.has(newStateKey)) {
             //! Higher cost for target color cells to discourage their use, only when cell color equal to maxColor, it
             //! will have a much higher cost
             const moveCost = (cellColor as number) === (maxColor as number) ? 1000 : 1;
@@ -343,7 +349,6 @@ export class Tunnel {
 
             //! This makes sure the one with lowest cost will be chosen first
             this.sortedInsert(openList, { snake: newSnake, parent: current, cost });
-            closedList.push(newSnake);
           }
         }
       }
