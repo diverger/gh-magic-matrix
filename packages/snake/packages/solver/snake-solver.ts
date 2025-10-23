@@ -41,6 +41,7 @@ export class SnakeSolver {
    * @returns Array of Snake states representing the computed route (from oldest to newest).
    */
   solve(startSnake: Snake): Snake[] {
+    const initialSnake = startSnake; // Save for return path
     const colors = this.extractColors();
     const chain: Snake[] = [startSnake];
 
@@ -56,7 +57,15 @@ export class SnakeSolver {
       chain.unshift(...cleanMoves);
     }
 
-    return chain.reverse();
+    const reversedChain = chain.reverse();
+
+    // Add return path to initial pose (like SNK's generateContributionSnake.ts:23)
+    const returnPath = this.pathfinder.findPathToPose(reversedChain[reversedChain.length - 1], initialSnake);
+    if (returnPath && returnPath.length > 0) {
+      reversedChain.push(...returnPath);
+    }
+
+    return reversedChain;
   }
 
   /**
@@ -67,6 +76,12 @@ export class SnakeSolver {
    * Repeatedly picks the highest-priority tunnel, navigates to its start, traverses it (consuming cells), updates the internal grid copy,
    * updates the `outside` helper, and re-evaluates remaining candidates. Tunnel candidates are re-scored after each mutation to the grid
    * and invalid tunnels are removed. May perform per-cell tunnel discovery and rescoring; runtime depends on grid area and tunnel finding cost.
+   *
+   * Implementation difference from SNK:
+   * - During pathfinding to tunnel start, this implementation uses `maxColor = targetColor - 1` to allow traversing
+   *   cells with color < targetColor (previous colors not yet cleaned). SNK's original only allows traversing empty cells.
+   * - This enhancement enables more flexible residual clearing when previous color remnants block direct paths.
+   * - All other logic (tunnel prioritization, chain ordering, grid/outside updates) matches SNK's implementation exactly.
    *
    * Note: The solver works on an internal clone of the grid and mutates that copy by marking consumed cells empty via `setEmptySafe`.
    * Note: The `outside` helper is updated after each tunnel traversal and tunnel priorities are recalculated after grid modifications.
@@ -91,19 +106,38 @@ export class SnakeSolver {
       //! Get the best tunnel among those with highest priority
       const bestTunnel = this.getNextTunnel(tunnelablePoints, chain[0]);
 
-      //! Navigate to tunnel start using A* algorithm, note that 'findPath' doesn't consider color rules, cell consumption
-      //! or game objectives, it just find a valid (usually shortest or lowest-cost) path for the snake to reach the given
-      //! position.
+      //! Navigate to tunnel start - SNK assumes this always succeeds
+      //! During residual phase, we can traverse cells < targetColor (previous colors that haven't been cleaned yet)
       const pathToTunnel = this.pathfinder.findPath(
         chain[0],
         bestTunnel.toArray()[0].x,
-        bestTunnel.toArray()[0].y
+        bestTunnel.toArray()[0].y,
+        ((targetColor as number) - 1) as Color
       );
 
-      //! This actually append the snake to the path to tunnel, so use 'chain'
-      if (pathToTunnel) {
-        chain.unshift(...pathToTunnel);
+      if (!pathToTunnel) {
+        // This should never happen if tunnel validation is correct!
+        // Log detailed debug info to understand why
+        const tunnelStart = bestTunnel.toArray()[0];
+        const snakeHead = chain[0].getHead();
+        const isSnakeHeadOutside = !this.grid.isInside(snakeHead.x, snakeHead.y) ||
+                                   this.outside.isOutside(snakeHead.x, snakeHead.y);
+        const isTunnelStartOutside = !this.grid.isInside(tunnelStart.x, tunnelStart.y) ||
+                                      this.outside.isOutside(tunnelStart.x, tunnelStart.y);
+
+        console.error(`CRITICAL: No path found to tunnel!`);
+        console.error(`  Snake head: (${snakeHead.x}, ${snakeHead.y}), is outside: ${isSnakeHeadOutside}`);
+        console.error(`  Tunnel start: (${tunnelStart.x}, ${tunnelStart.y}), is outside: ${isTunnelStartOutside}`);
+        console.error(`  Is tunnel start in grid: ${this.grid.isInside(tunnelStart.x, tunnelStart.y)}`);
+        console.error(`  Tunnel start color: ${this.grid.getColor(tunnelStart.x, tunnelStart.y)}`);
+        console.error(`  Target color: ${targetColor}`);
+        console.error(`  Tunnel length: ${bestTunnel.toArray().length}`);
+        console.error(`  Chain length: ${chain.length}`);
+        throw new Error(`Path validation failed - getBestTunnel returned unreachable tunnel at (${tunnelStart.x}, ${tunnelStart.y})`);
       }
+
+      pathToTunnel.pop(); // Remove start (now included by reconstructPath)
+      chain.unshift(...pathToTunnel);
 
       // Navigate through tunnel
       const tunnelMoves = bestTunnel.getTunnelPath(chain[0]);
@@ -157,28 +191,66 @@ export class SnakeSolver {
     let tunnelablePoints = this.getTunnelablePointsForColor(snakeLength, targetColor);
 
     const chain: Snake[] = [snake];
+    let iterationCount = 0;
 
     while (tunnelablePoints.length > 0) {
+      iterationCount++;
+      const chainLengthBefore = chain.length;
+
       //! Find closest reachable point using BFS
       //! Here we use BFS to find the shortest path to any of the remaining tunnelable points (any next point may be a
       //! best candidate), not like that in residual clearing which uses prioritized tunnels (the residual color has
       //! higher priority than the clean color) and need find a shortest path to the given point.
+      //!
+      //! CRITICAL: findPathToNextPoint modifies tunnelablePoints in-place via splice() to remove the reached point.
+      //! Do NOT create a new array here - we must maintain the same array reference throughout all iterations.
       const pathToNext = this.findPathToNextPoint(chain[0], targetColor, tunnelablePoints);
       if (!pathToNext) break;
 
-      // Remove the reached point from the list
-      const reachedPoint = pathToNext[pathToNext.length - 1].getHead();
-      tunnelablePoints = tunnelablePoints.filter(
-        (p) => !(p.x === reachedPoint.x && p.y === reachedPoint.y)
-      );
+      // Debug: Check path continuity
+      for (let i = 0; i < pathToNext.length - 1; i++) {
+        const curr = pathToNext[i].getHead();
+        const next = pathToNext[i + 1].getHead();
+        const dist = Math.abs(curr.x - next.x) + Math.abs(curr.y - next.y);
+        if (dist !== 1) {
+          console.error(`findPathToNextPoint returned discontinuous path at ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), dist=${dist}`);
+        }
+      }
 
-      pathToNext.pop(); // Remove final position
-      chain.unshift(...pathToNext);
+      // Note: findPathToNextPoint already removed the reached point from tunnelablePoints via splice
 
-      // Mark consumed cells as empty
+      pathToNext.pop(); // Remove start position (at end of newest→oldest array)
+
+      // Debug: Check connection between chain[0] and pathToNext[last]
+      if (pathToNext.length > 0) {
+        const chainHead = chain[0].getHead();
+        const pathEnd = pathToNext[pathToNext.length - 1].getHead();
+        const dist = Math.abs(chainHead.x - pathEnd.x) + Math.abs(chainHead.y - pathEnd.y);
+        if (dist !== 1) {
+          console.error(`Connection error: chain[0] at (${chainHead.x},${chainHead.y}) vs pathToNext[last] at (${pathEnd.x},${pathEnd.y}), dist=${dist}`);
+        }
+      }
+
+      // Mark consumed cells as empty BEFORE adding to chain (matches SNK order)
       for (const snakeState of pathToNext) {
         const head = snakeState.getHead();
         this.setEmptySafe(head.x, head.y);
+      }
+
+      chain.unshift(...pathToNext);
+
+      // Check if this iteration created a discontinuity
+      for (let i = 0; i < pathToNext.length; i++) {
+        const idx = i; // position in final chain after unshift
+        if (idx + 1 < chain.length) {
+          const curr = chain[idx].getHead();
+          const next = chain[idx + 1].getHead();
+          const dist = Math.abs(curr.x - next.x) + Math.abs(curr.y - next.y);
+          if (dist !== 1) {
+            console.error(`Iteration ${iterationCount} created discontinuity at chain[${idx}]: (${curr.x},${curr.y}) -> (${next.x},${next.y}), dist=${dist}`);
+            console.error(`  pathToNext.length=${pathToNext.length}, chainLengthBefore=${chainLengthBefore}, chainLengthAfter=${chain.length}`);
+          }
+        }
       }
     }
 
@@ -361,8 +433,16 @@ export class SnakeSolver {
       if (!newTunnel || newTunnel.isEmpty()) {
         tunnelablePoints.splice(i, 1);
       } else {
-        point.tunnel = newTunnel;
-        point.priority = newTunnel.getPriority(this.grid, targetColor);
+        // Validate that tunnel still starts at the original cell
+        // After trimming, the tunnel might start at a different cell if the original was consumed
+        const tunnelStart = newTunnel.toArray()[0];
+        if (tunnelStart.x !== point.x || tunnelStart.y !== point.y) {
+          // Tunnel no longer starts at the target cell - remove it
+          tunnelablePoints.splice(i, 1);
+        } else {
+          point.tunnel = newTunnel;
+          point.priority = newTunnel.getPriority(this.grid, targetColor);
+        }
       }
     }
   }

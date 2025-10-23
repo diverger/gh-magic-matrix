@@ -86,7 +86,11 @@ export class OutsideGrid {
    * Determines whether a cell is considered "outside"—that is, reachable from the grid's boundary according to the outside grid.
    * Can be called with either coordinates (using the internal outside grid) or with an explicit grid and coordinates.
    *
-   * Note: A cell is considered outside if it is out of bounds or marked empty in the grid, even if it's an isolated empty region not connected to the boundary.
+   * Note: A cell is considered outside if:
+   * 1. It is out of bounds (beyond the grid dimensions), OR
+   * 2. It is marked empty in the outside grid (connected to boundary via fillOutside)
+   *
+   * Important: Isolated empty regions NOT connected to the boundary are NOT considered outside.
    *
    * @param x - The x-coordinate of the cell (when using the internal outside grid).
    * @param y - The y-coordinate of the cell (when using the internal outside grid).
@@ -97,11 +101,14 @@ export class OutsideGrid {
   isOutside(grid: Grid, x: number, y: number): boolean;
   isOutside(gridOrX: Grid | number, xOrY?: number, y?: number): boolean {
     if (typeof gridOrX === "number") {
-      // Single grid version
-      return this.isOutside(this.grid, gridOrX, xOrY!);
+      // Single parameter version - check against our outside grid
+      const x = gridOrX;
+      const y = xOrY!;
+      // SNK's pattern: check if not in grid OR if empty in the outside grid
+      return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
     } else {
-      // Explicit grid version
-      const grid = gridOrX;
+      // Three parameter version - check against the provided grid (used in fillOutside)
+      const grid = gridOrX as Grid;
       const x = xOrY!;
       const _y = y!;
       return !grid.isInside(x, _y) || grid.isEmptyCell(grid.getColor(x, _y));

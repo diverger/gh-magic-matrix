@@ -97,9 +97,7 @@ const createReturnPath = (endSnake: Snake, startSnake: Snake, grid: any): Snake[
 export interface GenerationOptions {
   /** GitHub API token for fetching contribution data */
   githubToken: string;
-  /** Starting position for the snake (defaults to top-left) */
-  startPosition?: Point;
-  /** Custom snake length (defaults to 4) */
+  /** Custom snake length (defaults to 4, matching SNK's snake4) */
   snakeLength?: number;
 }
 
@@ -140,7 +138,7 @@ export const generateContributionSnake = async (
   outputs: (OutputConfig | null)[],
   options: GenerationOptions,
 ): Promise<(string | null)[]> => {
-  const { githubToken, startPosition, snakeLength = 4 } = options;
+  const { githubToken, snakeLength = 4 } = options;
 
   if (!userName) {
     throw new Error("Username is required for contribution snake generation");
@@ -162,11 +160,10 @@ export const generateContributionSnake = async (
   console.log("🗺️ Converting contributions to pathfinding grid...");
   const grid = userContributionToGrid(contributionData);
 
-  // Step 3: Initialize snake at starting position
-  const defaultStartPosition = startPosition || new Point(0, 0);
-  const initialSnake = Snake.fromSinglePoint(defaultStartPosition, snakeLength);
+  // Step 3: Initialize snake outside the grid (like SNK's snake4)
+  const initialSnake = Snake.createHorizontal(snakeLength);
 
-  console.log(`🐍 Snake initialized at (${defaultStartPosition.x}, ${defaultStartPosition.y}) with length ${snakeLength}`);
+  console.log(`🐍 Snake initialized at (0, -1) with length ${snakeLength}`);
 
   // Step 4: Compute optimal route using pathfinding algorithms
   console.log("📡 Computing optimal snake route...");

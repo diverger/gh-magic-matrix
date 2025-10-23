@@ -161,9 +161,8 @@ export class SnakeAction {
   private generateSnakePath(): Snake[] {
     console.log("🧠 Generating optimal snake path");
 
-    // Create initial snake at top-left corner
-    const startPoint = new Point(0, 0);
-    const initialSnake = Snake.fromSinglePoint(startPoint, this.inputs.snake_length);
+    // Create initial snake outside the grid (like SNK's snake4)
+    const initialSnake = Snake.createHorizontal(this.inputs.snake_length);
 
     // Solve the grid
     const solver = new SnakeSolver(this.grid);

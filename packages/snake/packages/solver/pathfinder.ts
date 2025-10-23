@@ -20,11 +20,12 @@ export class PathNode {
 
 export class Pathfinder {
   private grid: Grid;
+  private currentMaxColor: Color | typeof EMPTY = EMPTY;
 
   /**
    * Constructs a new Pathfinder instance for the given grid.
    *
-   * @param grid - The grid to use for pathfinding operations.
+   * @param grid - The grid to use for pathfinding operations
    */
   constructor(grid: Grid) {
     this.grid = grid;
@@ -39,14 +40,23 @@ export class Pathfinder {
    * The path is reconstructed from the goal node back to the start. Returns null if no path is found.
    * Used for tunnel entry navigation and general movement planning.
    *
-   * Note: The returned array is ordered from oldest to newest (chronological order).
+   * Implementation enhancement over SNK's getPathTo:
+   * - Added `maxColor` parameter to support traversing colored cells during residual clearing phase
+   * - When maxColor > EMPTY (0), the pathfinder can traverse cells with color ≤ maxColor
+   * - SNK's original getPathTo only allows traversing empty cells (equivalent to maxColor = EMPTY)
+   * - This enhancement enables residual phase to navigate through previous color remnants
    *
-   * @param snake - The starting Snake instance (position and body).
-   * @param targetX - The x-coordinate of the target cell.
-   * @param targetY - The y-coordinate of the target cell.
-   * @returns Array of Snake states representing the path, or null if unreachable.
+   * **Path Ordering**: Returns array ordered newest→oldest [goal, ..., start], INCLUDING start state.
+   * Consumers must call `pop()` to remove start before `unshift()` to prepend to existing paths.
+   *
+   * @param snake - The starting Snake instance (position and body)
+   * @param targetX - The x-coordinate of the target cell
+   * @param targetY - The y-coordinate of the target cell
+   * @param maxColor - Maximum color value to traverse (cells with color ≤ maxColor are valid). Defaults to EMPTY (0)
+   * @returns Array of Snake states representing the path, or null if unreachable
    */
-  findPath(snake: Snake, targetX: number, targetY: number): Snake[] | null {
+  findPath(snake: Snake, targetX: number, targetY: number, maxColor: Color | typeof EMPTY = EMPTY): Snake[] | null {
+    this.currentMaxColor = maxColor;
     const openList: PathNode[] = [new PathNode(snake)];
     const closedList: Snake[] = [];
 
@@ -57,7 +67,19 @@ export class Pathfinder {
 
       // Check if we reached the target
       if (currentHead.x === targetX && currentHead.y === targetY) {
-        return this.reconstructPath(current);
+        const path = this.reconstructPath(current);
+
+        // Debug: check path continuity
+        for (let i = 0; i < path.length - 1; i++) {
+          const curr = path[i].getHead();
+          const next = path[i + 1].getHead();
+          const dist = Math.abs(curr.x - next.x) + Math.abs(curr.y - next.y);
+          if (dist !== 1) {
+            console.error(`pathfinder.findPath returned discontinuous path at ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), dist=${dist}`);
+          }
+        }
+
+        return path;
       }
 
       // Try all four directions
@@ -100,12 +122,12 @@ export class Pathfinder {
    * to match the targetSnake pose. Uses a bounding box for search optimization and avoids forbidden cells
    * (target snake's body segments). Returns null if no path is found. Used for advanced movement planning and pose matching.
    *
-   * Note: The returned array is ordered from oldest to newest (chronological order).
+   * **Path Ordering**: Returns array ordered oldest→newest (chronological order).
    *
-   * @param snake - The starting Snake instance (position and body).
-   * @param targetSnake - The target Snake pose to match.
-   * @param grid - Optional grid for additional movement validation.
-   * @returns Array of Snake states representing the path to the target pose, or null if unreachable.
+   * @param snake - The starting Snake instance (position and body)
+   * @param targetSnake - The target Snake pose to match
+   * @param grid - Optional grid for additional movement validation
+   * @returns Array of Snake states representing the path to the target pose, or null if unreachable
    */
   findPathToPose(snake: Snake, targetSnake: Snake, grid?: Grid): Snake[] | null {
     if (snake.equals(targetSnake)) {
@@ -183,11 +205,14 @@ export class Pathfinder {
 
   /**
    * Generates the tunnel path to match the full target pose (head and body).
+   *
+   * @remarks
    * Based on the original implementation from snk/packages/solver/tunnel.ts
    *
-   * @param snake - The current Snake state at the target head position.
-   * @param targetCells - The full target pose as an array of Points (head first).
-   * @returns Array of Snake states representing the tunnel path to match the full pose.
+   * @param snake - The current Snake state at the target head position
+   * @param targetCells - The full target pose as an array of Points (head first)
+   * @returns Array of Snake states representing the tunnel path to match the full pose
+   * @internal
    */
   private getTunnelPath(snake: Snake, targetCells: Point[]): Snake[] {
     const chain: Snake[] = [];
@@ -204,23 +229,27 @@ export class Pathfinder {
   }
 
   /**
-   * Checks if a move is valid (empty cell or out of bounds).
+   * Checks if a move is valid (cell color ≤ maxColor threshold or out of bounds).
    *
-   * @param x - The x-coordinate to check.
-   * @param y - The y-coordinate to check.
-   * @returns True if the cell is empty or out of bounds, false otherwise.
+   * @param x - The x-coordinate to check
+   * @param y - The y-coordinate to check
+   * @returns True if the cell color is ≤ currentMaxColor or out of bounds, false otherwise
+   * @internal
    */
   private isValidMove(x: number, y: number): boolean {
-    return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
+    if (!this.grid.isInside(x, y)) return true;
+    const color = this.grid.getColor(x, y);
+    return (color as number) <= (this.currentMaxColor as number);
   }
 
   /**
    * Checks if a cell is empty or out of bounds in the given grid.
    *
-   * @param grid - The grid to check.
-   * @param x - The x-coordinate to check.
-   * @param y - The y-coordinate to check.
-   * @returns True if the cell is empty or out of bounds, false otherwise.
+   * @param grid - The grid to check
+   * @param x - The x-coordinate to check
+   * @param y - The y-coordinate to check
+   * @returns True if the cell is empty or out of bounds, false otherwise
+   * @internal
    */
   private isEmptySafe(grid: Grid, x: number, y: number): boolean {
     return !grid.isInside(x, y) || grid.isEmptyCell(grid.getColor(x, y));
@@ -229,10 +258,11 @@ export class Pathfinder {
   /**
    * Checks if a move is valid within the bounding box (for pose pathfinding).
    *
-   * @param x - The x-coordinate to check.
-   * @param y - The y-coordinate to check.
-   * @param box - The bounding box for valid movement.
-   * @returns True if the cell is within the bounding box, false otherwise.
+   * @param x - The x-coordinate to check
+   * @param y - The y-coordinate to check
+   * @param box - The bounding box for valid movement
+   * @returns True if the cell is within the bounding box, false otherwise
+   * @internal
    */
   private isValidMoveForPose(x: number, y: number, box: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
     return (
@@ -246,28 +276,38 @@ export class Pathfinder {
   /**
    * Reconstructs the path from the goal node back to the start node.
    *
-   * @param goalNode - The final PathNode in the search.
-   * @returns Array of Snake states from start to goal (chronological order).
+   * @remarks
+   * **Path Ordering**: Returns array ordered newest→oldest [goal, parent, ..., start], INCLUDING start state.
+   * Consumers should call `pop()` to remove the start state before using `unshift()` to prepend to existing paths.
+   *
+   * @param goalNode - The final PathNode in the search
+   * @returns Array of Snake states ordered newest→oldest [goal, parent, ..., start], including the start state
+   * @internal
    */
   private reconstructPath(goalNode: PathNode): Snake[] {
     const path: Snake[] = [];
     let current: PathNode | null = goalNode;
 
+    // Walk from goal back to start, pushing each state
+    // This produces [goal, parent, ..., start] order (newest→oldest)
+    // Note: We include ALL nodes including start (matching SNK's unwrap behavior)
     while (current) {
       path.push(current.snake);
       current = current.parent;
     }
 
-    path.pop(); // Remove start position
-    path.reverse();
     return path;
   }
 
   /**
    * Inserts a PathNode into the list maintaining sorted order by total cost.
    *
-   * @param list - The list of PathNodes to insert into.
-   * @param node - The PathNode to insert.
+   * @remarks
+   * Uses binary search for efficient insertion into sorted list.
+   *
+   * @param list - The list of PathNodes to insert into
+   * @param node - The PathNode to insert
+   * @internal
    */
   private sortedInsert(list: PathNode[], node: PathNode): void {
     let left = 0;

@@ -255,3 +255,157 @@ export const createStacksFromGrid = (
 
   return stacks;
 };
+
+/**
+ * Cell data with animation timing information.
+ */
+export interface AnimatedCellData {
+  /** Animation timing (0-1, null if not animated) */
+  t: number | null;
+  /** Cell color */
+  color: Color | Empty;
+}
+
+/**
+ * Result of progress stack rendering.
+ */
+export interface ProgressStackResult {
+  /** SVG elements for the progress bar */
+  svgElements: string[];
+  /** CSS styles for animations */
+  styles: string[];
+}
+
+/**
+ * Creates a horizontal progress bar showing cell consumption over time.
+ * This matches SNK's createStack functionality - a timeline showing when cells are eaten.
+ *
+ * The progress bar is divided into colored blocks, where each block represents cells
+ * of the same color consumed sequentially. The blocks grow horizontally as the animation
+ * progresses, providing a visual timeline of the snake's path.
+ *
+ * @param cells - Array of cells with their animation timing and colors.
+ * @param dotSize - Size of the progress bar height.
+ * @param width - Total width of the progress bar.
+ * @param y - Y position of the progress bar.
+ * @param duration - Animation duration in milliseconds.
+ * @returns SVG elements and styles for the animated progress bar.
+ *
+ * @example
+ * ```typescript
+ * const progressBar = createProgressStack(
+ *   animatedCells,
+ *   12,
+ *   gridWidth * cellSize,
+ *   (gridHeight + 2) * cellSize,
+ *   duration
+ * );
+ * ```
+ */
+export const createProgressStack = (
+  cells: AnimatedCellData[],
+  dotSize: number,
+  width: number,
+  y: number,
+  duration: number,
+): ProgressStackResult => {
+  const svgElements: string[] = [];
+  const styles: string[] = [
+    `.u{
+      transform-origin: 0 0;
+      transform: scale(0,1);
+      animation: none linear ${duration}ms infinite;
+    }`,
+  ];
+
+  // Filter and sort cells by animation time
+  const sortedCells = cells
+    .filter((cell) => cell.t !== null)
+    .sort((a, b) => a.t! - b.t!);
+
+  if (sortedCells.length === 0) {
+    return { svgElements, styles };
+  }
+
+  // Group consecutive cells of the same color into blocks
+  interface ColorBlock {
+    color: Color;
+    times: number[];
+  }
+
+  const blocks: ColorBlock[] = [];
+
+  for (const cell of sortedCells) {
+    const latestBlock = blocks[blocks.length - 1];
+
+    if (latestBlock && latestBlock.color === cell.color) {
+      // Same color as previous block - add to existing block
+      latestBlock.times.push(cell.t!);
+    } else {
+      // Different color - create new block
+      blocks.push({
+        color: cell.color as Color,
+        times: [cell.t!],
+      });
+    }
+  }
+
+  // Calculate width per cell
+  const cellWidth = width / sortedCells.length;
+
+  let blockIndex = 0;
+  let currentX = 0;
+
+  for (const block of blocks) {
+    // Generate unique ID for this block
+    const blockId = "u" + blockIndex.toString(36);
+    const animationName = blockId;
+    const x = currentX.toFixed(1);
+    const blockWidth = (block.times.length * cellWidth + 0.6).toFixed(1);
+
+    // Create SVG rect element for this block
+    svgElements.push(
+      createElement("rect", {
+        class: `u ${blockId}`,
+        height: dotSize.toString(),
+        width: blockWidth,
+        x,
+        y: y.toString(),
+      }),
+    );
+
+    // Create scale animation keyframes
+    const keyframes: AnimationKeyframe[] = block.times
+      .flatMap((t, i, arr) => [
+        {
+          t: t - 0.0001,
+          style: `transform:scale(${(i / arr.length).toFixed(3)},1)`,
+        },
+        {
+          t: t + 0.0001,
+          style: `transform:scale(${((i + 1) / arr.length).toFixed(3)},1)`,
+        },
+      ]);
+
+    // Add final keyframe
+    keyframes.push({
+      t: 1,
+      style: `transform:scale(1.000,1)`,
+    });
+
+    // Generate CSS animation and styles
+    styles.push(
+      createKeyframeAnimation(animationName, keyframes),
+      `.u.${blockId} {
+        fill: var(--c${block.color});
+        animation-name: ${animationName};
+        transform-origin: ${x}px 0;
+      }`,
+    );
+
+    currentX += block.times.length * cellWidth;
+    blockIndex++;
+  }
+
+  return { svgElements, styles };
+};

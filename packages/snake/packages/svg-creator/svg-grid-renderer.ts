@@ -92,15 +92,17 @@ export const renderAnimatedSvgGrid = (
     // Calculate position within cell
     const margin = (options.cellSize - options.dotSize) / 2;
 
-    // Handle animated cells
-    if (animationTime !== null && !Grid.prototype.isEmptyCell(color)) {
+    // Handle animated cells - only animate non-empty cells
+    if (animationTime !== null && color > 0) {
       const animationId = `cell-${(animationIndex++).toString(36)}`;
       classes.push(animationId);
 
-      // Create animation keyframes for color transition
+      // Match SNK's behavior: cell disappears when snake eats it and stays gone
+      // Use 0.0001 offset for near-instant fade, preventing "sucking" effect
+      const fadeOffset = 0.0001;
       const keyframes: AnimationKeyframe[] = [
-        { t: animationTime - 0.0001, style: `fill:var(--c${color})` },
-        { t: animationTime + 0.0001, style: `fill:var(--ce)` },
+        { t: animationTime - fadeOffset, style: `fill:var(--c${color})` },
+        { t: animationTime + fadeOffset, style: `fill:var(--ce)` },
         { t: 1, style: `fill:var(--ce)` },
       ];
 
@@ -167,11 +169,13 @@ export const createAnimatedGridCells = (
     if (workingGrid.isInside(head.x, head.y) &&
         !workingGrid.isEmptyCell(workingGrid.getColor(head.x, head.y))) {
 
-      // Mark this cell as consumed at this time
+      // Mark this cell as consumed at this time (matching SNK)
       workingGrid.setColorEmpty(head.x, head.y);
 
       const cell = animatedCells.find(c => c.x === head.x && c.y === head.y);
-      if (cell) {
+      if (cell && cell.animationTime === null) {
+        // SNK uses i / snakeChain.length - cell disappears when snake head touches it
+        // Only set animationTime on first visit (for return path, don't re-trigger animation)
         cell.animationTime = i / snakeChain.length;
       }
     }

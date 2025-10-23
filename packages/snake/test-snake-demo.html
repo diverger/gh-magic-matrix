@@ -33,7 +33,7 @@
         <div class="info">
             <h1>🐍 Snake Animation Test</h1>
             <h2>Implementation Status:</h2>
-            
+
             <div class="feature">
                 <span class="success">✅</span> Snake rectangles (not paths)
             </div>
@@ -49,15 +49,15 @@
             <div class="feature">
                 <span class="success">✅</span> Smooth keyframe transitions
             </div>
-            
+
             <h2>Snake Behavior:</h2>
             <p>The snake moves through the grid with proper body following, similar to SNK's implementation. Each segment follows the path of the segment in front of it.</p>
-            
+
             <p><strong>Animation Duration:</strong> 4.2 seconds</p>
             <p><strong>Segments:</strong> 4 (head + 3 body segments)</p>
             <p><strong>Colors:</strong> Purple snake on dark grid</p>
         </div>
-        
+
         <div>
             <!-- SVG will be embedded here -->
             <script>
@@ -68,7 +68,7 @@
                         document.querySelector('.container').insertAdjacentHTML('beforeend', '<div>' + svgText + '</div>');
                     })
                     .catch(error => {
-                        document.querySelector('.container').insertAdjacentHTML('beforeend', 
+                        document.querySelector('.container').insertAdjacentHTML('beforeend',
                             '<div>❌ Could not load SVG. Make sure the test was run first.</div>');
                     });
             </script>

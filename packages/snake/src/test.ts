@@ -4,7 +4,7 @@ import { Snake } from "../packages/types/snake";
 import { SnakeSolver } from "../packages/solver/snake-solver";
 
 // Simple test to validate the snake solver implementation
-function testSnakeSolver(): void {
+async function testSnakeSolver(): Promise<void> {
   console.log("🧪 Testing Snake Solver Implementation");
 
   // Create a small test grid
@@ -18,11 +18,10 @@ function testSnakeSolver(): void {
 
   console.log("📊 Test grid created with sample colors");
 
-  // Create initial snake
-  const startPoint = new Point(0, 0);
-  const initialSnake = Snake.fromSinglePoint(startPoint, 3);
+  // Create initial snake (horizontal snake outside grid, like SNK)
+  const initialSnake = Snake.createHorizontal(4);
 
-  console.log(`🐍 Initial snake created at (${startPoint.x}, ${startPoint.y}) with length ${initialSnake.getLength()}`);
+  console.log(`🐍 Initial snake created with length ${initialSnake.getLength()}`);
 
   // Test basic snake operations
   console.log("Testing snake operations:");
@@ -48,6 +47,38 @@ function testSnakeSolver(): void {
     if (solution.length > 0) {
       const finalSnake = solution[solution.length - 1];
       console.log(`📍 Final position: (${finalSnake.getHeadX()}, ${finalSnake.getHeadY()})`);
+
+      // Generate SVG to verify return animation
+      console.log("\n🎨 Generating SVG with return animation...");
+      const { createSvg } = await import("../packages/svg-creator/index");
+
+      const svg = await createSvg(
+        grid,
+        null,
+        solution,
+        {
+          colorDots: {
+            1: "#01311f",
+            2: "#034525",
+            3: "#0f6d31",
+            4: "#00c647"
+          },
+          colorEmpty: "#161b22",
+          colorDotBorder: "#1b1f230a",
+          colorSnake: "purple",
+          sizeCell: 16,
+          sizeDot: 12,
+          sizeDotBorderRadius: 2
+        },
+        { frameDuration: 100, step: 1 }
+      );
+
+      // Save SVG
+      const fs = await import("fs");
+      const outputPath = "./test-outputs/test-solver-return.svg";
+      await Bun.write(outputPath, svg);
+      console.log(`✅ SVG saved to ${outputPath}`);
+      console.log(`📏 Animation has ${solution.length} frames`);
     }
 
   } catch (error) {
@@ -59,5 +90,5 @@ function testSnakeSolver(): void {
 
 // Run tests if this is the main module
 if (import.meta.main) {
-  testSnakeSolver();
+  await testSnakeSolver();
 }
