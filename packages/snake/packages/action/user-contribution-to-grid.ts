@@ -32,19 +32,13 @@ import type { Color } from "../types/grid";
  * ```
  */
 export const userContributionToGrid = (cells: ContributionCell[]) => {
-  if (cells.length === 0) {
-    throw new Error("Cannot create grid from empty contribution data");
+  if (!validateContributionData(cells)) {
+    throw new Error("Invalid or empty contribution data");
   }
 
   // Calculate grid dimensions from contribution data
   const width = Math.max(0, ...cells.map((cell) => cell.x)) + 1;
   const height = Math.max(0, ...cells.map((cell) => cell.y)) + 1;
-
-  if (width === 0 || height === 0) {
-    throw new Error("Invalid grid dimensions calculated from contribution data");
-  }
-
-  console.log(`📐 Creating grid: ${width}x${height} (${cells.length} cells)`);
 
   // Create empty grid and populate with contribution data
   const grid = new Grid(width, height);
@@ -74,13 +68,15 @@ export const validateContributionData = (cells: ContributionCell[]): boolean => 
   }
 
   return cells.every(cell =>
-    typeof cell.x === 'number' &&
-    typeof cell.y === 'number' &&
+    Number.isFinite(cell.x) &&
+    Number.isFinite(cell.y) &&
     cell.x >= 0 &&
     cell.y >= 0 &&
-    typeof cell.level === 'number' &&
+    Number.isInteger(cell.level) &&
     cell.level >= 0 &&
-    cell.level <= 4
+    cell.level <= 4 &&
+    Number.isFinite(cell.count) &&
+    cell.count >= 0
   );
 };
 
@@ -101,7 +97,7 @@ export const getGridStatistics = (cells: ContributionCell[]) => {
     totalCells: cells.length,
     totalContributions,
     contributionLevels,
-    maxLevel: Math.max(...cells.map(cell => cell.level)),
+    maxLevel: cells.length ? Math.max(...cells.map(cell => cell.level)) : 0,
     activeContributionCells: cells.filter(cell => cell.level > 0).length,
   };
 };
