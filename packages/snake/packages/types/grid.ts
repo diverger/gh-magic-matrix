@@ -2,6 +2,19 @@ export type Color = (1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) & { _tag: "__Color__" };
 export type Empty = 0 & { _tag: "__Empty__" };
 export const EMPTY: Empty = 0 as Empty;
 
+/**
+ * Grid class representing a 2D game board.
+ *
+ * **IMPORTANT: Storage Order**
+ * This grid uses **column-major ordering** (x * height + y).
+ * Data is stored as: [col0_row0, col0_row1, ..., col1_row0, col1_row1, ...]
+ * This differs from typical row-major ordering (y * width + x).
+ *
+ * Example for 3x2 grid:
+ * - Visual layout: (0,0) (1,0) (2,0)
+ *                  (0,1) (1,1) (2,1)
+ * - Storage order: [data[0,0], data[0,1], data[1,0], data[1,1], data[2,0], data[2,1]]
+ */
 export class Grid {
 
   width: number;
@@ -9,28 +22,27 @@ export class Grid {
   data: Uint8Array;
 
   /**
-   * Default random function for randomlyFill
-   */
-  static defaultRand(a: number, b: number): number {
-    if (b < a) {
-      throw new RangeError(`Invalid range: b (${b}) < a (${a}) in Grid.defaultRand.`);
-    }
-    return Math.floor(Math.random() * (b - a + 1)) + a;
-  }
-
-  /**
    * Fills the grid with random colors and empty cells.
-   * @param options - { colors?: Color[]; emptyP?: number }
-   * @param rand - Optional random function
+   * @param options - { colors?: Color[]; emptyP?: number } where emptyP is the probability (0..1) of a cell being empty
+   * @param rand - Optional random function that returns values in [0, 1)
    */
-  randomlyFill(options?: { colors?: Color[]; emptyP?: number }, rand?: (a: number, b: number) => number) {
-    const { colors = [1, 2, 3] as Color[], emptyP = 2 } = options || {};
-    const randomFn = rand || Grid.defaultRand;
+  randomlyFill(options?: { colors?: Color[]; emptyP?: number }, rand?: () => number) {
+    const { colors = [1, 2, 3] as Color[], emptyP = 0.2 } = options || {};
+    const randomFn = rand || Math.random;
+
+    // Validate emptyP is a valid probability
+    if (emptyP < 0 || emptyP > 1) {
+      throw new RangeError(`emptyP must be in range [0, 1], got ${emptyP}`);
+    }
+
     for (let x = this.width; x--; )
       for (let y = this.height; y--; ) {
-        const k = randomFn(-emptyP, colors.length - 1);
-        if (k >= 0) this.setColor(x, y, colors[k]);
-        else this.setColorEmpty(x, y);
+        if (randomFn() < emptyP) {
+          this.setColorEmpty(x, y);
+        } else {
+          const colorIndex = Math.floor(randomFn() * colors.length);
+          this.setColor(x, y, colors[colorIndex]);
+        }
       }
   }
 
@@ -121,11 +133,15 @@ export class Grid {
   }
 
   equals(other: Grid): boolean {
+    // Fast path: check dimensions first
     if (this.width !== other.width || this.height !== other.height) return false;
+    // Fast path: check data length mismatch
+    if (this.data.length !== other.data.length) return false;
     return this.data.every((val, i) => val === other.data[i]);
   }
 
   clone(): Grid {
-    return new Grid(this.width, this.height, this.data);
+    // Use direct buffer copy to avoid double validation
+    return new Grid(this.width, this.height, new Uint8Array(this.data));
   }
 }
