@@ -407,16 +407,36 @@ export class Tunnel {
   }
 
   /**
-   * Inserts a node in sorted order by cost into the provided list.
+   * Inserts a node in sorted order by cost into the provided list using binary search.
+   * Based on SNK's sortPush utility for O(log n) insertion.
    *
    * @param list - The list to insert into.
    * @param node - The node to insert, which must have a cost property.
    */
   private static sortedInsert(list: any[], node: any): void {
-    let insertIndex = 0;
-    while (insertIndex < list.length && node.cost >= list[insertIndex].cost) {
-      insertIndex++;
+    let left = 0;
+    let right = list.length;
+
+    // Handle empty list or insert at beginning
+    if (list.length === 0 || node.cost <= list[left].cost) {
+      list.unshift(node);
+      return;
     }
+
+    // Binary search for insertion point
+    while (right - left > 1) {
+      const mid = Math.ceil((left + right) / 2);
+
+      if (node.cost === list[mid].cost) {
+        left = right = mid;
+      } else if (node.cost > list[mid].cost) {
+        left = mid;
+      } else {
+        right = mid;
+      }
+    }
+
+    const insertIndex = Math.ceil((left + right) / 2);
     list.splice(insertIndex, 0, node);
   }
 
