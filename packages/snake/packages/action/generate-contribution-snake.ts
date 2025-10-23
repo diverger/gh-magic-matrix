@@ -10,86 +10,9 @@
 import { fetchUserContributions } from "../user-contribution-fetcher";
 import { userContributionToGrid } from "./user-contribution-to-grid";
 import { SnakeSolver } from "../solver/snake-solver";
-import { Pathfinder } from "../solver/pathfinder";
 import { Snake } from "../types/snake";
-import { Point } from "../types/point";
 import type { OutputConfig } from "./outputs-options";
 import { createSvg } from "../svg-creator";
-
-/**
- * Creates a smooth animation chain with step-by-step movement.
- * Ensures each frame differs by only one cell movement from the previous frame.
- */
-const createSmoothAnimationChain = (keyFrames: Snake[]): Snake[] => {
-  if (keyFrames.length <= 1) return keyFrames;
-
-  const smoothChain: Snake[] = [keyFrames[0]];
-
-  for (let i = 1; i < keyFrames.length; i++) {
-    const currentSnake = smoothChain[smoothChain.length - 1];
-    const targetSnake = keyFrames[i];
-
-    // Generate step-by-step movement from current to target
-    const intermediateSteps = generateStepByStepMovement(currentSnake, targetSnake);
-    smoothChain.push(...intermediateSteps);
-  }
-
-  return smoothChain;
-};
-
-/**
- * Generates step-by-step movement between two snake states.
- */
-const generateStepByStepMovement = (fromSnake: Snake, toSnake: Snake): Snake[] => {
-  const steps: Snake[] = [];
-  const fromHead = fromSnake.getHead();
-  const toHead = toSnake.getHead();
-
-  // Calculate the path from current position to target position
-  const dx = toHead.x - fromHead.x;
-  const dy = toHead.y - fromHead.y;
-
-  // Move step by step (one cell at a time)
-  let currentSnake = fromSnake;
-
-  // First move horizontally
-  for (let x = 0; x < Math.abs(dx); x++) {
-    const direction = dx > 0 ? 1 : -1;
-    currentSnake = currentSnake.nextSnake(direction, 0);
-    steps.push(currentSnake);
-  }
-
-  // Then move vertically
-  for (let y = 0; y < Math.abs(dy); y++) {
-    const direction = dy > 0 ? 1 : -1;
-    currentSnake = currentSnake.nextSnake(0, direction);
-    steps.push(currentSnake);
-  }
-
-  return steps;
-};
-
-/**
- * Creates a return path for the snake to create a continuous loop.
- * This uses the existing Pathfinder.findPathToPose method to move from the end position back to the start.
- *
- * @param endSnake - The snake at the end of the main route
- * @param startSnake - The initial snake position to return to
- * @param grid - The game grid to use for pathfinding
- * @returns Array of Snake states representing the return path
- */
-const createReturnPath = (endSnake: Snake, startSnake: Snake, grid: any): Snake[] => {
-  const pathfinder = new Pathfinder(grid);
-  const returnPath = pathfinder.findPathToPose(endSnake, startSnake);
-
-  if (!returnPath) {
-    console.warn("🚨 Could not find return path, using empty return path");
-    return [];
-  }
-
-  console.log(`🔄 Return path found with ${returnPath.length} steps`);
-  return returnPath;
-};
 
 /**
  * Options for snake generation process.
@@ -174,16 +97,9 @@ export const generateContributionSnake = async (
     throw new Error("Failed to compute valid snake route - no path found");
   }
 
-  console.log(`🎯 Route computed: ${route.length} steps`);
+  console.log(`🎯 Route computed: ${route.length} steps (including return path)`);
 
-  // Step 5: Add return path to create a continuous loop (like SNK does)
-  console.log("🔄 Adding return path to create loop...");
-  const returnPath = createReturnPath(route[route.length - 1], initialSnake, grid);
-  const completeRoute = [...route, ...returnPath];
-
-  console.log(`🔄 Complete route: ${completeRoute.length} steps (including return)`);
-
-  // Step 6: Generate outputs in requested formats
+  // Step 5: Generate outputs in requested formats
   console.log(`🎨 Generating ${outputs.length} output(s)...`);
 
   const results = await Promise.all(
