@@ -1,4 +1,6 @@
 import type { Snake } from "../types/snake";
+import { createKeyframeAnimation, type AnimationKeyframe } from "./css-utils";
+import { createElement } from "./svg-utils";
 
 export interface SvgSnakeConfig {
   /** Size of each grid cell in pixels */
@@ -24,32 +26,6 @@ export interface SvgSnakeResult {
   /** Total animation duration in milliseconds */
   duration: number;
 }
-
-interface AnimationKeyframe {
-  t: number; // Time from 0 to 1
-  style: string;
-}
-
-/**
- * Creates a CSS keyframe animation from an array of keyframes
- */
-const createKeyframeAnimation = (name: string, keyframes: AnimationKeyframe[]): string => {
-  const keyframeRules = keyframes
-    .map(({ t, style }) => `${(t * 100).toFixed(2)}% { ${style} }`)
-    .join('\n    ');
-
-  return `@keyframes ${name} {\n    ${keyframeRules}\n  }`;
-};
-
-/**
- * Creates an SVG element with attributes
- */
-const createElement = (tag: string, attributes: Record<string, string>): string => {
-  const attrs = Object.entries(attributes)
-    .map(([key, value]) => `${key}="${value}"`)
-    .join(' ');
-  return `<${tag} ${attrs}/>`;
-};
 
 /**
  * Renders an animated SVG snake that follows a path through the grid.
@@ -127,6 +103,8 @@ export const renderAnimatedSvgSnake = (
       rx: radius.toFixed(1),
       ry: radius.toFixed(1),
       fill: i === 0 ? config.styling.head : config.styling.body,
+      stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
+      "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
     });
 
     elements.push(rectElement);
@@ -165,6 +143,7 @@ export const renderAnimatedSvgSnake = (
   animationStyles.unshift(`
     .snake-segment {
       shape-rendering: geometricPrecision;
+      transform-box: fill-box;
     }
   `);
 

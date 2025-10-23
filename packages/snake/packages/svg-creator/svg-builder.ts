@@ -119,7 +119,7 @@ export const createSvg = (
   const style = generateColorVar(drawOptions) +
     gridResult.styles.join("\n") + "\n" +
     snakeResult.styles + "\n" +
-    stackResult.styles.join("\n");
+    stackResult.styles;
 
   // Create complete SVG structure
   const svg = [
