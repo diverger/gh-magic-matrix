@@ -11,6 +11,13 @@ export class Snake {
   private static readonly MIN_COORD = -2;
   private static readonly MAX_COORD = 253;
 
+  // Internal-only constructor
+  private static fromRaw(data: Uint8Array): Snake {
+    const s = Object.create(Snake.prototype) as Snake;
+    s.data = data;
+    return s;
+  }
+
   constructor(points: Point[]) {
     if (points.length === 0) {
       throw new Error("Snake must have at least one segment");
@@ -93,8 +100,7 @@ export class Snake {
    * Create a copy of this snake
    */
   clone(): Snake {
-    const points = this.toCells();
-    return new Snake(points);
+    return Snake.fromRaw(new Uint8Array(this.data));
   }
 
   /**
@@ -131,9 +137,7 @@ export class Snake {
     copy[0] = this.data[0] + dx;
     copy[1] = this.data[1] + dy;
 
-    const snake = Object.create(Snake.prototype);
-    snake.data = copy;
-    return snake;
+    return Snake.fromRaw(copy);
   }
 
   /**
@@ -165,18 +169,33 @@ export class Snake {
   }
 
   /**
-   * Get the raw data array (for performance-critical operations)
+   * Get the raw data array (for internal/performance-critical operations only).
+   *
+   * WARNING: Returns the backing array directly. Mutating this array will break
+   * Snake invariants. Use getRawDataCopy() if you need a safe copy.
+   *
+   * @internal
    */
   getRawData(): Uint8Array {
     return this.data;
   }
 
   /**
+   * Get a copy of the raw data array (safe for external use).
+   *
+   * @returns A new Uint8Array containing a copy of the snake's coordinate data.
+   */
+  getRawDataCopy(): Uint8Array {
+    return new Uint8Array(this.data);
+  }
+
+  /**
    * Get a specific segment of the snake
    */
   getSegment(index: number): Point {
-    if (index < 0 || index >= this.getLength()) {
-      throw new RangeError(`Segment index ${index} out of range [0, ${this.getLength() - 1}]`);
+    const len = Math.floor(this.getLength());
+    if (!Number.isInteger(index) || index < 0 || index >= len) {
+      throw new RangeError(`Segment index ${index} out of range [0, ${len - 1}]`);
     }
     return new Point(this.data[index * 2] - 2, this.data[index * 2 + 1] - 2);
   }

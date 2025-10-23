@@ -237,7 +237,8 @@ export class Tunnel {
   ): Tunnel | null {
     // Following SNK's getBestTunnel pattern exactly
     const startPoint = new Point(startX, startY);
-    const snake = Snake.fromSinglePoint(startPoint, snakeLength);
+    const initial = Array.from({ length: snakeLength }, () => startPoint);
+    const snake = new Snake(initial);
 
     // Phase 1: Find escape path from start position (like SNK's first getSnakeEscapePath call)
     const one = this.findEscapePath(grid, outsideGrid, snake, maxColor);
