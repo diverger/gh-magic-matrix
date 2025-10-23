@@ -68,7 +68,6 @@ export const renderGrid = (
       createRoundedRectPath(ctx, options.dotSize, options.dotSize, options.dotBorderRadius);
       ctx.fill();
       ctx.stroke();
-      ctx.closePath();
 
       ctx.restore();
     }

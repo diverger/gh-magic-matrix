@@ -16,11 +16,13 @@ export const createRoundedRectPath = (
   height: number,
   borderRadius: number
 ): void => {
-  ctx.moveTo(borderRadius, 0);
-  ctx.arcTo(width, 0, width, height, borderRadius);
-  ctx.arcTo(width, height, 0, height, borderRadius);
-  ctx.arcTo(0, height, 0, 0, borderRadius);
-  ctx.arcTo(0, 0, width, 0, borderRadius);
+  const r = Math.max(0, Math.min(borderRadius, Math.min(width, height) / 2));
+  ctx.moveTo(r, 0);
+  ctx.arcTo(width, 0, width, height, r);
+  ctx.arcTo(width, height, 0, height, r);
+  ctx.arcTo(0, height, 0, 0, r);
+  ctx.arcTo(0, 0, width, 0, r);
+  ctx.closePath();
 };
 
 /**
