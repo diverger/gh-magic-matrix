@@ -135,9 +135,10 @@ export const renderAnimatedSvgSnake = (
     if (positions.length > 1) {
       const animationName = `snake-segment-${i}`;
 
-      // Create keyframes for movement
+      // Create keyframes for movement - match SNK's timing exactly
+      // SNK uses i / length (not i / (length - 1)), so keyframes end before 100%
       const keyframes = positions.map((pos, frameIndex) => ({
-        t: frameIndex / (positions.length - 1),
+        t: frameIndex / positions.length,  // Match SNK: last frame at (length-1)/length
         style: transform(pos)
       }));
 
