@@ -320,10 +320,10 @@ export class SnakeSolver {
 
           if (tunnel && !tunnel.isEmpty()) {
             const priority = tunnel.getPriority(this.grid, targetColor);
-            const pt = new Point(x, y);
-            (pt as any).tunnel = tunnel;
-            (pt as any).priority = priority;
-            points.push(pt as unknown as TunnelablePoint);
+            const pt = new Point(x, y) as Point & TunnelablePoint;
+            pt.tunnel = tunnel;
+            pt.priority = priority;
+            points.push(pt);
           }
         }
       }
@@ -347,15 +347,12 @@ export class SnakeSolver {
    */
   private getTunnelablePointsForColor(snakeLength: number, targetColor: Color): Point[] {
     const points: Point[] = [];
+    const seen = new Set<string>();
 
     for (let x = 0; x < this.grid.width; x++) {
       for (let y = 0; y < this.grid.height; y++) {
         const color = this.grid.getColor(x, y);
-        if (
-          !this.grid.isEmptyCell(color) &&
-          (color as number) <= (targetColor as number) &&
-          !points.some((p) => p.x === x && p.y === y)
-        ) {
+        if (!this.grid.isEmptyCell(color) && (color as number) <= (targetColor as number) && !seen.has(`${x},${y}`)) {
           const tunnel = Tunnel.findBestTunnel(
             this.grid,
             this.outside,
@@ -367,7 +364,9 @@ export class SnakeSolver {
 
           if (tunnel) {
             for (const point of tunnel.toArray()) {
-              if (!this.isEmptySafe(point.x, point.y)) {
+              const key = `${point.x},${point.y}`;
+              if (!this.isEmptySafe(point.x, point.y) && !seen.has(key)) {
+                seen.add(key);
                 points.push(point);
               }
             }
@@ -552,7 +551,8 @@ export class SnakeSolver {
   }
 
   private extractColors(): Color[] {
-    const maxColor = Math.max(...Array.from(this.grid.data));
+    const data = Array.from(this.grid.data);
+    const maxColor = data.length ? Math.max(...data) : 0;
     return Array.from({ length: maxColor }, (_, i) => (i + 1) as Color);
   }
 

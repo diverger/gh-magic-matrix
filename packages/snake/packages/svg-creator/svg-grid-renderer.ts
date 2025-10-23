@@ -113,7 +113,7 @@ export const renderAnimatedSvgGrid = (
         createKeyframeAnimation(animationName, keyframes),
         createCssRule(`.grid-cell.${animationId}`, {
           fill: `var(--c${color})`,
-          "animation-name": animationName,
+          animation: `${animationName} ${duration}ms linear infinite`,
         })
       );
     }
