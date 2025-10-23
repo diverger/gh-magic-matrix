@@ -94,7 +94,8 @@ export const parseEntry = (entry: string): OutputConfig | null => {
   if (!trimmedEntry) return null;
 
   // Match filename.svg with optional query params or JSON config
-  const match = trimmedEntry.match(/^(.+\.svg)(\?(.*)|\s*({.*}))?$/);
+  // Use non-greedy match for JSON to avoid consuming embedded braces
+  const match = trimmedEntry.match(/^(.+\.svg)(\?(.*)|\s+({.*?}))?$/);
   if (!match) return null;
 
   const [, filename, , queryString, jsonString] = match;
@@ -106,15 +107,19 @@ export const parseEntry = (entry: string): OutputConfig | null => {
     try {
       const jsonConfig = JSON.parse(jsonString);
 
-      // Convert arrays to comma-separated strings for URLSearchParams compatibility
-      if (Array.isArray(jsonConfig.color_dots)) {
-        jsonConfig.color_dots = jsonConfig.color_dots.join(",");
-      }
-      if (Array.isArray(jsonConfig.dark_color_dots)) {
-        jsonConfig.dark_color_dots = jsonConfig.dark_color_dots.join(",");
-      }
+      // Ensure all values are strings for URLSearchParams
+      // Convert arrays to comma-separated strings
+      // Convert objects and other non-string values to strings
+      const flatConfig = Object.fromEntries(
+        Object.entries(jsonConfig).map(([key, value]) => {
+          if (Array.isArray(value)) {
+            return [key, value.join(",")];
+          }
+          return [key, String(value)];
+        })
+      );
 
-      searchParams = new URLSearchParams(jsonConfig);
+      searchParams = new URLSearchParams(flatConfig as Record<string, string>);
     } catch (error) {
       if (!(error instanceof SyntaxError)) throw error;
       console.warn(`Failed to parse JSON config for ${filename}: ${error.message}`);
