@@ -156,8 +156,9 @@ export class SnakeAction {
     for (let week = 0; week < 52 && dayIndex < this.contributionData.length; week++) {
       for (let day = 0; day < 7 && dayIndex < this.contributionData.length; day++) {
         const contribution = this.contributionData[dayIndex];
-        if (contribution.level > 0) {
-          this.grid.setColor(week, day, contribution.level as Color);
+        const lvl = contribution.level;
+        if (lvl > 0 && lvl <= 9) {
+          this.grid.setColor(week, day, lvl as Color);
         }
         dayIndex++;
       }

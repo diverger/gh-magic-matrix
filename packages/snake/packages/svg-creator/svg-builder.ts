@@ -128,10 +128,11 @@ export const createSvg = (
       width,
       height,
       xmlns: "http://www.w3.org/2000/svg",
+      "xmlns:xlink": "http://www.w3.org/1999/xlink",
     }).replace("/>", ">"),
 
     "<desc>",
-    "Generated with https://github.com/your-org/magic-matrix",
+    "Generated with https://github.com/diverger/gh-magic-matrix",
     "</desc>",
 
     "<style>",
