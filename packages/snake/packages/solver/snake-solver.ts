@@ -347,12 +347,11 @@ export class SnakeSolver {
    */
   private getTunnelablePointsForColor(snakeLength: number, targetColor: Color): Point[] {
     const points: Point[] = [];
-    const seen = new Set<string>();
 
     for (let x = 0; x < this.grid.width; x++) {
       for (let y = 0; y < this.grid.height; y++) {
         const color = this.grid.getColor(x, y);
-        if (!this.grid.isEmptyCell(color) && (color as number) <= (targetColor as number) && !seen.has(`${x},${y}`)) {
+        if (!this.grid.isEmptyCell(color) && (color as number) < (targetColor as number)) {
           const tunnel = Tunnel.findBestTunnel(
             this.grid,
             this.outside,
@@ -363,13 +362,7 @@ export class SnakeSolver {
           );
 
           if (tunnel) {
-            for (const point of tunnel.toArray()) {
-              const key = `${point.x},${point.y}`;
-              if (!this.isEmptySafe(point.x, point.y) && !seen.has(key)) {
-                seen.add(key);
-                points.push(point);
-              }
-            }
+            points.push(new Point(x, y));
           }
         }
       }
