@@ -318,24 +318,12 @@ export class Pathfinder {
    * @internal
    */
   private sortedInsert(list: PathNode[], node: PathNode): void {
-    let left = 0;
-    let right = list.length;
-
-    if (list.length === 0 || node.totalCost <= list[0].totalCost) {
-      list.unshift(node);
-      return;
+    let lo = 0, hi = list.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (list[mid].totalCost <= node.totalCost) lo = mid + 1;
+      else hi = mid;
     }
-
-    while (right - left > 1) {
-      const mid = Math.ceil((left + right) / 2);
-      if (node.totalCost > list[mid].totalCost) {
-        left = mid;
-      } else {
-        right = mid;
-      }
-    }
-
-    const insertIndex = Math.ceil((left + right) / 2);
-    list.splice(insertIndex, 0, node);
+    list.splice(lo, 0, node);
   }
 }
