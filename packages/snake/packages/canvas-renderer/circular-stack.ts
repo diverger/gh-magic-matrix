@@ -1,5 +1,4 @@
 import { Point } from "../types/point";
-import { isInsideCircle } from "./canvas-utils";
 
 /**
  * Generates cell positions arranged in a circular pattern.
@@ -21,14 +20,9 @@ export const generateCircularCellPattern = (cellCount: number): Point[] => {
       // Calculate angle for consistent spiral pattern
       const angle = (Math.atan2(y, x) + (5 * Math.PI) / 2) % (Math.PI * 2);
 
-      // Find minimum radius that includes this point
-      let radius = 0;
-      while (!isInsideCircle(x, y, radius + 0.5)) {
-        radius++;
-      }
-
-      // Create sort key combining radius and angle for spiral ordering
-      const sortKey = radius * 100 + angle;
+      // Sort by radial distance with angle as tie-breaker (spiral)
+      const dist = Math.hypot(x, y);
+      const sortKey = dist * 100 + angle;
 
       cells.push({ x, y, sortKey });
     }
