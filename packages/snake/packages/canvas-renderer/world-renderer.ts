@@ -43,7 +43,8 @@ export const renderHorizontalStack = (
 
   ctx.save();
 
-  const itemWidth = totalWidth / maxItems;
+  const safeMax = Math.max(maxItems, Math.max(1, stack.length));
+  const itemWidth = totalWidth / safeMax;
 
   for (let i = 0; i < stack.length; i++) {
     const color = options.colorDots[stack[i]];
@@ -53,7 +54,7 @@ export const renderHorizontalStack = (
     ctx.fillRect(
       i * itemWidth,
       0,
-      itemWidth + totalWidth * 0.005, // Small overlap to prevent gaps
+      Math.min(itemWidth + totalWidth * 0.005, totalWidth - i * itemWidth),
       10
     );
   }
@@ -109,7 +110,8 @@ export const renderWorld = (
   ctx.save();
   ctx.translate(options.cellSize, (grid.height + 4) * options.cellSize);
 
-  const maxItems = grid.data.reduce((sum, x) => sum + (x ? 1 : 0), stack.length);
+  const gridTotal = grid.data.reduce((sum, x) => sum + (x ? 1 : 0), 0);
+  const maxItems = Math.max(gridTotal, stack.length);
   renderHorizontalStack(ctx, stack, maxItems, grid.width * options.cellSize, {
     colorDots: options.colorDots,
   });
@@ -168,7 +170,8 @@ export const renderWorldWithInterpolation = (
   ctx.save();
   ctx.translate(options.cellSize, (grid.height + 4) * options.cellSize);
 
-  const maxItems = grid.data.reduce((sum, x) => sum + (x ? 1 : 0), stack.length);
+  const gridTotal = grid.data.reduce((sum, x) => sum + (x ? 1 : 0), 0);
+  const maxItems = Math.max(gridTotal, stack.length);
   renderHorizontalStack(ctx, stack, maxItems, grid.width * options.cellSize, {
     colorDots: options.colorDots,
   });

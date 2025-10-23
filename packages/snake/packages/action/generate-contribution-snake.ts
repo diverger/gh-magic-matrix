@@ -123,7 +123,7 @@ export const generateContributionSnake = async (
               route,
               {
                 colorDots: drawOptions.colorDots.reduce((acc, color, level) => {
-                  acc[level] = color;
+                  if (color) acc[level] = color;
                   return acc;
                 }, {} as Record<number, string>),
                 colorEmpty: drawOptions.colorEmpty,
@@ -135,7 +135,7 @@ export const generateContributionSnake = async (
                 // Add dark mode support if available
                 dark: drawOptions.dark ? {
                   colorDots: drawOptions.dark.colorDots.reduce((acc, color, level) => {
-                    acc[level] = color;
+                    if (color) acc[level] = color;
                     return acc;
                   }, {} as Record<number, string>),
                   colorEmpty: drawOptions.dark.colorEmpty,
