@@ -206,7 +206,7 @@ jobs:
 
 ## Architecture
 
-```
+```text
 packages/snake/
 ├── packages/
 │   ├── types/           # Core data structures

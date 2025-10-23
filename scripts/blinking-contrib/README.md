@@ -61,7 +61,7 @@ Performs complete validation:
 ## Output Location
 
 All test outputs are saved to `test-outputs/` directory:
-```
+```text
 test-outputs/
 ├── blinking-dark-smooth-20241018_143022.svg    # Timestamped outputs
 ├── blinking-light-fast-20241018_143155.svg

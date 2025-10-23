@@ -98,7 +98,6 @@ export const parseEntry = (entry: string): OutputConfig | null => {
   if (!match) return null;
 
   const [, filename, , queryString, jsonString] = match;
-  const configString = queryString ?? jsonString;
 
   let searchParams = new URLSearchParams();
 

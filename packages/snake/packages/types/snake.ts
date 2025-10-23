@@ -3,8 +3,13 @@ import { Point } from "./point";
 export class Snake {
   // Using Uint8Array for efficient storage like snk
   // Stores pairs of coordinates as [x+2, y+2, x+2, y+2, ...]
-  // The +2 offset prevents negative coordinates
+  // The +2 offset allows coordinates in range [-2, 253]
+  // WARNING: Coordinates outside this range will wraparound in Uint8Array!
   private data: Uint8Array;
+
+  // Valid coordinate range with +2 offset to prevent wraparound
+  private static readonly MIN_COORD = -2;
+  private static readonly MAX_COORD = 253;
 
   constructor(points: Point[]) {
     if (points.length === 0) {
@@ -13,8 +18,22 @@ export class Snake {
 
     this.data = new Uint8Array(points.length * 2);
     for (let i = 0; i < points.length; i++) {
+      Snake.validateCoordinate(points[i].x, points[i].y);
       this.data[i * 2] = points[i].x + 2;
       this.data[i * 2 + 1] = points[i].y + 2;
+    }
+  }
+
+  /**
+   * Validates that coordinates are within the safe range for Uint8Array storage.
+   * @throws Error if coordinates would cause wraparound
+   */
+  private static validateCoordinate(x: number, y: number): void {
+    if (x < Snake.MIN_COORD || x > Snake.MAX_COORD) {
+      throw new Error(`Snake x-coordinate ${x} out of valid range [${Snake.MIN_COORD}, ${Snake.MAX_COORD}]`);
+    }
+    if (y < Snake.MIN_COORD || y > Snake.MAX_COORD) {
+      throw new Error(`Snake y-coordinate ${y} out of valid range [${Snake.MIN_COORD}, ${Snake.MAX_COORD}]`);
     }
   }
 
@@ -104,7 +123,11 @@ export class Snake {
     for (let i = 2; i < this.data.length; i++) {
       copy[i] = this.data[i - 2];
     }
-    // Set new head position
+    // Set new head position with bounds checking
+    const newHeadX = this.data[0] - 2 + dx; // Convert to real coords, add delta
+    const newHeadY = this.data[1] - 2 + dy;
+    Snake.validateCoordinate(newHeadX, newHeadY);
+
     copy[0] = this.data[0] + dx;
     copy[1] = this.data[1] + dy;
 

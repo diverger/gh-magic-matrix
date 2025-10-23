@@ -35,7 +35,7 @@ export interface SvgStackConfig {
   layerThickness: number;
   /** Corner radius for stack layers */
   borderRadius: number;
-  /** Animation duration in seconds */
+  /** Animation duration in milliseconds */
   animationDuration: number;
 }
 
@@ -61,7 +61,7 @@ export interface SvgStackResult {
   elements: string[];
   /** CSS animation styles */
   styles: string;
-  /** Total animation duration in seconds */
+  /** Total animation duration in milliseconds */
   duration: number;
 }
 
@@ -127,11 +127,10 @@ export const createStackLayers = (
     opacity: 0.3,
   });
 
-  // Combine all elements in a group
+  // Build group explicitly to avoid fragile replace() pattern
   const groupContent = [shadow, ...layers].join("");
-  return createElement("g", {
-    class: `stack-${position.x}-${position.y}`,
-  }).replace("></g>", `>${groupContent}</g>`);
+  const groupClass = `stack-${position.x}-${position.y}`;
+  return `<g class="${groupClass}">${groupContent}</g>`;
 };
 
 /**
@@ -154,7 +153,7 @@ export const createStackLayers = (
  *   maxHeight: 5,
  *   layerThickness: 4,
  *   borderRadius: 2,
- *   animationDuration: 2.0
+ *   animationDuration: 2000
  * };
  *
  * const result = renderAnimatedSvgStacks(stackData, config);
@@ -182,15 +181,15 @@ export const renderAnimatedSvgStacks = (
       const keyframes: AnimationKeyframe[] = [
         { t: 0, style: "opacity: 0; transform: scale(0) translateY(10px);" },
         { t: startTime / config.animationDuration, style: "opacity: 0; transform: scale(0) translateY(10px);" },
-        { t: (startTime + 0.3) / config.animationDuration, style: "opacity: 0.7; transform: scale(0.8) translateY(5px);" },
-        { t: (startTime + 0.6) / config.animationDuration, style: "opacity: 1; transform: scale(1) translateY(0);" },
+        { t: (startTime + 300) / config.animationDuration, style: "opacity: 0.7; transform: scale(0.8) translateY(5px);" },
+        { t: (startTime + 600) / config.animationDuration, style: "opacity: 1; transform: scale(1) translateY(0);" },
         { t: 1, style: "opacity: 1; transform: scale(1) translateY(0);" },
       ];
 
       const css = createKeyframeAnimation(`${animationId}-grow`, keyframes);
       animationStyles.push(`
         .${animationId} {
-          animation: ${animationId}-grow ${config.animationDuration}s ease-out forwards;
+          animation: ${animationId}-grow ${config.animationDuration / 1000}s ease-out forwards;
           transform-origin: center bottom;
         }
         ${css}
@@ -375,17 +374,14 @@ export const createProgressStack = (
     );
 
     // Create scale animation keyframes
-    const keyframes: AnimationKeyframe[] = block.times
-      .flatMap((t, i, arr) => [
-        {
-          t: t - 0.0001,
-          style: `transform:scale(${(i / arr.length).toFixed(3)},1)`,
-        },
-        {
-          t: t + 0.0001,
-          style: `transform:scale(${((i + 1) / arr.length).toFixed(3)},1)`,
-        },
-      ]);
+    const keyframes: AnimationKeyframe[] = block.times.flatMap((t, i, arr) => {
+      const t1 = Math.max(0, t - 0.0001);
+      const t2 = Math.min(1, t + 0.0001);
+      return [
+        { t: t1, style: `transform:scale(${(i / arr.length).toFixed(3)},1)` },
+        { t: t2, style: `transform:scale(${((i + 1) / arr.length).toFixed(3)},1)` },
+      ];
+    });
 
     // Add final keyframe
     keyframes.push({

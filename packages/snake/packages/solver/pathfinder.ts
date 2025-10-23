@@ -65,6 +65,9 @@ export class Pathfinder {
       const current = openList.shift()!;
       const currentHead = current.snake.getHead();
 
+      // Mark as visited when expanded (not when generated)
+      closedList.push(current.snake);
+
       // Check if we reached the target
       if (currentHead.x === targetX && currentHead.y === targetY) {
         const path = this.reconstructPath(current);
@@ -106,7 +109,6 @@ export class Pathfinder {
 
           // Insert in sorted order by f-cost
           this.sortedInsert(openList, newNode);
-          closedList.push(newSnake);
         }
       }
     }
@@ -136,18 +138,18 @@ export class Pathfinder {
 
     const targetCells = targetSnake.toCells().reverse();
     const snakeLength = snake.getLength();
-    const targetHead = targetCells[0];
+    const targetTail = targetCells[0];
 
     // Create bounding box for search optimization
     const box = {
-      minX: Math.min(snake.getHeadX(), targetHead.x) - snakeLength - 1,
-      minY: Math.min(snake.getHeadY(), targetHead.y) - snakeLength - 1,
-      maxX: Math.max(snake.getHeadX(), targetHead.x) + snakeLength + 1,
-      maxY: Math.max(snake.getHeadY(), targetHead.y) + snakeLength + 1,
+      minX: Math.min(snake.getHeadX(), targetTail.x) - snakeLength - 1,
+      minY: Math.min(snake.getHeadY(), targetTail.y) - snakeLength - 1,
+      maxX: Math.max(snake.getHeadX(), targetTail.x) + snakeLength + 1,
+      maxY: Math.max(snake.getHeadY(), targetTail.y) + snakeLength + 1,
     };
 
-    // Forbidden cells are the target snake's body (excluding head)
-    const forbidden = targetCells.slice(1, 4); // First few segments to avoid
+    // Forbidden cells are the target snake's body (excluding tail)
+    const forbidden = targetCells.slice(1, 4); // Next few segments after tail to avoid
 
     const openList: PathNode[] = [new PathNode(snake)];
     const closedList: Snake[] = [];
@@ -156,8 +158,11 @@ export class Pathfinder {
       const current = openList.shift()!;
       const currentHead = current.snake.getHead();
 
-      // Check if we reached the target head position
-      if (currentHead.x === targetHead.x && currentHead.y === targetHead.y) {
+      // Mark as visited when expanded (not when generated)
+      closedList.push(current.snake);
+
+      // Check if we reached the target tail position
+      if (currentHead.x === targetTail.x && currentHead.y === targetTail.y) {
         const path: Snake[] = [];
         let current_node: PathNode | null = current;
         while (current_node) {
@@ -191,11 +196,10 @@ export class Pathfinder {
           }
 
           const cost = current.cost + 1;
-          const heuristic = Math.abs(newX - targetHead.x) + Math.abs(newY - targetHead.y);
+          const heuristic = Math.abs(newX - targetTail.x) + Math.abs(newY - targetTail.y);
           const newNode = new PathNode(newSnake, current, cost, heuristic);
 
           this.sortedInsert(openList, newNode);
-          closedList.push(newSnake);
         }
       }
     }
@@ -204,13 +208,17 @@ export class Pathfinder {
   }
 
   /**
-   * Generates the tunnel path to match the full target pose (head and body).
+   * Generates the tunnel path to match the full target pose.
    *
    * @remarks
    * Based on the original implementation from snk/packages/solver/tunnel.ts
    *
-   * @param snake - The current Snake state at the target head position
-   * @param targetCells - The full target pose as an array of Points (head first)
+   * After pathfinding to the target tail position, this method generates the sequence
+   * of moves needed to "tunnel" through the body segments to reach the target head position,
+   * which naturally shapes the snake body to match the target pose.
+   *
+   * @param snake - The current Snake state at the target tail position
+   * @param targetCells - The target pose as an array of Points in reverse order (tail first)
    * @returns Array of Snake states representing the tunnel path to match the full pose
    * @internal
    */

@@ -22,7 +22,7 @@ A collection of GitHub Actions for creating various animations and visualization
   with:
     github_user_name: ${{ github.repository_owner }}
     output_path: dist/snake/dark.svg
-```
+```yaml
 
 ## Actions
 
@@ -174,7 +174,7 @@ Add the generated SVGs to your profile README with theme support:
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/snake/light.svg" />
   <img alt="Snake Contribution Grid" src="https://raw.githubusercontent.com/USERNAME/REPO/output/snake/dark.svg" />
 </picture>
-```
+```html
 
 For detailed configuration options and advanced usage, see each action's documentation above.
 

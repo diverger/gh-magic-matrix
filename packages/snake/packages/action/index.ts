@@ -32,8 +32,13 @@ const runAction = async (): Promise<void> => {
     const githubToken =
       core.getInput("github_token") || process.env.GITHUB_TOKEN || "";
 
+
     if (!userName) {
       throw new Error("github_user_name input is required");
+    }
+
+    if (!githubToken) {
+      throw new Error("github_token input is required");
     }
 
     console.log(`🐍 Starting snake generation for user: ${userName}`);

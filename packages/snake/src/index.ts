@@ -2,6 +2,7 @@ import { Grid, Color } from "../packages/types/grid";
 import { Point } from "../packages/types/point";
 import { Snake } from "../packages/types/snake";
 import { SnakeSolver } from "../packages/solver/snake-solver";
+import { createSvg } from "../packages/svg-creator/svg-builder";
 
 interface SnakeActionInputs {
   github_user_name: string;
@@ -108,8 +109,18 @@ export class SnakeAction {
       throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
     }
 
+    const user = data?.data?.user;
+    if (!user) {
+      throw new Error(`GitHub user not found or inaccessible: ${this.inputs.github_user_name}`);
+    }
+
     // Extract contribution data
-    const weeks = data.data.user.contributionsCollection.contributionCalendar.weeks;
+    const weeks = user.contributionsCollection.contributionCalendar.weeks ?? [];
+
+    if (weeks.length === 0) {
+      console.warn(`⚠️ No contribution weeks found for user ${this.inputs.github_user_name}. The user may have no public contributions or the token may lack required scopes.`);
+    }
+
     this.contributionData = weeks.flatMap((week: any) =>
       week.contributionDays.map((day: any) => ({
         date: day.date,
@@ -178,106 +189,40 @@ export class SnakeAction {
   private createSVGAnimation(snakePath: Snake[]): string {
     console.log("🎬 Creating SVG animation");
 
-    const { svg_width, svg_height, cell_size, cell_gap, cell_radius } = this.inputs;
-    const colors = this.inputs.colors;
+    // Build color dots mapping (contribution level -> color hex)
+    const colorDots: Record<number, string> = {};
+    for (let i = 0; i < this.inputs.colors.length; i++) {
+      colorDots[i] = this.inputs.colors[i];
+    }
 
-    let svg = `<svg width="${svg_width}" height="${svg_height}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<style>
-      .grid-cell { opacity: 0.3; }
-      .snake-head { fill: #ff4444; }
-      .snake-body { fill: #44ff44; }
-      .eaten-cell { opacity: 0.1; }
-    </style>`;
+    // Prepare drawing options matching svg-builder interface
+    const drawOptions = {
+      colorDots,
+      colorEmpty: "#ebedf0",
+      colorDotBorder: "rgba(0,0,0,0.06)",
+      colorSnake: "#44ff44",
+      sizeDot: this.inputs.cell_size,
+      sizeDotBorderRadius: this.inputs.cell_radius,
+      sizeCell: this.inputs.cell_size + this.inputs.cell_gap,
+    };
 
-    // Add grid background
+    const animationOptions = {
+      frameDuration: this.inputs.frame_duration, // in milliseconds
+    };
+
+    // Collect all non-empty cells
+    const cells: Point[] = [];
     for (let x = 0; x < this.grid.width; x++) {
       for (let y = 0; y < this.grid.height; y++) {
         const color = this.grid.getColor(x, y);
         if (!this.grid.isEmptyCell(color)) {
-          const cellX = x * (cell_size + cell_gap);
-          const cellY = y * (cell_size + cell_gap);
-          const colorHex = colors[color as number] || colors[0];
-
-          svg += `<rect class="grid-cell" x="${cellX}" y="${cellY}" width="${cell_size}" height="${cell_size}" rx="${cell_radius}" fill="${colorHex}">`;
-
-          // Animation to fade out when eaten
-          const fadeTime = this.calculateFadeTime(snakePath, x, y);
-          if (fadeTime >= 0) {
-            svg += `<animate attributeName="opacity" begin="${fadeTime}s" dur="0.3s" from="0.3" to="0.1" fill="freeze"/>`;
-          }
-
-          svg += `</rect>`;
+          cells.push(new Point(x, y));
         }
       }
     }
 
-    // Add snake animation
-    this.addSnakeAnimation(svg, snakePath);
-
-    svg += `</svg>`;
-    return svg;
-  }
-
-  /**
-   * Add snake animation to SVG
-   */
-  private addSnakeAnimation(svg: string, snakePath: Snake[]): void {
-    const { cell_size, cell_gap, frame_duration } = this.inputs;
-    // SNK logic: total duration = frame_duration * path_length (in seconds)
-    const totalDuration = (frame_duration / 1000) * snakePath.length;
-    const frameSeconds = frame_duration / 1000;
-
-    // Snake head
-    const headPath = snakePath.map((snake, index) => {
-      const head = snake.getHead();
-      const x = head.x * (cell_size + cell_gap) + cell_size / 2;
-      const y = head.y * (cell_size + cell_gap) + cell_size / 2;
-      const time = index * frameSeconds;
-      return `${x},${y};${time}`;
-    }).join(';');
-
-    svg += `<circle class="snake-head" r="${cell_size / 3}">`;
-    svg += `<animateMotion dur="${totalDuration}s" repeatCount="indefinite">`;
-    svg += `<mpath xlinkHref="#snakePath"/>`;
-    svg += `</animateMotion>`;
-    svg += `</circle>`;
-
-    // Snake body segments
-    for (let segmentIndex = 1; segmentIndex < this.inputs.snake_length; segmentIndex++) {
-      const bodyPath = snakePath.map((snake, index) => {
-        const cells = snake.toCells();
-        if (segmentIndex < cells.length) {
-          const segment = cells[segmentIndex];
-          const x = segment.x * (cell_size + cell_gap) + cell_size / 2;
-          const y = segment.y * (cell_size + cell_gap) + cell_size / 2;
-          return `${x},${y}`;
-        }
-        return '';
-      }).filter(p => p).join(' ');
-
-      svg += `<circle class="snake-body" r="${cell_size / 4}">`;
-      svg += `<animateMotion dur="${totalDuration}s" begin="${segmentIndex * frameSeconds}s" repeatCount="indefinite">`;
-      svg += `<mpath xlinkHref="#snakeBodyPath"/>`;
-      svg += `</animateMotion>`;
-      svg += `</circle>`;
-    }
-  }
-
-  /**
-   * Calculate when a cell should fade out
-   */
-  private calculateFadeTime(snakePath: Snake[], cellX: number, cellY: number): number {
-    const { frame_duration } = this.inputs;
-    const frameSeconds = frame_duration / 1000;
-
-    for (let i = 0; i < snakePath.length; i++) {
-      const head = snakePath[i].getHead();
-      if (head.x === cellX && head.y === cellY) {
-        return i * frameSeconds;
-      }
-    }
-
-    return -1; // Cell is never eaten
+    // Delegate to existing svg-builder
+    return createSvg(this.grid, cells, snakePath, drawOptions, animationOptions);
   }
 
   /**

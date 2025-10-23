@@ -189,7 +189,7 @@ export class Tunnel {
    * Converts the tunnel path into a sequence of Snake states representing each movement along the tunnel.
    *
    * @param startSnake - The initial Snake state before entering the tunnel.
-   * @returns An array of Snake states, each representing the snake after a move along the tunnel (in movement order).
+   * @returns An array of Snake states in reverse chronological order (newest→oldest), matching SNK's convention for prepending with unshift().
    */
   getTunnelPath(startSnake: Snake): Snake[] {
     const movements: Snake[] = [];

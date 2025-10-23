@@ -1,108 +1,50 @@
 # Snake GitHub Contribution Graph
 
-An advanced GitHub Action that generates an animated SVG showing a snake eating GitHub contributions using sophisticated pathfinding algorithms.
+An advanced snake contribution animation generator using sophisticated pathfinding algorithms, inspired by the original SNK project.
 
 ## Features
 
-- **Advanced Pathfinding**: Uses A* algorithm and tunnel-based pathfinding similar to the snk project
-- **Object-Oriented Design**: Built with TypeScript classes for maintainable and extensible code
-- **Smart Route Optimization**: Two-phase clearing strategy for optimal snake movement
-- **Customizable Animation**: Configurable snake length, colors, and animation timing
-- **GitHub Integration**: Fetches real contribution data via GitHub GraphQL API
-
-## Usage
-
-```yaml
-name: Generate Snake Animation
-on:
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
-
-jobs:
-  generate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate snake animation
-        uses: diverger/gh-magic-matrix/snake@main
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          output_path: snake.svg
-          snake_length: 6
-          animation_duration: 20
-          colors: '#161b22,#0e4429,#006d32,#26a641,#39d353'
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: snake-animation
-          path: snake.svg
-```
-
-## Inputs
-
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `github_user_name` | GitHub username to fetch contributions for | ✅ | |
-| `github_token` | GitHub token for API access | ❌ | `${{ github.token }}` |
-| `output_path` | Path where the SVG will be saved | ❌ | `snake.svg` |
-| `svg_width` | SVG canvas width in pixels | ❌ | `800` |
-| `svg_height` | SVG canvas height in pixels | ❌ | `200` |
-| `cell_size` | Size of each contribution cell in pixels | ❌ | `12` |
-| `cell_gap` | Gap between cells in pixels | ❌ | `2` |
-| `cell_radius` | Border radius of cells in pixels | ❌ | `2` |
-| `snake_length` | Length of the snake in segments | ❌ | `6` |
-| `animation_duration` | Total animation duration in seconds | ❌ | `20` |
-| `colors` | Comma-separated color levels (empty, L1, L2, L3, L4) | ❌ | `#161b22,#0e4429,#006d32,#26a641,#39d353` |
-
-## Outputs
-
-| Output | Description |
-|--------|-------------|
-| `svg_path` | Path to the generated SVG file |
-| `moves_count` | Total number of moves in the snake path |
-| `cells_eaten` | Number of contribution cells consumed |
-
-## Algorithm Details
-
-This action implements a sophisticated pathfinding system inspired by the snk project:
-
-### 1. Two-Phase Clearing Strategy
-
-- **Phase 1: Residual Color Clearing** - Removes remaining cells from previous color levels using priority-based tunnel selection
-- **Phase 2: Clean Color Clearing** - Systematically consumes all cells of the current color level using closest-first strategy
-
-### 2. Tunnel-Based Pathfinding
-
-- **Tunnel Validation**: Ensures both entry and exit paths exist before committing to a route
-- **Priority Scoring**: Balances tunnel length vs color distribution for optimal paths
-- **Round-Trip Planning**: Guarantees the snake can always return to safe areas
-
-### 3. Advanced Data Structures
-
-- **Snake Representation**: Uses Uint8Array for memory-efficient coordinate storage
-- **Grid System**: Branded TypeScript types for type-safe color management
-- **Pathfinding Nodes**: A* algorithm with heuristic-based cost calculation
+- **Advanced Pathfinding**: A* algorithm with tunnel-based pathfinding for optimal routes
+- **Object-Oriented Design**: Modular TypeScript architecture with clear separation of concerns
+- **Smart Route Optimization**: Two-phase clearing strategy (residual + clean) for efficient traversal
+- **Customizable Output**: SVG generation with configurable colors and animation timing
+- **Memory Efficient**: Uses Uint8Array for snake state storage with bounds validation
+- **Type Safe**: Full TypeScript with branded types for grid colors and validation
 
 ## Architecture
 
-```
+```text
 packages/snake/
 ├── packages/
-│   ├── types/           # Core data structures
-│   │   ├── grid.ts      # Grid class with branded types
-│   │   ├── point.ts     # Point class with utilities
-│   │   └── snake.ts     # Snake class with movement logic
-│   └── solver/          # Pathfinding algorithms
-│       ├── OutsideGrid.ts    # Boundary detection
-│       ├── Pathfinder.ts     # A* pathfinding
-│       ├── Tunnel.ts         # Tunnel management
-│       └── SnakeSolver.ts    # Main solver class
+│   ├── action/                      # GitHub Action entry point
+│   │   ├── index.ts                 # Main action entry
+│   │   ├── generate-contribution-snake.ts
+│   │   ├── outputs-options.ts       # Output configuration parser
+│   │   └── palettes.ts              # Color palettes
+│   ├── canvas-renderer/             # Canvas-based rendering (for demos)
+│   │   ├── canvas-utils.ts
+│   │   └── snake-renderer.ts
+│   ├── solver/                      # Core pathfinding algorithms
+│   │   ├── outside-grid.ts          # Boundary detection system
+│   │   ├── pathfinder.ts            # A* pathfinding implementation
+│   │   ├── snake-solver.ts          # Main solver orchestrator
+│   │   └── tunnel.ts                # Tunnel validation & management
+│   ├── svg-creator/                 # SVG generation
+│   │   ├── svg-builder.ts           # Main SVG builder
+│   │   ├── svg-grid-renderer.ts     # Grid rendering
+│   │   ├── svg-snake-renderer.ts    # Snake animation
+│   │   ├── svg-stack-renderer.ts    # Stack visualization
+│   │   └── svg-utils.ts             # SVG utilities
+│   ├── types/                       # Core data structures
+│   │   ├── grid.ts                  # Grid with branded color types
+│   │   ├── point.ts                 # Point class and directions
+│   │   └── snake.ts                 # Snake state with Uint8Array storage
+│   └── user-contribution-fetcher/   # GitHub API integration
+│       └── index.ts
 ├── src/
-│   └── index.ts         # GitHub Action implementation
-├── action.yml           # Action definition
-└── package.json         # Dependencies
+│   └── index.ts                     # Standalone usage entry
+├── action.yml                       # GitHub Action definition
+└── package.json
 ```
 
 ## Development
@@ -116,21 +58,100 @@ bun build src/index.ts --outdir dist --target node
 bun start
 ```
 
+## Algorithm Details
+
+The implementation uses sophisticated pathfinding inspired by the original SNK project:
+
+### 1. Two-Phase Clearing Strategy
+
+**Residual Phase**: Clears cells from previous color levels using priority-based tunnel selection
+- Finds all "tunnelable" cells (cells with color < current target)
+- Scores tunnels by priority (balancing color mix vs tunnel length)
+- Selects best tunnel and navigates to it
+- Can traverse through residual colored cells (enhancement over SNK)
+
+**Clean Phase**: Systematically consumes all cells of the current color level
+- Uses BFS to find closest reachable cell
+- Moves to cell and marks it as consumed
+- Repeats until no cells of target color remain
+
+### 2. Tunnel-Based Pathfinding
+
+**Tunnel Concept**: A validated round-trip path that guarantees safe entry and exit
+- **Entry Path**: Route from current position to tunnel start
+- **Tunnel Path**: Sequence of cells to consume
+- **Exit Path**: Route from tunnel end back to outside/safe area
+
+**Tunnel Validation**:
+1. Find escape path from start cell to outside boundary
+2. Simulate consumption and find return path
+3. Trim empty cells from both ends
+4. Only use tunnel if round-trip is guaranteed
+
+**Priority Scoring**: `priority = nLess / nColor`
+- `nColor`: Number of target color cells in tunnel
+- `nLess`: Sum of color differences for residual cells
+- Higher priority = better mix of residual and target cells
+
+### 3. Advanced A* Pathfinding
+
+**Standard A* Features**:
+- Cost function: `f(n) = g(n) + h(n)`
+- `g(n)`: Actual cost from start
+- `h(n)`: Manhattan distance heuristic
+- Closed list tracking at **expansion time** (not generation)
+
+**Enhancements Over SNK**:
+- `maxColor` parameter: Allows traversing cells ≤ maxColor during residual phase
+- SNK only traverses empty cells; we can navigate through colored residuals
+- Better error handling with path continuity validation
+
+### 4. Data Structure Optimizations
+
+**Snake State** (`Uint8Array` storage):
+- Coordinates stored as `[x+2, y+2, ...]` pairs
+- +2 offset allows range [-2, 253] without negative indices
+- Bounds validation prevents wraparound corruption
+- Memory efficient: 1 byte per coordinate vs 4 bytes for number
+
+**Grid Colors** (Branded types):
+```typescript
+type Empty = 0 & { readonly __brand: "Empty" };
+type Color = 1 | 2 | 3 | 4 & { readonly __brand: "Color" };
+```
+- Compile-time type safety for color values
+- Prevents invalid color assignments
+- Zero runtime overhead
+
+## Development
+
+To work on this locally:
+
+```bash
+cd packages/snake
+bun install
+bun run build
+bun run start
+```
+
 **Available Scripts:**
 - `bun run build` - Build TypeScript to JavaScript
 - `bun run start` - Run the built action
 - `bun run dev` - Watch mode for development
 - `bun run test` - Run unit tests
 
-## Comparison to Original SNK
+## Key Differences from Original SNK
 
-This implementation differs from the original snk project by:
-
-- **Object-Oriented Design**: Uses classes instead of functional programming
-- **TypeScript Throughout**: Full type safety with branded types
-- **Modular Architecture**: Clear separation of concerns
-- **GitHub Action Integration**: Direct integration with GitHub workflows
-- **Enhanced Error Handling**: Comprehensive error checking and validation
+| Aspect | SNK | This Implementation |
+|--------|-----|---------------------|
+| **Language Style** | Functional programming | Object-oriented with classes |
+| **Type System** | TypeScript functions | Classes with branded types |
+| **Module Structure** | Flat file structure | Layered package architecture |
+| **A* Implementation** | Closed list at generation | Closed list at expansion (correct A*) |
+| **Residual Traversal** | Empty cells only | Can traverse colored cells |
+| **Error Handling** | Minimal validation | Comprehensive bounds checking |
+| **Memory Safety** | Trust Uint8Array range | Explicit coordinate validation |
+| **Animation Units** | Seconds | Milliseconds (standardized) |
 
 ## License
 

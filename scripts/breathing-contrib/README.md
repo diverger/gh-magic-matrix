@@ -51,7 +51,7 @@ Performs complete validation:
 ## Output Location
 
 All test outputs are saved to `test-outputs/` directory:
-```
+```text
 test-outputs/
 ├── breathing-20241018_143022.svg    # Timestamped outputs
 ├── breathing-20241018_143155.svg

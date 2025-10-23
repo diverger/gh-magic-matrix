@@ -29,7 +29,7 @@ export const renderSnake = (
   const cells = snake.toCells();
 
   for (let i = 0; i < cells.length; i++) {
-    const padding = (i + 1) * 0.6;
+    const padding = Math.min((i + 1) * 0.6, (options.cellSize - 2) / 2);
 
     ctx.save();
     ctx.fillStyle = options.colorSnake;
@@ -38,7 +38,7 @@ export const renderSnake = (
       cells[i].y * options.cellSize + padding
     );
 
-    const segmentSize = options.cellSize - padding * 2;
+    const segmentSize = Math.max(2, options.cellSize - padding * 2);
     const borderRadius = segmentSize * 0.25;
 
     ctx.beginPath();
@@ -70,10 +70,14 @@ export const renderSnakeWithInterpolation = (
   options: SnakeRenderOptions
 ): void => {
   const animationSpread = 0.8;
-  const segmentCount = snakeStart.getLength() / 2;
+
+  // Compute cells once before the loop
+  const startCells = snakeStart.toCells();
+  const endCells = snakeEnd.toCells();
+  const segmentCount = Math.min(startCells.length, endCells.length);
 
   for (let i = 0; i < segmentCount; i++) {
-    const padding = (i + 1) * 0.6 * (options.cellSize / 16);
+    const padding = Math.min((i + 1) * 0.6, (options.cellSize - 2) / 2);
 
     // Calculate delayed animation for this segment
     const delayOffset = (1 - animationSpread) * (i / Math.max(segmentCount - 1, 1));
@@ -83,18 +87,14 @@ export const renderSnakeWithInterpolation = (
       1
     );
 
-    // Get start and end positions for this segment
-    const startCells = snakeStart.toCells();
-    const endCells = snakeEnd.toCells();
-
     const startX = startCells[i]?.x ?? 0;
     const startY = startCells[i]?.y ?? 0;
     const endX = endCells[i]?.x ?? 0;
     const endY = endCells[i]?.y ?? 0;
 
     // Interpolate position
-    const x = lerp(segmentInterpolation, startX, endX) - 2;
-    const y = lerp(segmentInterpolation, startY, endY) - 2;
+    const x = lerp(segmentInterpolation, startX, endX);
+    const y = lerp(segmentInterpolation, startY, endY);
 
     ctx.save();
     ctx.fillStyle = options.colorSnake;

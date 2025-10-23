@@ -189,7 +189,7 @@ Add the generated SVG to your profile README:
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/light.svg" />
   <img alt="Blinking Contribution Timeline" src="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/dark.svg" />
 </picture>
-```
+```html
 
 Or for simple display without theme switching:
 

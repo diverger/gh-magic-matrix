@@ -107,7 +107,18 @@ export const fetchUserContributions = async (
 
   if (errors?.[0]) throw new Error(errors[0].message);
 
-  return data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
+  const user = data?.user;
+  if (!user) {
+    throw new Error(`GitHub user not found or inaccessible: ${userName}`);
+  }
+
+  const weeks = user.contributionsCollection.contributionCalendar.weeks ?? [];
+
+  if (weeks.length === 0) {
+    console.warn(`No contribution weeks found for user '${userName}'. The user may have no contributions or the account may be new.`);
+  }
+
+  return weeks.flatMap(
     ({ contributionDays }, x) =>
       contributionDays.map((day): ContributionCell => ({
         x,

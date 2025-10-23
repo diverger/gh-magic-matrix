@@ -21,7 +21,7 @@ export interface SvgSnakeResult {
   elements: string[];
   /** CSS styles for animations */
   styles: string;
-  /** Total animation duration */
+  /** Total animation duration in milliseconds */
   duration: number;
 }
 

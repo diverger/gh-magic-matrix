@@ -136,7 +136,20 @@ export class SnakeSolver {
         throw new Error(`Path validation failed - getBestTunnel returned unreachable tunnel at (${tunnelStart.x}, ${tunnelStart.y})`);
       }
 
-      pathToTunnel.pop(); // Remove start (now included by reconstructPath)
+      // If the last frame equals the current head, drop it to avoid duplication
+      if (pathToTunnel.length > 0 && pathToTunnel[pathToTunnel.length - 1].equals(chain[0])) {
+        pathToTunnel.pop();
+      }
+
+      // Mark consumed residual cells (< targetColor) before chaining, to keep grid/state consistent
+      for (const s of pathToTunnel) {
+        const h = s.getHead();
+        const c = this.getColorSafe(h.x, h.y);
+        if (c > 0 && c < (targetColor as number)) {
+          this.setEmptySafe(h.x, h.y);
+        }
+      }
+
       chain.unshift(...pathToTunnel);
 
       // Navigate through tunnel
@@ -167,7 +180,12 @@ export class SnakeSolver {
     }
 
     //! Remove initial snake position which is at the tail of the chain
-    chain.pop();
+    //! Defensive guard: verify the last element matches the initial snake
+    if (chain.length > 0 && chain[chain.length - 1].equals(snake)) {
+      chain.pop();
+    } else if (chain.length > 0) {
+      console.warn(`Unexpected chain tail: expected initial snake, found different state`);
+    }
     return chain;
   }
 
