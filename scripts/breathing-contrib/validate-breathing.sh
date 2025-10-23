@@ -27,7 +27,7 @@ REQUIRED_FILES=(
     "$BREATHING_DIR/package.json"
     "$BREATHING_DIR/tsconfig.json"
     "$BREATHING_DIR/src/index.ts"
-    "breathing-contrib/action.yml"
+    "$BREATHING_DIR/action.yml"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -82,7 +82,7 @@ echo ""
 echo "📋 Checking action.yml..."
 
 # Check main action.yml
-if grep -q "Breathing" "breathing-contrib/action.yml"; then
+if grep -q "Breathing" "$BREATHING_DIR/action.yml"; then
     echo "  ✅ Breathing action.yml has correct name"
 else
     echo "  ❌ Breathing action.yml name issue"

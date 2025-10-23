@@ -37,7 +37,7 @@ REQUIRED_FILES=(
     "$SNAKE_DIR/packages/solver/tunnel.ts"
     "$SNAKE_DIR/packages/solver/outside-grid.ts"
     "Dockerfile.snake"
-    "snake/action.yml"
+    "$SNAKE_DIR/action.yml"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

@@ -2,7 +2,7 @@
 # This bypasses the simulation and tests our actual SVG generation code
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [string]$Username = "demo-user",
 
     [Parameter(Mandatory=$false)]
