@@ -21,7 +21,7 @@ for (let x = 0; x < 10; x++) {
 
 // Create a simple snake path
 const snakeStates = [];
-let currentSnake = Snake.fromSinglePoint(new Point(0, 0), 4);
+let currentSnake = Snake.createHorizontal(4);
 snakeStates.push(currentSnake);
 
 // Move the snake in a simple pattern
