@@ -33,10 +33,15 @@ export const renderGrid = (
   cells: Point[] | null,
   options: GridRenderOptions
 ): void => {
+  // Create a Set for O(1) cell lookups if filtering is enabled
+  const cellSet = cells
+    ? new Set(cells.map(cell => `${cell.x},${cell.y}`))
+    : null;
+
   for (let x = grid.width; x--; ) {
     for (let y = grid.height; y--; ) {
       // Skip if cells filter is provided and this cell is not included
-      if (cells && !cells.some((cell) => cell.x === x && cell.y === y)) {
+      if (cellSet && !cellSet.has(`${x},${y}`)) {
         continue;
       }
 

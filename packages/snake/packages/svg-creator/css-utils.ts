@@ -9,6 +9,9 @@
  * @returns A percentage string (e.g., "50%" for 0.5).
  */
 export const toPercentage = (value: number): string => {
+  if (value < 0 || value > 1) {
+    throw new RangeError(`Value must be between 0 and 1, got ${value}`);
+  }
   return parseFloat((value * 100).toFixed(2)).toString() + "%";
 };
 
@@ -32,8 +35,10 @@ const mergeKeyframes = (keyframes: AnimationKeyframe[]): Array<{ style: string; 
   const styleMap = new Map<string, number[]>();
 
   for (const { t, style } of keyframes) {
-    const existing = styleMap.get(style) ?? [];
-    styleMap.set(style, [...existing, t]);
+    if (!styleMap.has(style)) {
+      styleMap.set(style, []);
+    }
+    styleMap.get(style)!.push(t);
   }
 
   return Array.from(styleMap.entries())

@@ -66,6 +66,20 @@ fi
 echo ""
 echo "🔨 Testing Bun build..."
 
+# Verify bun is available
+if ! command -v bun &> /dev/null; then
+    echo "  ❌ Bun is not installed"
+    ERRORS=$((ERRORS + 1))
+    cd - > /dev/null
+    echo ""
+    echo "📊 Validation Summary"
+    echo "===================="
+    echo "❌ Found $ERRORS issue(s) that need to be fixed."
+    echo ""
+    echo "Please install Bun before running validation: https://bun.sh"
+    exit 1
+fi
+
 if [ ! -d "node_modules" ]; then
     echo "📥 Installing dependencies..."
     bun install --silent
@@ -84,7 +98,7 @@ if bun build src/index.ts --outdir dist --target node; then
 
     # Try to build test file too
     if [ -f "src/test.ts" ]; then
-        if bun build src/test.ts --outdir dist --target node --silent; then
+        if bun build src/test.ts --outdir dist --target node 2>/dev/null; then
             echo "  ✅ Test file built"
         else
             echo "  ⚠️  Test file build failed (optional)"

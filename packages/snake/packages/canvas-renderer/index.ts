@@ -16,9 +16,3 @@ export * from "./circular-stack";
 
 // Complete world rendering
 export * from "./world-renderer";
-
-// Re-export types for convenience
-export type { GridRenderOptions } from "./grid-renderer";
-export type { SnakeRenderOptions } from "./snake-renderer";
-export type { CircularStackRenderOptions } from "./circular-stack";
-export type { WorldRenderOptions } from "./world-renderer";

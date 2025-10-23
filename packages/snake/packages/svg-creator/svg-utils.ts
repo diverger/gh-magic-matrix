@@ -34,7 +34,7 @@ export const createElement = (tagName: string, attributes: Record<string, any>):
 export const convertToAttributes = (attributes: Record<string, any>): string => {
   return Object.entries(attributes)
     .filter(([, value]) => value !== null && value !== undefined)
-    .map(([name, value]) => `${name}="${value}"`)
+    .map(([name, value]) => `${name}="${String(value).replace(/"/g, '&quot;')}"`)
     .join(" ");
 };
 

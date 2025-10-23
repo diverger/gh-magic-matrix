@@ -2,6 +2,8 @@ import { createSvg } from "./packages/svg-creator/svg-builder";
 import { Grid } from "./packages/types/grid";
 import { Snake } from "./packages/types/snake";
 import { Point } from "./packages/types/point";
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Create test data
 console.log("🧪 Creating test SVG with snake animation...");
@@ -9,11 +11,18 @@ console.log("🧪 Creating test SVG with snake animation...");
 // Create a small test grid
 const grid = Grid.createEmpty(10, 7);
 
+// Use a seed for reproducible random values
+let seed = 12345;
+const seededRandom = () => {
+  seed = (seed * 9301 + 49297) % 233280;
+  return seed / 233280;
+};
+
 // Add some colored cells
 for (let x = 0; x < 10; x++) {
   for (let y = 0; y < 7; y++) {
-    if (Math.random() > 0.7) {
-      const level = Math.floor(Math.random() * 4) + 1;
+    if (seededRandom() > 0.7) {
+      const level = Math.floor(seededRandom() * 4) + 1;
       grid.setColor(x, y, level);
     }
   }
@@ -26,8 +35,12 @@ snakeStates.push(currentSnake);
 
 // Move the snake in a simple pattern
 for (let i = 0; i < 20; i++) {
-  const dx = Math.random() > 0.5 ? 1 : 0;
-  const dy = dx === 0 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+  // Create a simple clockwise square pattern
+  const movePattern = [
+    [1, 0], [1, 0], [0, 1], [0, 1],  // Right, down
+    [-1, 0], [-1, 0], [0, -1], [0, -1]  // Left, up
+  ];
+  const [dx, dy] = movePattern[i % movePattern.length];
 
   currentSnake = currentSnake.nextSnake(dx, dy);
   snakeStates.push(currentSnake);
@@ -57,10 +70,6 @@ const svg = createSvg(
     frameDuration: 200
   }
 );
-
-// Save the result
-const fs = require('fs');
-const path = require('path');
 
 const outputDir = './test-outputs';
 if (!fs.existsSync(outputDir)) {

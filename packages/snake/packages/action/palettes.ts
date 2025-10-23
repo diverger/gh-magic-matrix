@@ -19,13 +19,6 @@ export interface ColorPalette {
   colorSnake: string;
   /** Array of colors for different contribution levels (0-4) */
   colorDots: string[];
-  /** Optional dark theme variant */
-  dark?: {
-    colorDotBorder: string;
-    colorEmpty: string;
-    colorSnake: string;
-    colorDots: string[];
-  };
 }
 
 /**

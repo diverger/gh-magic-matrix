@@ -17,18 +17,3 @@ export * from "./palettes";
 
 // Utility functions
 export * from "./user-contribution-to-grid";
-
-// Type definitions for convenience
-export type {
-  OutputConfig,
-  SvgDrawOptions,
-  AnimationOptions,
-} from "./outputs-options";
-
-export type {
-  ColorPalette,
-} from "./palettes";
-
-export type {
-  GenerationOptions,
-} from "./generate-contribution-snake";

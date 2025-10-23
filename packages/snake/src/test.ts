@@ -75,8 +75,13 @@ async function testSnakeSolver(): Promise<void> {
 
       // Save SVG
       const fs = await import("fs");
-      const outputPath = "./test-outputs/test-solver-return.svg";
-      await Bun.write(outputPath, svg);
+      const path = await import("path");
+      const outputDir = "./test-outputs";
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      const outputPath = path.join(outputDir, "test-solver-return.svg");
+      fs.writeFileSync(outputPath, svg);
       console.log(`✅ SVG saved to ${outputPath}`);
       console.log(`📏 Animation has ${solution.length} frames`);
     }

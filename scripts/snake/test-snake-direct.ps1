@@ -41,6 +41,11 @@ $env:GITHUB_TOKEN = "mock-token-for-testing"  # This will fail API but test our 
 Write-Host "`n🚀 Running snake action directly..." -ForegroundColor Yellow
 
 try {
+    # Verify dist directory exists
+    if (-not (Test-Path "dist\snake")) {
+        throw "Action not built - dist\snake directory not found. Please build the action first."
+    }
+
     # Run the action directly
     Push-Location "dist\snake"
     bun index.js
