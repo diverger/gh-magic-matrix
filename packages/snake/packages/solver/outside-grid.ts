@@ -3,6 +3,9 @@ import { Point, neighbors4 } from "../types/point";
 
 export type Outside = Grid & { __outside: true };
 
+// Sentinel value for cells marked as "inside" (not reachable from boundary)
+const INSIDE: Color = 1 as Color;
+
 export class OutsideGrid {
   private grid: Outside;
 
@@ -30,10 +33,10 @@ export class OutsideGrid {
   private createOutside(grid: Grid, color: Color | typeof EMPTY): Outside {
     const outside = Grid.createEmpty(grid.width, grid.height) as Outside;
 
-    // Initialize all cells as "inside" (value 1)
+    // Initialize all cells as "inside" (not reachable from boundary)
     for (let x = outside.width; x--; ) {
       for (let y = outside.height; y--; ) {
-        outside.setColor(x, y, 1 as Color);
+        outside.setColor(x, y, INSIDE);
       }
     }
 
@@ -42,11 +45,12 @@ export class OutsideGrid {
   }
 
   /**
-   * Performs a flood fill to mark cells reachable from the outside boundaries.
+   * Performs a flood fill to mark cells reachable from the outside boundaries using queue-based BFS.
    *
    * @remarks
-   * Iteratively updates the outside grid by marking cells as empty if they are reachable from the boundary
-   * and their color is below or equal to the threshold. Used to maintain the outside grid after changes to the base grid.
+   * Uses a queue-based breadth-first search (O(W·H)) instead of iterative full-grid sweeps.
+   * Seeds the queue with boundary-adjacent cells that meet the color threshold, then propagates
+   * the "outside" marking to connected cells in a single pass.
    *
    * Note: The 'outside' grid itself is always a regular rectangle with the same size as the base grid, but the empty region and its edge may be irregular.
    *
@@ -60,19 +64,40 @@ export class OutsideGrid {
    * ```
    */
   private fillOutside(outside: Grid, grid: Grid, color: Color | typeof EMPTY): void {
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (let x = outside.width; x--; ) {
-        for (let y = outside.height; y--; ) {
+    const queue: Point[] = [];
+    const visited = new Set<string>();
+
+    // Seed queue with all boundary cells that meet the color threshold
+    for (let x = 0; x < outside.width; x++) {
+      for (let y = 0; y < outside.height; y++) {
+        const isOnBoundary = x === 0 || x === outside.width - 1 || y === 0 || y === outside.height - 1;
+        if (isOnBoundary) {
           const gridColor = this.getColorSafe(grid, x, y);
-          if (
-            (gridColor as number) <= (color as number) &&
-            !this.isOutside(outside, x, y) &&
-            neighbors4.some((dir) => this.isOutside(outside, x + dir.x, y + dir.y))
-          ) {
-            changed = true;
+          if ((gridColor as number) <= (color as number)) {
+            const key = `${x},${y}`;
+            queue.push(new Point(x, y));
+            visited.add(key);
             outside.setColorEmpty(x, y);
+          }
+        }
+      }
+    }
+
+    // BFS propagation: mark and enqueue connected cells
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+
+      for (const dir of neighbors4) {
+        const nx = current.x + dir.x;
+        const ny = current.y + dir.y;
+        const key = `${nx},${ny}`;
+
+        if (!visited.has(key) && outside.isInside(nx, ny)) {
+          const gridColor = this.getColorSafe(grid, nx, ny);
+          if ((gridColor as number) <= (color as number)) {
+            visited.add(key);
+            queue.push(new Point(nx, ny));
+            outside.setColorEmpty(nx, ny);
           }
         }
       }
@@ -82,9 +107,10 @@ export class OutsideGrid {
   /**
    * Checks if a position is outside (reachable from boundaries).
    *
+   * **Primary Public API**: Use this method to check if a cell is outside.
+   *
    * @remarks
    * Determines whether a cell is considered "outside"—that is, reachable from the grid's boundary according to the outside grid.
-   * Can be called with either coordinates (using the internal outside grid) or with an explicit grid and coordinates.
    *
    * Note: A cell is considered outside if:
    * 1. It is out of bounds (beyond the grid dimensions), OR
@@ -92,27 +118,27 @@ export class OutsideGrid {
    *
    * Important: Isolated empty regions NOT connected to the boundary are NOT considered outside.
    *
-   * @param x - The x-coordinate of the cell (when using the internal outside grid).
-   * @param y - The y-coordinate of the cell (when using the internal outside grid).
-   * @param grid - The grid to check (optional, for explicit grid version).
+   * @param x - The x-coordinate of the cell.
+   * @param y - The y-coordinate of the cell.
    * @returns True if the cell is outside, false otherwise.
    */
-  isOutside(x: number, y: number): boolean;
-  isOutside(grid: Grid, x: number, y: number): boolean;
-  isOutside(gridOrX: Grid | number, xOrY?: number, y?: number): boolean {
-    if (typeof gridOrX === "number") {
-      // Single parameter version - check against our outside grid
-      const x = gridOrX;
-      const y = xOrY!;
-      // SNK's pattern: check if not in grid OR if empty in the outside grid
-      return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
-    } else {
-      // Three parameter version - check against the provided grid (used in fillOutside)
-      const grid = gridOrX as Grid;
-      const x = xOrY!;
-      const _y = y!;
-      return !grid.isInside(x, _y) || grid.isEmptyCell(grid.getColor(x, _y));
-    }
+  isOutside(x: number, y: number): boolean {
+    // SNK's pattern: check if not in grid OR if empty in the outside grid
+    return !this.grid.isInside(x, y) || this.grid.isEmptyCell(this.grid.getColor(x, y));
+  }
+
+  /**
+   * Internal helper to check if a position is outside in a specific grid.
+   * Used during flood-fill operations to check against a working grid.
+   *
+   * @internal
+   * @param grid - The grid to check against.
+   * @param x - The x-coordinate of the cell.
+   * @param y - The y-coordinate of the cell.
+   * @returns True if the cell is outside in the given grid, false otherwise.
+   */
+  private isOutsideInGrid(grid: Grid, x: number, y: number): boolean {
+    return !grid.isInside(x, y) || grid.isEmptyCell(grid.getColor(x, y));
   }
 
   /**
