@@ -65,17 +65,18 @@ export const isInsideCircle = (
   samples: number = 6
 ): boolean => {
   let insideCount = 0;
+  const r2 = radius * radius;
+  const total = samples * samples;
+  const threshold = Math.floor(total * 0.6) + 1; // >60%
 
   for (let dx = 0; dx < samples; dx++) {
     for (let dy = 0; dy < samples; dy++) {
       const sampleX = x + (dx + 0.5) / samples;
       const sampleY = y + (dy + 0.5) / samples;
 
-      if (sampleX * sampleX + sampleY * sampleY < radius * radius) {
-        insideCount++;
-      }
+      if (sampleX * sampleX + sampleY * sampleY < r2 && ++insideCount >= threshold) return true;
     }
   }
 
-  return insideCount > samples * samples * 0.6;
+  return insideCount >= threshold;
 };
