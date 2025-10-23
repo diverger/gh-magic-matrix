@@ -1,4 +1,5 @@
 import { Point } from "../types/point";
+import { createRoundedRectPath } from "./canvas-utils";
 
 /**
  * Generates cell positions arranged in a circular pattern.
@@ -86,13 +87,24 @@ export const renderCircularStack = (
     );
 
     ctx.beginPath();
-    ctx.roundRect(
-      -options.dotSize / 2,
-      -options.dotSize / 2,
-      options.dotSize,
-      options.dotSize,
-      options.borderRadius
-    );
+    if (typeof (ctx as any).roundRect === "function") {
+      (ctx as any).roundRect(
+        -options.dotSize / 2,
+        -options.dotSize / 2,
+        options.dotSize,
+        options.dotSize,
+        options.borderRadius
+      );
+    } else {
+      // Fallback for older browsers and node-canvas
+      createRoundedRectPath(
+        ctx,
+        options.dotSize,
+        options.dotSize,
+        options.borderRadius
+      );
+      ctx.translate(-options.dotSize / 2, -options.dotSize / 2);
+    }
     ctx.fill();
     ctx.stroke();
 

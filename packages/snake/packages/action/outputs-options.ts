@@ -173,12 +173,6 @@ const getDefaultPaletteOptions = (paletteName: string): Partial<SvgDrawOptions> 
     colorEmpty: palette.colorEmpty,
     colorSnake: palette.colorSnake,
     colorDots: [...palette.colorDots],
-    dark: palette.dark ? {
-      colorDotBorder: palette.dark.colorDotBorder,
-      colorEmpty: palette.dark.colorEmpty,
-      colorSnake: palette.dark.colorSnake,
-      colorDots: [...palette.dark.colorDots],
-    } : undefined,
   };
 };
 
