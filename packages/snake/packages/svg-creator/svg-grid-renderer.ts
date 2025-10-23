@@ -76,7 +76,7 @@ export const renderAnimatedSvgGrid = (
     fill: "var(--ce)",
     "stroke-width": "1px",
     stroke: "var(--cb)",
-    animation: `none ${duration}ms linear infinite`,
+    /* animation assigned per-cell when needed */
     width: `${options.dotSize}px`,
     height: `${options.dotSize}px`,
   });
@@ -94,6 +94,7 @@ export const renderAnimatedSvgGrid = (
 
     // Handle animated cells - only animate non-empty cells
     if (animationTime !== null && color > 0) {
+      const t = Math.max(0, Math.min(1, animationTime));
       const animationId = `cell-${(animationIndex++).toString(36)}`;
       classes.push(animationId);
 
@@ -101,8 +102,8 @@ export const renderAnimatedSvgGrid = (
       // Use 0.0001 offset for near-instant fade, preventing "sucking" effect
       const fadeOffset = 0.0001;
       const keyframes: AnimationKeyframe[] = [
-        { t: animationTime - fadeOffset, style: `fill:var(--c${color})` },
-        { t: animationTime + fadeOffset, style: `fill:var(--ce)` },
+        { t: t - fadeOffset, style: `fill:var(--c${color})` },
+        { t: t + fadeOffset, style: `fill:var(--ce)` },
         { t: 1, style: `fill:var(--ce)` },
       ];
 
