@@ -105,7 +105,7 @@ export const createStackLayers = (
     const layer = createElement("rect", {
       x: x + 2 + layerOffset,
       y: layerY,
-      width: cellSize - 4 - layerOffset,
+      width: Math.max(1, cellSize - 4 - layerOffset),
       height: layerThickness,
       fill: styling.layers[i] || styling.layers[1] || "#6b7280",
       stroke: styling.border,
@@ -191,6 +191,7 @@ export const renderAnimatedSvgStacks = (
         .${animationId} {
           animation: ${animationId}-grow ${config.animationDuration / 1000}s ease-out forwards;
           transform-origin: center bottom;
+          transform-box: fill-box;
         }
         ${css}
       `);
@@ -271,8 +272,8 @@ export interface AnimatedCellData {
 export interface ProgressStackResult {
   /** SVG elements for the progress bar */
   svgElements: string[];
-  /** CSS styles for animations */
-  styles: string[];
+  /** CSS styles for animations (concatenated) */
+  styles: string;
 }
 
 /**
@@ -323,7 +324,7 @@ export const createProgressStack = (
     .sort((a, b) => a.t! - b.t!);
 
   if (sortedCells.length === 0) {
-    return { svgElements, styles };
+    return { svgElements, styles: styles.join('\n') };
   }
 
   // Group consecutive cells of the same color into blocks
@@ -403,5 +404,5 @@ export const createProgressStack = (
     blockIndex++;
   }
 
-  return { svgElements, styles };
+  return { svgElements, styles: styles.join('\n') };
 };
