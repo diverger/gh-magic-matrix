@@ -107,12 +107,14 @@ export class Tunnel {
    * @param toDelete - Array of points to be removed from the tunnel.
    */
   update(grid: Grid, toDelete: Point[]): void {
+    const del = new Set(toDelete.map(p => `${p.x},${p.y}`));
+
     // Remove consumed points from start
     while (this.path.length > 0) {
       const point = this.path[0];
       if (
         this.isEmptySafe(grid, point.x, point.y) ||
-        toDelete.some((p) => p.x === point.x && p.y === point.y)
+        del.has(`${point.x},${point.y}`)
       ) {
         this.path.shift();
       } else {
@@ -125,7 +127,7 @@ export class Tunnel {
       const point = this.path[this.path.length - 1];
       if (
         this.isEmptySafe(grid, point.x, point.y) ||
-        toDelete.some((p) => p.x === point.x && p.y === point.y)
+        del.has(`${point.x},${point.y}`)
       ) {
         this.path.pop();
       } else {
@@ -141,25 +143,28 @@ export class Tunnel {
    * `targetColor` (primary benefit) and the cumulative difference of lower-color cells relative to the target color
    * (secondary weight). Duplicate positions are counted only once (first occurrence). The implementation iterates over
    * the tunnel path, counts unique cells with `targetColor` and accumulates weight for lower-color cells; it then
-   * returns `lowerColorWeight / colorCount` unless `colorCount == 0`, in which case a sentinel `99999` is returned to indicate an extreme preference.
+   * returns `lowerColorWeight / colorCount` unless `colorCount == 0`, in which case POSITIVE_INFINITY is returned to indicate an extreme preference.
    *
    * @param grid - The current Grid used to inspect cell colors.
    * @param targetColor - The color level being targeted.
-   * @returns Numeric score: higher values indicate a better tunnel (higher priority). Returns 99999 when the tunnel contains no targetColor cells (most desirable for residual clearing).
+   * @returns Numeric score: higher values indicate a better tunnel (higher priority). Returns POSITIVE_INFINITY when the tunnel contains no targetColor cells (most desirable for residual clearing).
    */
   getPriority(grid: Grid, targetColor: Color): number {
     let colorCount = 0;
     let lowerColorWeight = 0;
+    const seen = new Map<string, number>();
 
     for (let i = 0; i < this.path.length; i++) {
       const point = this.path[i];
-      const color = Tunnel.getColorSafe(grid, point.x, point.y);
+      const key = `${point.x},${point.y}`;
 
       // Only count unique cells (first occurrence)
-      if (
-        !grid.isEmptyCell(color) &&
-        i === this.path.findIndex((p) => p.x === point.x && p.y === point.y)
-      ) {
+      if (seen.has(key)) continue;
+      seen.set(key, i);
+
+      const color = Tunnel.getColorSafe(grid, point.x, point.y);
+
+      if (!grid.isEmptyCell(color)) {
         if ((color as number) === (targetColor as number)) {
           colorCount += 1;
         } else {
@@ -168,7 +173,7 @@ export class Tunnel {
       }
     }
 
-    if (colorCount === 0) return 99999; // Infinite priority for pure lower-color tunnels
+    if (colorCount === 0) return Number.POSITIVE_INFINITY; // Infinite priority for pure lower-color tunnels
 
     //! Favor tunnels with higher lower/current ratio
     //! When the count of the cells with lower color is more, and the count of the cells with target color is lesser,
