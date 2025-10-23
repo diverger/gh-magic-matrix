@@ -46,58 +46,20 @@ export class SnakeSolver {
     const chain: Snake[] = [startSnake];
 
     for (const color of colors) {
-      const chainLenBeforePhase = chain.length;
-
       // Phase 1: Clear residual colors (lower than current)
       if ((color as number) > 1) {
         const residualMoves = this.clearResidualColoredLayer(chain[0], color);
-        console.log(`Color ${color} residual: added ${residualMoves.length} moves, chain now ${chain.length} -> ${chain.length + residualMoves.length}`);
-
-        // Check connection before unshift
-        if (residualMoves.length > 0) {
-          const chainHead = chain[0].getHead();
-          const movesEnd = residualMoves[residualMoves.length - 1].getHead();
-          const dist = Math.abs(chainHead.x - movesEnd.x) + Math.abs(chainHead.y - movesEnd.y);
-          if (dist !== 1) {
-            console.error(`RESIDUAL connection error: chain[0] at (${chainHead.x},${chainHead.y}) vs residualMoves[last] at (${movesEnd.x},${movesEnd.y}), dist=${dist}`);
-          }
-        }
-
         chain.unshift(...residualMoves);
       }
 
       // Phase 2: Clear current color
       const cleanMoves = this.clearCleanColoredLayer(chain[0], color);
-      console.log(`Color ${color} clean: added ${cleanMoves.length} moves, chain now ${chain.length} -> ${chain.length + cleanMoves.length}`);
-
-      // Check connection before unshift
-      if (cleanMoves.length > 0) {
-        const chainHead = chain[0].getHead();
-        const movesEnd = cleanMoves[cleanMoves.length - 1].getHead();
-        const dist = Math.abs(chainHead.x - movesEnd.x) + Math.abs(chainHead.y - movesEnd.y);
-        if (dist !== 1) {
-          console.error(`CLEAN connection error: chain[0] at (${chainHead.x},${chainHead.y}) vs cleanMoves[last] at (${movesEnd.x},${movesEnd.y}), dist=${dist}`);
-        }
-      }
-
       chain.unshift(...cleanMoves);
-    }
-
-    // Verify chain continuity before reversing (positions are in cells, not pixels)
-    for (let i = 0; i < chain.length - 1; i++) {
-      const curr = chain[i].getHead();
-      const next = chain[i + 1].getHead();
-      const dx = Math.abs(curr.x - next.x);
-      const dy = Math.abs(curr.y - next.y);
-      const distance = dx + dy;
-      if (distance !== 1) {
-        console.error(`Chain discontinuity at index ${i}: (${curr.x},${curr.y}) -> (${next.x},${next.y}), distance=${distance} cells`);
-      }
     }
 
     const reversedChain = chain.reverse();
 
-    //! Add return path to initial pose (like SNK's generateContributionSnake.ts:23)
+    // Add return path to initial pose (like SNK's generateContributionSnake.ts:23)
     const returnPath = this.pathfinder.findPathToPose(reversedChain[reversedChain.length - 1], initialSnake);
     if (returnPath && returnPath.length > 0) {
       reversedChain.push(...returnPath);
