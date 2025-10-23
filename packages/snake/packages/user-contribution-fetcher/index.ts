@@ -65,6 +65,10 @@ export const fetchUserContributions = async (
   userName: string,
   options: GitHubContributionOptions
 ): Promise<ContributionCell[]> => {
+  if (!options?.githubToken) {
+    throw new Error("githubToken is required to fetch contributions");
+  }
+
   const query = /* GraphQL */ `
     query ($login: String!) {
       user(login: $login) {
@@ -96,8 +100,10 @@ export const fetchUserContributions = async (
   });
 
   if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new Error(`GitHub API request failed for user '${userName}': ${errorText}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `GitHub API request failed (status ${res.status}) for user '${userName}' at /graphql: ${res.statusText}${body ? ` - ${body}` : ""}`
+    );
   }
 
   const { data, errors } = (await res.json()) as {

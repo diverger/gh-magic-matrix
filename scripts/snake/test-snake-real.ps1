@@ -39,7 +39,8 @@ Write-Host ""
 # Test if the user exists
 Write-Host "🔍 Checking if user '$Username' exists..." -ForegroundColor Yellow
 try {
-    $userInfo = Invoke-RestMethod -Uri "https://api.github.com/users/$Username" -Method Get
+    $headers = @{ "User-Agent" = "gh-magic-matrix"; "Accept" = "application/vnd.github+json" }
+    $userInfo = Invoke-RestMethod -Uri "https://api.github.com/users/$Username" -Headers $headers -Method Get
     Write-Host "✅ User found: $($userInfo.name)" -ForegroundColor Green
     Write-Host "   Public repos: $($userInfo.public_repos)" -ForegroundColor Cyan
     Write-Host "   Followers: $($userInfo.followers)" -ForegroundColor Cyan
@@ -56,7 +57,8 @@ $contributionUrl = "https://github.com/users/$Username/contributions"
 
 try {
     # Fetch the contributions page
-    $contributionResponse = Invoke-WebRequest -Uri $contributionUrl -UseBasicParsing
+    $headers = @{ "User-Agent" = "gh-magic-matrix"; "Accept" = "text/html" }
+    $contributionResponse = Invoke-WebRequest -Uri $contributionUrl -Headers $headers -UseBasicParsing
     Write-Host "✅ Successfully fetched contribution data" -ForegroundColor Green
 
     # Parse contribution data from the HTML
@@ -90,7 +92,7 @@ Push-Location $SnakeActionDir
 try {
     # Build if needed
     if (-not (Test-Path "..\..\..\..\dist\snake\index.js")) {
-        Write-Host "🔨 Building with ncc..." -ForegroundColor Yellow
+        Write-Host "🔨 Building snake action (bun build)..." -ForegroundColor Yellow
         & bun run build
         if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ Error: Build failed" -ForegroundColor Red
