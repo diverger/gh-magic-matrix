@@ -7,12 +7,12 @@
  * @module generate-contribution-snake
  */
 
-import { fetchUserContributions } from "../user-contribution-fetcher";
+import { fetchUserContributions } from "../packages/user-contribution-fetcher";
 import { userContributionToGrid } from "./user-contribution-to-grid";
-import { SnakeSolver } from "../solver/snake-solver";
-import { Snake } from "../types/snake";
+import { SnakeSolver } from "../packages/solver/snake-solver";
+import { Snake } from "../packages/types/snake";
 import type { OutputConfig } from "./outputs-options";
-import { createSvg } from "../svg-creator";
+import { createSvg } from "../packages/svg-creator";
 
 /**
  * Options for snake generation process.
@@ -118,17 +118,20 @@ export const generateContributionSnake = async (
 
             // Build contribution count map if counter is enabled
             if (animationOptions.contributionCounter?.enabled) {
-              const contributionMap = new Map<number, number>();
+              // Create map with cell coordinates as keys: "x,y" -> count
+              const contributionMap = new Map<string, number>();
+              let totalCount = 0;
 
-              // Aggregate contribution counts by color level
+              // Store each cell's contribution count by its coordinates
               for (const contrib of contributionData) {
                 if (contrib.level > 0) {
-                  const currentCount = contributionMap.get(contrib.level) || 0;
-                  contributionMap.set(contrib.level, currentCount + contrib.count);
+                  const key = `${contrib.x},${contrib.y}`;
+                  contributionMap.set(key, contrib.count);
+                  totalCount += contrib.count;
                 }
               }
 
-              console.log(`📊 Built contribution map with ${contributionMap.size} levels`);
+              console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);
               animationOptions.contributionCounter.contributionMap = contributionMap;
             }
 

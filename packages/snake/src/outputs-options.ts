@@ -53,7 +53,7 @@ export interface AnimationOptions {
     fontSize?: number;
     fontFamily?: string;
     color?: string;
-    contributionMap?: Map<number, number>;
+    contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
   };
 }
 

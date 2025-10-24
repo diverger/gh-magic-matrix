@@ -264,6 +264,10 @@ export interface AnimatedCellData {
   t: number | null;
   /** Cell color */
   color: Color | Empty;
+  /** X coordinate (for contribution counting) */
+  x?: number;
+  /** Y coordinate (for contribution counting) */
+  y?: number;
 }
 
 /**
@@ -292,8 +296,8 @@ export interface ContributionCounterConfig {
   fontFamily?: string;
   /** Text color */
   color?: string;
-  /** Map from cell color to contribution count */
-  contributionMap?: Map<number, number>;
+  /** Map from "x,y" coordinates to contribution count */
+  contributionMap?: Map<string, number>;
 }
 
 /**
@@ -435,11 +439,10 @@ export const createProgressStack = (
     const prefix = counterConfig.prefix || '';
     const suffix = counterConfig.suffix || '';
 
-    // Calculate total contributions
-    const totalContributions = sortedCells.reduce((sum, cell) => {
-      const count = counterConfig.contributionMap?.get(cell.color as number) || 1;
-      return sum + count;
-    }, 0);
+    // Calculate total contributions from map or fall back to cell count
+    const totalContributions = counterConfig.contributionMap
+      ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
+      : sortedCells.length;
 
     // Calculate width per cell
     const cellWidth = width / sortedCells.length;
@@ -457,7 +460,13 @@ export const createProgressStack = (
     ];
 
     sortedCells.forEach((cell, index) => {
-      const count = counterConfig.contributionMap?.get(cell.color as number) || 1;
+      // Get contribution count for this cell using its coordinates
+      let count = 1; // Default to 1 if no map or coordinates
+      if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
+        const key = `${cell.x},${cell.y}`;
+        count = counterConfig.contributionMap.get(key) || 1;
+      }
+
       cumulativeCount += count;
       cumulativeWidth += cellWidth;
       const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);

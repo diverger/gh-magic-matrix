@@ -102,6 +102,8 @@ export const createSvg = (
     animatedCells.map(cell => ({
       t: cell.animationTime,
       color: cell.color,
+      x: cell.x,
+      y: cell.y,
     })),
     drawOptions.sizeDot,
     grid.width * drawOptions.sizeCell,
