@@ -224,12 +224,12 @@ jobs:
                   {
                     "url": ".github/assets/sprite.png",
                     "width": 32,
-                    "height": 32,
-                    "anchorY": 0.667
+                    "height": 43,
+                    "anchorY": 0.625,
                     "sprite": {
                       "framesPerLevel": 8,
                       "frameWidth": 48,
-                      "frameHeight": 48,
+                      "frameHeight": 64,
                       "layout": "horizontal",
                       "mode": "sync",
                       "dynamicSpeed": true
