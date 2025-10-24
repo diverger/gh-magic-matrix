@@ -622,11 +622,13 @@ export const createProgressStack = async (
       const position = display.position;
 
       // Calculate the actual line height needed (considering images)
+      // This is used for layout spacing, not for text baseline positioning
       const lineHeight = calculateLineHeight(fontSize, display.images);
 
       // follow mode: same line as progress bar; others: above progress bar
-      // For top positions, we need enough space above the progress bar for the tallest element
-      const textY = position === 'follow' ? (y + dotSize / 2) : (y - lineHeight * 0.5);
+      // Text baseline is positioned based on fontSize, not lineHeight
+      // (lineHeight is only for calculating required vertical space in svg-builder.ts)
+      const textY = position === 'follow' ? (y + dotSize / 2) : (y - fontSize * 0.5);
       const textOffsetX = fontSize * 0.5; // Small offset
 
       // Build common text attributes
@@ -784,14 +786,43 @@ export const createProgressStack = async (
           } else {
             // Mixed text and images - create group with text spans and image elements
             const groupId = `contrib-group-${displayIndex}-${index}`;
-            let currentX = elem.x;
+
+            // Calculate starting X position based on alignment
+            let currentX: number;
+
+            if (position === 'top-right') {
+              // For right-aligned content, calculate total width first
+              // then start from (elem.x - totalWidth) so the rightmost element ends at elem.x
+              let totalWidth = 0;
+              for (const segment of segments) {
+                if (segment.type === 'text') {
+                  totalWidth += estimateTextWidth(segment.content, fontSize);
+                } else if (segment.type === 'image' && segment.imageIndex !== undefined) {
+                  if (display.images && segment.imageIndex < display.images.length) {
+                    totalWidth += display.images[segment.imageIndex].width;
+                  }
+                }
+              }
+              // Position so that the content ends at elem.x (right edge)
+              currentX = elem.x - totalWidth;
+            } else {
+              // For left-aligned and follow mode, start from elem.x
+              currentX = elem.x;
+            }
 
             // Create a g (group) element to contain all segments
             const groupElements: string[] = [];
 
+            // For mixed content, use text-anchor="start" and position manually
+            // (We've already calculated the correct starting position above)
+            const mixedTextAttrs = {
+              ...textAttrs,
+              "text-anchor": "start"  // Override to start for manual positioning
+            };
+
             for (const segment of segments) {
               if (segment.type === 'text') {
-                // Text segment - create tspan element
+                // Text segment - create text element
                 const textWidth = estimateTextWidth(segment.content, fontSize);
 
                 groupElements.push(
@@ -799,7 +830,7 @@ export const createProgressStack = async (
                     class: `contrib-counter ${textId}`,
                     x: currentX.toFixed(1),
                     y: textY.toString(),
-                    ...textAttrs,
+                    ...mixedTextAttrs,
                   }).replace("/>", `>${segment.content}</text>`)
                 );
 
