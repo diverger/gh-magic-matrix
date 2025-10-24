@@ -65,9 +65,6 @@ export class Pathfinder {
       const current = openList.shift()!;
       const currentHead = current.snake.getHead();
 
-      // Mark as visited when expanded (not when generated)
-      closedList.push(current.snake);
-
       // Check if we reached the target
       if (currentHead.x === targetX && currentHead.y === targetY) {
         const path = this.reconstructPath(current);
@@ -98,7 +95,7 @@ export class Pathfinder {
         ) {
           const newSnake = current.snake.nextSnake(direction.x, direction.y);
 
-          // Skip if already in closed list
+          // Skip if already in closed list (closed-on-generation approach)
           if (closedList.some((s) => s.equals(newSnake))) {
             continue;
           }
@@ -107,8 +104,9 @@ export class Pathfinder {
           const heuristic = Math.abs(newX - targetX) + Math.abs(newY - targetY);
           const newNode = new PathNode(newSnake, current, cost, heuristic);
 
-          // Insert in sorted order by f-cost
+          // Insert in sorted order by f-cost and mark as closed immediately
           this.sortedInsert(openList, newNode);
+          closedList.push(newSnake);
         }
       }
     }
@@ -158,9 +156,6 @@ export class Pathfinder {
       const current = openList.shift()!;
       const currentHead = current.snake.getHead();
 
-      // Mark as visited when expanded (not when generated)
-      closedList.push(current.snake);
-
       // Check if we reached the target tail position
       if (currentHead.x === targetTail.x && currentHead.y === targetTail.y) {
         const path: Snake[] = [];
@@ -191,6 +186,7 @@ export class Pathfinder {
         ) {
           const newSnake = current.snake.nextSnake(direction.x, direction.y);
 
+          // Skip if already in closed list (closed-on-generation approach)
           if (closedList.some((s) => s.equals(newSnake))) {
             continue;
           }
@@ -199,7 +195,9 @@ export class Pathfinder {
           const heuristic = Math.abs(newX - targetTail.x) + Math.abs(newY - targetTail.y);
           const newNode = new PathNode(newSnake, current, cost, heuristic);
 
+          // Insert in sorted order by f-cost and mark as closed immediately
           this.sortedInsert(openList, newNode);
+          closedList.push(newSnake);
         }
       }
     }
