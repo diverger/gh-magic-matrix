@@ -32,6 +32,12 @@ const runAction = async (): Promise<void> => {
     const githubToken =
       core.getInput("github_token") || process.env.GITHUB_TOKEN || "";
 
+    // Parse contribution counter options from environment variables
+    const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
+    const counterPrefix = process.env.INPUT_COUNTER_PREFIX || "";
+    const counterSuffix = process.env.INPUT_COUNTER_SUFFIX || "";
+    const counterFontSize = process.env.INPUT_COUNTER_FONT_SIZE ? parseInt(process.env.INPUT_COUNTER_FONT_SIZE) : undefined;
+    const counterColor = process.env.INPUT_COUNTER_COLOR || "#666";
 
     if (!userName) {
       throw new Error("github_user_name input is required");
@@ -43,6 +49,23 @@ const runAction = async (): Promise<void> => {
 
     console.log(`🐍 Starting snake generation for user: ${userName}`);
     console.log(`📝 Processing ${outputs.length} output(s)`);
+
+    // Add contribution counter configuration to all outputs if enabled
+    if (showContributionCounter) {
+      console.log(`📊 Contribution counter enabled: ${counterPrefix}X${counterSuffix}`);
+      // Note: contributionMap will be built in generate-contribution-snake.ts
+      outputs.forEach(output => {
+        if (output) {
+          output.animationOptions.contributionCounter = {
+            enabled: true,
+            prefix: counterPrefix,
+            suffix: counterSuffix,
+            fontSize: counterFontSize,
+            color: counterColor,
+          };
+        }
+      });
+    }
 
     const results = await generateContributionSnake(userName, outputs, {
       githubToken,

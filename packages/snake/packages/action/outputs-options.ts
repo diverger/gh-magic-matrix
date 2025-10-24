@@ -45,6 +45,16 @@ export interface AnimationOptions {
   step: number;
   /** Duration per frame in milliseconds */
   frameDuration: number;
+  /** Optional contribution counter configuration */
+  contributionCounter?: {
+    enabled: boolean;
+    prefix?: string;
+    suffix?: string;
+    fontSize?: number;
+    fontFamily?: string;
+    color?: string;
+    contributionMap?: Map<number, number>;
+  };
 }
 
 /**

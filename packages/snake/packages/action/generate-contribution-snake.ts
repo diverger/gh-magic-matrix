@@ -116,6 +116,22 @@ export const generateContributionSnake = async (
           case "svg": {
             console.log(`🖌️ Creating SVG (output ${index})`);
 
+            // Build contribution count map if counter is enabled
+            if (animationOptions.contributionCounter?.enabled) {
+              const contributionMap = new Map<number, number>();
+
+              // Aggregate contribution counts by color level
+              for (const contrib of contributionData) {
+                if (contrib.level > 0) {
+                  const currentCount = contributionMap.get(contrib.level) || 0;
+                  contributionMap.set(contrib.level, currentCount + contrib.count);
+                }
+              }
+
+              console.log(`📊 Built contribution map with ${contributionMap.size} levels`);
+              animationOptions.contributionCounter.contributionMap = contributionMap;
+            }
+
             // Create complete SVG using the comprehensive createSvg function
             const svgContent = createSvg(
               grid,
@@ -143,7 +159,10 @@ export const generateContributionSnake = async (
                   colorSnake: drawOptions.dark.colorSnake,
                 } : undefined,
               },
-              { frameDuration: animationOptions.frameDuration }
+              {
+                frameDuration: animationOptions.frameDuration,
+                contributionCounter: animationOptions.contributionCounter
+              }
             );
 
             return svgContent;

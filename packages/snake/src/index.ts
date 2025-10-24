@@ -242,6 +242,14 @@ export class SnakeAction {
       } : undefined,
     };
 
+    // Debug: log counter configuration
+    console.log('🔍 Counter config:', {
+      show_contribution_counter: this.inputs.show_contribution_counter,
+      enabled: animationOptions.contributionCounter?.enabled,
+      contributionMapSize: contributionMap.size,
+      contributionMapEntries: Array.from(contributionMap.entries()),
+    });
+
     // Collect all non-empty cells
     const cells: Point[] = [];
     for (let x = 0; x < this.grid.width; x++) {
