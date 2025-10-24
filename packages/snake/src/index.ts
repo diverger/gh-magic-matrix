@@ -34,7 +34,7 @@ const runAction = async (): Promise<void> => {
 
     // Parse contribution counter configuration
     const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
-    
+
     // Parse multiple displays configuration
     let counterDisplays: any[] | undefined;
     if (process.env.INPUT_COUNTER_DISPLAYS) {
@@ -59,7 +59,7 @@ const runAction = async (): Promise<void> => {
     // Add contribution counter configuration to all outputs if enabled
     if (showContributionCounter && counterDisplays) {
       console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
-      
+
       // Note: contributionMap will be built in generate-contribution-snake.ts
       outputs.forEach(output => {
         if (output) {

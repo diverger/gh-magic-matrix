@@ -518,7 +518,7 @@ export const createProgressStack = (
           cumulativeCount += count;
           cumulativeWidth += cellWidth;
           const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
-          
+
           let x: number;
           if (position === 'top-left') {
             x = 0;
@@ -544,7 +544,7 @@ export const createProgressStack = (
         // Create text elements with position and opacity animations
         textElements.forEach((elem, index) => {
           const textId = `contrib-text-${displayIndex}-${index}`;
-          
+
           // Build display text based on showCount and showPercentage flags
           let displayText = prefix;
           if (showCount && showPercentage) {

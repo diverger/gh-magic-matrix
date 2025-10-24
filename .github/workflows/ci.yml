@@ -104,7 +104,7 @@ jobs:
           INPUT_COUNTER_DISPLAYS: |
             [
               {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14},
-              {"position": "top-right", "prefix": "Total: ", "showCount": true, "showPercentage": false, "color": "#bf3989"},
+              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989"},
               {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922"}
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

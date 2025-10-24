@@ -40,7 +40,7 @@ inputs:
   counter_displays:
     description: |
       JSON array of multiple counter displays. Each display can have different position, text, colors.
-      
+
       Example:
         [{
           "position": "top-left",
@@ -59,7 +59,7 @@ inputs:
           "suffix": " commits",
           "color": "#ffa657"
         }]
-      
+
       Fields:
       - position: 'top-left' | 'top-right' | 'follow' (required)
         - 'top-left': Fixed at left edge
