@@ -205,6 +205,41 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate snake with sprite sheet animation
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-sprite-sheet.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test sprite sheet with dynamic speed (contribution-driven animation)
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/sprite.png",
+                    "width": 32,
+                    "height": 32,
+                    "anchorY": 0.875,
+                    "sprite": {
+                      "framesPerLevel": 8,
+                      "frameWidth": 32,
+                      "frameHeight": 32,
+                      "layout": "horizontal",
+                      "mode": "sync",
+                      "dynamicSpeed": true
+                    }
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify all outputs exist
         run: |
           ls -la dist/
@@ -219,6 +254,7 @@ jobs:
           test -f dist/snake/dark.svg
           test -f dist/snake/with-image.svg
           test -f dist/snake/with-image-all-positions.svg
+          test -f dist/snake/with-sprite-sheet.svg
           echo "✅ All output files generated successfully"
 
           # Verify static image is embedded as data URI
@@ -234,6 +270,22 @@ jobs:
             echo "✅ Images embedded in all-positions test"
           else
             echo "❌ Images NOT embedded in all-positions test"
+            exit 1
+          fi
+
+          # Verify sprite sheet test
+          if grep -q "data:image" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet embedded in animation"
+          else
+            echo "❌ Sprite sheet NOT embedded"
+            exit 1
+          fi
+
+          # Verify sprite sheet has symbol definitions (for frame clipping)
+          if grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet frames defined as symbols"
+          else
+            echo "❌ Sprite sheet symbols NOT found"
             exit 1
           fi
 

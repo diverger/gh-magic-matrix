@@ -288,10 +288,14 @@ export type CounterPosition = 'top-left' | 'top-right' | 'follow';
 /**
  * Image configuration for counter display.
  *
- * Supports three modes:
- * 1. Single image: Just provide `url`
+ * Supports multiple modes:
+ * 1. Single static image: Just provide `url`
  * 2. Sprite sheet: Provide `url` and `sprite` config
- * 3. Multiple separate images: Provide `urlFolder` (GitHub workflows compatible)
+ * 3. Multiple separate images: Provide `urlFolder` with framePattern
+ * 4. Contribution-level based images: Use `Lx` placeholder in framePattern
+ *    - `Lx.png` - All levels use same image (x will be replaced with level 0-4)
+ *    - `Lx-{n}.png` - Each level has animated frames (x=level, n=frame number)
+ *    - Example files: L0-0.png, L0-1.png, L1.png, L2-0.png, L2-1.png, L2-2.png
  */
 export interface CounterImageConfig {
   /**
@@ -302,13 +306,13 @@ export interface CounterImageConfig {
 
   /**
    * Folder path containing numbered images for animation frames
-   * Images should be named: frame-0.png, frame-1.png, frame-2.png, etc.
+   * Images should be named according to framePattern.
    * This path will be resolved relative to the workspace in GitHub Actions.
    *
-   * Example: 'images/character' will look for:
-   *   - images/character/frame-0.png
-   *   - images/character/frame-1.png
-   *   - images/character/frame-2.png
+   * Example: 'images/character' with framePattern 'Lx-{n}.png' will look for:
+   *   - images/character/L0-0.png, L0-1.png, L0-2.png (level 0 frames)
+   *   - images/character/L1-0.png, L1-1.png (level 1 frames)
+   *   - images/character/L2.png (level 2 static)
    *   - ...
    *
    * Note: In GitHub workflows, these files should be committed to the repository
@@ -320,10 +324,15 @@ export interface CounterImageConfig {
    * Pattern for frame filenames when using urlFolder
    * Default: 'frame-{n}.png' where {n} is the frame number (0-indexed)
    *
+   * Placeholders:
+   *   - {n} - Frame number (0-indexed)
+   *   - Lx - Contribution level (x will be replaced with 0-4)
+   *
    * Examples:
    *   - 'frame-{n}.png' -> frame-0.png, frame-1.png, ...
-   *   - 'img_{n}.gif' -> img_0.gif, img_1.gif, ...
-   *   - 'sprite{n}.webp' -> sprite0.webp, sprite1.webp, ...
+   *   - 'Lx-{n}.png' -> L0-0.png, L0-1.png, L1-0.png, L1-1.png, ...
+   *   - 'Lx.png' -> L0.png, L1.png, L2.png, L3.png, L4.png (static per level)
+   *   - 'level-x-frame-{n}.gif' -> level-0-frame-0.gif, level-1-frame-0.gif, ...
    */
   framePattern?: string;
 
@@ -383,11 +392,23 @@ export interface CounterImageConfig {
   /** Sprite sheet or multi-image animation configuration */
   sprite?: {
     /**
-     * Number of frames in the animation
-     * - For sprite sheet (url): number of frames in the sheet
-     * - For separate images (urlFolder): number of image files to load
+     * UNIFIED: Number of frames (works for all modes)
+     * - For sync/loop modes: total frame count across all cells
+     * - For contribution-level mode: frames per level (or array for different counts per level)
+     *
+     * Examples:
+     * - `framesPerLevel: 8` with mode 'sync' → 8 frames cycling (run-0.png ~ run-7.png)
+     * - `framesPerLevel: 8` with mode 'contribution-level' → 8 frames per level (L0.png, L1.png, ...)
+     * - `framesPerLevel: [1,2,4,6,8]` → level 0 has 1 frame, level 4 has 8 frames
      */
-    frames: number;
+    framesPerLevel?: number | number[];
+
+    /**
+     * LEGACY: Total number of frames (deprecated, use framesPerLevel instead)
+     * Kept for backward compatibility with existing configurations.
+     * If both frames and framesPerLevel are set, framesPerLevel takes precedence.
+     */
+    frames?: number;
     /**
      * Frame width (only for sprite sheet mode)
      * If not provided, calculated as: image width / frames (horizontal) or image width (vertical)
@@ -409,8 +430,42 @@ export interface CounterImageConfig {
      * Animation mode:
      * - 'sync': Synced with progress bar (frame changes with progress steps)
      * - 'loop': Independent looping animation (CSS-based)
+     * - 'contribution-level': Images change based on contribution level (0-4)
+     *   When using this mode:
+     *   - With urlFolder + Lx pattern: Each level can have static/animated frames
+     *     (Lx.png for static, Lx-{n}.png for frames)
+     *   - With urlFolder + Lx pattern + sprite sheet: Each level is a separate sprite sheet
+     *     (Lx.png where each file is a sprite sheet with frames inside)
      */
-    mode?: 'sync' | 'loop';
+    mode?: 'sync' | 'loop' | 'contribution-level';
+    /**
+     * Number of contribution levels (default: 5, matching GitHub's contribution grid)
+     * Used when mode is 'contribution-level'
+     */
+    contributionLevels?: number;
+    /**
+     * Use sprite sheet per contribution level instead of separate frame files
+     * When true with contribution-level mode:
+     *   - Files: L0.png, L1.png, L2.png, L3.png, L4.png (each is a sprite sheet)
+     *   - Each sprite sheet contains frames specified by framesPerLevel
+     *   - frameWidth and frameHeight define the dimensions of each frame in the sprite
+     *
+     * Default: false (uses separate files Lx-{n}.png)
+     */
+    useSpriteSheetPerLevel?: boolean;
+    /**
+     * Enable dynamic speed in sync mode (contribution-driven frame rate)
+     * When true, images animate faster when eating cells with higher contribution values
+     * Frame selection: frameIndex = Math.floor((contribution / maxContribution) * (framesPerLevel - 1))
+     *
+     * Example: If max contribution is 20 and current cell is 15:
+     * - With 10 frames: shows frame 7 (15/20 * 9 = 6.75 -> 7)
+     * - With 5 frames: shows frame 3 (15/20 * 4 = 3)
+     *
+     * Default: false (cycles through frames sequentially)
+     * Note: Only used when mode is 'sync', not 'contribution-level'
+     */
+    dynamicSpeed?: boolean;
     /**
      * Animation duration in milliseconds (for loop mode only)
      * Default: same as progress bar duration
@@ -680,14 +735,21 @@ export const createProgressStack = async (
         // Build counter states
         let cumulativeCount = 0;
         let cumulativeWidth = 0;
-        const textElements: Array<{ count: number; percentage: string; time: number; x: number }> = [];
+        const textElements: Array<{
+          count: number;
+          percentage: string;
+          time: number;
+          x: number;
+          currentContribution: number; // Contribution value of the current cell (for dynamic image frames)
+        }> = [];
 
         // Initial state
         textElements.push({
           count: 0,
           percentage: '0.0',
           time: 0,
-          x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0)
+          x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0),
+          currentContribution: 0
         });
 
         sortedCells.forEach((cell, index) => {
@@ -718,6 +780,7 @@ export const createProgressStack = async (
             percentage,
             time: cell.t!,
             x,
+            currentContribution: count // Store current cell's contribution for dynamic frame selection
           });
         });
 
@@ -726,18 +789,203 @@ export const createProgressStack = async (
         // a full copy of the image data URI, causing SVG files to balloon to
         // hundreds of MB (e.g., 365 frames × 50KB image = 18MB+ just for one image).
         // By defining images in <defs> once and using <use> references, we keep file sizes manageable.
-        const imageDataMap = new Map<number, string>();
+
+        // Map structure:
+        // - For contribution-level mode: imageIndex -> level -> frameIndex -> defId
+        // - For other modes: imageIndex -> level(0) -> frameIndex -> defId
+        const imageDataMap = new Map<number, Map<number, Map<number, string>>>();
         const imageDefsElements: string[] = [];
+
+        // Track max contribution value for level/dynamic speed calculation
+        let maxContribution = 1;
+        if (counterConfig.contributionMap) {
+          maxContribution = Math.max(...Array.from(counterConfig.contributionMap.values()));
+        }
+
         if (display.images && display.images.length > 0) {
           for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
             const imageConfig = display.images[imgIdx];
-            if (validateImageConfig(imageConfig) && imageConfig.url) {
+            if (!validateImageConfig(imageConfig)) continue;
+
+            const levelMap = new Map<number, Map<number, string>>();
+            imageDataMap.set(imgIdx, levelMap);
+
+            const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+            // Support both 'frames' (legacy) and 'framesPerLevel' (unified)
+            // For non-contribution modes: use frames if specified, otherwise framesPerLevel
+            const legacyFrames = imageConfig.sprite?.frames;
+            const framesPerLevel = imageConfig.sprite?.framesPerLevel;
+            const effectiveFrameCount = isContributionLevel
+              ? (typeof framesPerLevel === 'number' ? framesPerLevel : 1)
+              : (legacyFrames || (typeof framesPerLevel === 'number' ? framesPerLevel : 1));
+
+            const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
+            const frameCount = effectiveFrameCount;
+            const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
+
+            if (isContributionLevel && imageConfig.urlFolder) {
+              // Contribution-level mode: Lx pattern with multiple levels
+              const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
+              const framePattern = imageConfig.framePattern || 'Lx.png';
+              const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
+              const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
+
+              for (let level = 0; level < contributionLevels; level++) {
+                const frameMap = new Map<number, string>();
+                levelMap.set(level, frameMap);
+
+                const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+
+                if (useSpriteSheetPerLevel) {
+                  // Each level is a sprite sheet file: L0.png, L1.png, etc.
+                  const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
+                  const resolvedUrl = await resolveImageUrl(spriteUrl);
+
+                  if (resolvedUrl) {
+                    const sprite = imageConfig.sprite!;
+                    const layout = sprite.layout || 'horizontal';
+                    const frameWidth = sprite.frameWidth || imageConfig.width;
+                    const frameHeight = sprite.frameHeight || imageConfig.height;
+
+                    // Define the full sprite sheet image for this level
+                    const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}-L${level}`;
+                    imageDefsElements.push(
+                      createElement("image", {
+                        id: spriteImageId,
+                        href: resolvedUrl,
+                      })
+                    );
+
+                    // Create a symbol for each frame in this level's sprite sheet
+                    for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+                      const symbolId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
+                      frameMap.set(frameIdx, symbolId);
+
+                      // Calculate the position of this frame in the sprite sheet
+                      let viewBoxX = 0;
+                      let viewBoxY = 0;
+
+                      if (layout === 'horizontal') {
+                        viewBoxX = frameIdx * frameWidth;
+                        viewBoxY = 0;
+                      } else {
+                        // vertical layout
+                        viewBoxX = 0;
+                        viewBoxY = frameIdx * frameHeight;
+                      }
+
+                      // Create a symbol that crops to just this frame
+                      imageDefsElements.push(
+                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">`,
+                        `  <use href="#${spriteImageId}" />`,
+                        `</symbol>`
+                      );
+                    }
+                  }
+                } else {
+                  // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
+                  for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+                    const frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
+                    const resolvedUrl = await resolveImageUrl(frameUrl);
+
+                    if (resolvedUrl) {
+                      const defId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
+                      frameMap.set(frameIdx, defId);
+
+                      imageDefsElements.push(
+                        createElement("image", {
+                          id: defId,
+                          href: resolvedUrl,
+                          width: imageConfig.width.toString(),
+                          height: imageConfig.height.toString(),
+                        })
+                      );
+                    }
+                  }
+                }
+              }
+            } else if (isMultiFrame && imageConfig.urlFolder) {
+              // Multi-file mode: load separate frame files (no Lx pattern)
+              const framePattern = imageConfig.framePattern || 'frame-{n}.png';
+              const frameUrls = generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
+
+              const frameMap = new Map<number, string>();
+              levelMap.set(0, frameMap); // Single level (level 0)
+
+              for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+                const resolvedUrl = await resolveImageUrl(frameUrls[frameIdx]);
+                if (resolvedUrl) {
+                  const defId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
+                  frameMap.set(frameIdx, defId);
+
+                  imageDefsElements.push(
+                    createElement("image", {
+                      id: defId,
+                      href: resolvedUrl,
+                      width: imageConfig.width.toString(),
+                      height: imageConfig.height.toString(),
+                    })
+                  );
+                }
+              }
+            } else if (isMultiFrame && imageConfig.url && imageConfig.sprite) {
+              // Sprite sheet mode: single image with multiple frames
               const resolvedUrl = await resolveImageUrl(imageConfig.url);
               if (resolvedUrl) {
-                const defId = `contrib-img-${displayIndex}-${imgIdx}`;
-                imageDataMap.set(imgIdx, defId);
+                const sprite = imageConfig.sprite;
+                const layout = sprite.layout || 'horizontal';
 
-                // Create image definition in <defs>
+                const frameWidth = sprite.frameWidth || imageConfig.width;
+                const frameHeight = sprite.frameHeight || imageConfig.height;
+
+                // First, define the full sprite sheet image
+                const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}`;
+                imageDefsElements.push(
+                  createElement("image", {
+                    id: spriteImageId,
+                    href: resolvedUrl,
+                  })
+                );
+
+                const frameMap = new Map<number, string>();
+                levelMap.set(0, frameMap); // Single level (level 0)
+
+                // Create a symbol for each frame using viewBox to clip the sprite
+                for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+                  const symbolId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
+                  frameMap.set(frameIdx, symbolId);
+
+                  // Calculate the position of this frame in the sprite sheet
+                  let viewBoxX = 0;
+                  let viewBoxY = 0;
+
+                  if (layout === 'horizontal') {
+                    viewBoxX = frameIdx * frameWidth;
+                    viewBoxY = 0;
+                  } else {
+                    // vertical layout
+                    viewBoxX = 0;
+                    viewBoxY = frameIdx * frameHeight;
+                  }
+
+                  // Create a symbol that crops to just this frame
+                  imageDefsElements.push(
+                    `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">`,
+                    `  <use href="#${spriteImageId}" />`,
+                    `</symbol>`
+                  );
+                }
+              }
+            } else if (imageConfig.url) {
+              // Single static image
+              const resolvedUrl = await resolveImageUrl(imageConfig.url);
+              if (resolvedUrl) {
+                const defId = `contrib-img-${displayIndex}-${imgIdx}-f0`;
+
+                const frameMap = new Map<number, string>();
+                levelMap.set(0, frameMap); // Single level (level 0)
+                frameMap.set(0, defId);
+
                 imageDefsElements.push(
                   createElement("image", {
                     id: defId,
@@ -850,30 +1098,68 @@ export const createProgressStack = async (
 
                 if (display.images && imageIndex < display.images.length) {
                   const imageConfig = display.images[imageIndex];
+                  const levelMap = imageDataMap.get(imageIndex);
 
-                  // Get image def ID from map
-                  const defId = imageDataMap.get(imageIndex);
+                  if (levelMap) {
+                    // Determine which level and frame to display
+                    let level = 0;
+                    let frameIndex = 0;
 
-                  if (defId) {
-                    // Calculate image position based on anchor
-                    const anchorX = imageConfig.anchorX || 0;
-                    const anchorY = imageConfig.anchorY || 0.5; // default middle
+                    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+                    // Use unified framesPerLevel, fallback to legacy frames
+                    const legacyFrames = imageConfig.sprite?.frames;
+                    const framesPerLevelValue = imageConfig.sprite?.framesPerLevel;
+                    const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+                    const isMultiFrame = imageConfig.sprite && totalFrames > 1;
+                    const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
 
-                    const imgX = currentX - (imageConfig.width * anchorX);
-                    const imgY = textY - (imageConfig.height * anchorY);
+                    if (isContributionLevel) {
+                      // Contribution-level mode: select level based on contribution value
+                      const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
+                      level = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
 
-                    // Use <use> element to reference the image definition
-                    // This avoids duplicating the large data URI in every frame
-                    groupElements.push(
-                      createElement("use", {
-                        class: `contrib-image ${textId}`,
-                        href: `#${defId}`,
-                        x: imgX.toFixed(1),
-                        y: imgY.toFixed(1),
-                      })
-                    );
+                      // For animated levels, cycle through frames
+                      const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
+                      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
 
-                    currentX += imageConfig.width;
+                      if (levelFrameCount > 1) {
+                        frameIndex = index % levelFrameCount;
+                      }
+                    } else if (isDynamicSpeed && elem.currentContribution > 0) {
+                      // Dynamic speed mode: select frame based on contribution value
+                      // Higher contribution = higher frame index (faster animation appearance)
+                      frameIndex = Math.floor((elem.currentContribution / maxContribution) * (totalFrames - 1));
+                      frameIndex = Math.max(0, Math.min(totalFrames - 1, frameIndex)); // Clamp to valid range
+                    } else if (isMultiFrame && imageConfig.sprite?.mode === 'sync') {
+                      // Sequential sync mode: cycle through frames
+                      frameIndex = index % totalFrames;
+                    }
+                    // For static images or loop mode, level=0, frameIndex=0
+
+                    const frameMap = levelMap.get(level);
+                    const defId = frameMap?.get(frameIndex);
+
+                    if (defId) {
+                      // Calculate image position based on anchor
+                      const anchorX = imageConfig.anchorX || 0;
+                      const anchorY = imageConfig.anchorY || 0.5; // default middle
+
+                      const imgX = currentX - (imageConfig.width * anchorX);
+                      const imgY = textY - (imageConfig.height * anchorY);
+
+                      // Use <use> element to reference the image definition
+                      // This avoids duplicating the large data URI in every frame
+                      groupElements.push(
+                        createElement("use", {
+                          class: `contrib-image ${textId}`,
+                          href: `#${defId}`,
+                          x: imgX.toFixed(1),
+                          y: imgY.toFixed(1),
+                        })
+                      );
+
+                      currentX += imageConfig.width;
+                    }
                   }
                 }
               }
@@ -975,6 +1261,57 @@ export const generateFrameUrls = (
 };
 
 /**
+ * Calculate contribution level (0-4) based on contribution value.
+ * Matches GitHub's 5-level contribution intensity system.
+ *
+ * @param contribution - Contribution count for a cell
+ * @param maxContribution - Maximum contribution value in the dataset
+ * @param levels - Number of levels (default: 5)
+ * @returns Level index (0 = lowest, 4 = highest by default)
+ */
+export const getContributionLevel = (
+  contribution: number,
+  maxContribution: number,
+  levels: number = 5
+): number => {
+  if (contribution === 0 || maxContribution === 0) return 0;
+
+  // Distribute contributions evenly across levels
+  // level 0: contribution = 0 (handled above)
+  // level 1-4: divided by quartiles of max
+  const normalizedValue = contribution / maxContribution;
+  const level = Math.ceil(normalizedValue * (levels - 1));
+
+  return Math.max(0, Math.min(levels - 1, level));
+};
+
+/**
+ * Generate frame URL with Lx placeholder replacement.
+ *
+ * @param urlFolder - Base folder path
+ * @param framePattern - Pattern with {n} and/or Lx placeholders
+ * @param level - Contribution level (0-4)
+ * @param frameIndex - Frame number within the level
+ * @returns Full URL path
+ */
+export const generateLevelFrameUrl = (
+  urlFolder: string,
+  framePattern: string,
+  level: number,
+  frameIndex: number
+): string => {
+  const normalizedFolder = urlFolder.replace(/\/$/, '');
+
+  // Replace Lx with actual level number
+  let filename = framePattern.replace(/Lx/g, `L${level}`);
+
+  // Replace {n} with frame number
+  filename = filename.replace('{n}', frameIndex.toString());
+
+  return `${normalizedFolder}/${filename}`;
+};
+
+/**
  * Validates that a CounterImageConfig has either url or urlFolder set.
  *
  * @param config - Image configuration to validate
@@ -1020,7 +1357,10 @@ export const resolveImageMode = (config: CounterImageConfig): {
 
   // Multi-file mode: separate images in a folder
   if (config.urlFolder) {
-    const frameCount = config.sprite!.frames;
+    // Use unified framesPerLevel, fallback to legacy frames
+    const framesPerLevelValue = config.sprite?.framesPerLevel;
+    const legacyFrames = config.sprite?.frames;
+    const frameCount = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
     const framePattern = config.framePattern || 'frame-{n}.png';
     const frameUrls = generateFrameUrls(config.urlFolder, framePattern, frameCount);
 
@@ -1031,7 +1371,11 @@ export const resolveImageMode = (config: CounterImageConfig): {
   }
 
   // Sprite sheet or single image mode
-  if (config.sprite && config.sprite.frames > 1) {
+  const framesPerLevelValue = config.sprite?.framesPerLevel;
+  const legacyFrames = config.sprite?.frames;
+  const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+
+  if (config.sprite && totalFrames > 1) {
     return {
       mode: 'sprite-sheet',
       spriteUrl: config.url!,
