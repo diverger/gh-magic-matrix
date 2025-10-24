@@ -441,28 +441,35 @@ export const createProgressStack = (
       return sum + count;
     }, 0);
 
-    // Position to the right of the progress bar
-    const textX = width + fontSize;
-    const textY = y + dotSize / 2 + fontSize / 3; // Vertically center with progress bar
+    // Calculate width per cell
+    const cellWidth = width / sortedCells.length;
 
-    // Create multiple text elements, one for each state, and animate their opacity
+    // Starting position (left edge of progress bar with offset)
+    const textStartX = 0;
+    const textOffsetX = fontSize * 0.5; // Offset to the right of progress bar head
+    const textY = y + dotSize / 2; // Vertically center with progress bar
+
+    // Create multiple text elements, one for each state, and animate their position and opacity
     let cumulativeCount = 0;
-    const textElements: Array<{ count: number; percentage: string; time: number }> = [
-      { count: 0, percentage: '0.0', time: 0 }
+    let cumulativeWidth = 0;
+    const textElements: Array<{ count: number; percentage: string; time: number; x: number }> = [
+      { count: 0, percentage: '0.0', time: 0, x: textStartX }
     ];
 
     sortedCells.forEach((cell, index) => {
       const count = counterConfig.contributionMap?.get(cell.color as number) || 1;
       cumulativeCount += count;
+      cumulativeWidth += cellWidth;
       const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
       textElements.push({
         count: cumulativeCount,
         percentage,
         time: cell.t!,
+        x: cumulativeWidth + textOffsetX,
       });
     });
 
-    // Create text elements with opacity animations
+    // Create text elements with position and opacity animations
     textElements.forEach((elem, index) => {
       const textId = `contrib-text-${index}`;
       const displayText = `${prefix}${elem.count} (${elem.percentage}%)${suffix}`;
@@ -470,16 +477,17 @@ export const createProgressStack = (
       svgElements.push(
         createElement("text", {
           class: `contrib-counter ${textId}`,
-          x: textX.toString(),
+          x: elem.x.toFixed(1),
           y: textY.toString(),
           "font-size": fontSize.toString(),
           "font-family": fontFamily,
           fill: textColor,
           "text-anchor": "start",
+          "dominant-baseline": "middle",
         }).replace("/>", `>${displayText}</text>`)
       );
 
-      // Create opacity animation
+      // Create opacity animation keyframes
       const keyframes: AnimationKeyframe[] = [];
 
       // Before this element's time: opacity 0
