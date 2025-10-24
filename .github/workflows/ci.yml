@@ -223,8 +223,8 @@ jobs:
                 "images": [
                   {
                     "url": ".github/assets/sprite.png",
-                    "width": 32,
-                    "height": 43,
+                    "width": 64,
+                    "height": 86,
                     "anchorY": 0.6875,
                     "textAnchorY": 1.0,
                     "sprite": {
