@@ -39,9 +39,9 @@ inputs:
     default: 'false'
   counter_displays:
     description: |
-      JSON array of multiple counter displays. Each display can have different position, text, colors.
+      JSON array of multiple counter displays. Each display can have different position, text, colors, and images.
 
-      Example:
+      Example with text:
         [{
           "position": "top-left",
           "text": "GitHub Contributions",
@@ -60,6 +60,50 @@ inputs:
           "color": "#ffa657"
         }]
 
+      Example with image:
+        [{
+          "position": "follow",
+          "image": {
+            "url": "data:image/png;base64,...",
+            "width": 32,
+            "height": 32
+          }
+        }]
+
+      Example with sprite sheet (synced with progress):
+        [{
+          "position": "follow",
+          "images": [{
+            "url": "https://example.com/sprite.png",
+            "width": 128,
+            "height": 32,
+            "anchor": "center",
+            "sprite": {
+              "frames": 4,
+              "layout": "horizontal",
+              "mode": "sync"
+            }
+          }]
+        }]
+
+      Example with sprite sheet (independent loop):
+        [{
+          "position": "follow",
+          "images": [{
+            "url": "https://example.com/sprite.png",
+            "width": 128,
+            "height": 32,
+            "anchor": "bottom-center",
+            "offsetY": -2,
+            "sprite": {
+              "frames": 4,
+              "layout": "horizontal",
+              "mode": "loop",
+              "fps": 10
+            }
+          }]
+        }]
+
       Fields:
       - position: 'top-left' | 'top-right' | 'follow' (required)
         - 'top-left': Fixed at left edge
@@ -71,6 +115,25 @@ inputs:
       - fontSize, fontFamily, color: Text styling
       - fontWeight: 'normal', 'bold', or numeric (100-900)
       - fontStyle: 'normal' or 'italic'
+      - images: Array of PNG images or sprite sheets
+        - url: Image URL (data URI or external URL)
+        - width, height: Image dimensions in pixels
+        - offsetY: Vertical offset from baseline in pixels (optional, default: 0)
+        - anchor: Predefined anchor point for alignment (optional, default: 'bottom-center')
+          - 'top-left', 'top-center', 'top-right'
+          - 'center-left', 'center', 'center-right'
+          - 'bottom-left', 'bottom-center', 'bottom-right'
+          - Useful when frame size is larger than actual icon (e.g., 32x32 frame with 24x24 icon)
+        - anchorX, anchorY: Custom anchor point (0-1 normalized, overrides anchor)
+          - anchorX: 0=left, 0.5=center, 1=right
+          - anchorY: 0=top, 0.5=center, 1=bottom
+        - sprite: Sprite sheet animation (optional)
+          - frames: Number of animation frames
+          - frameWidth, frameHeight: Frame dimensions (auto-calculated if not provided)
+          - layout: 'horizontal' or 'vertical' (default: horizontal)
+          - mode: 'sync' (with progress bar) or 'loop' (independent, default: sync)
+          - fps: Frames per second for loop mode (e.g., 10)
+          - duration: Animation duration in ms for loop mode (alternative to fps)
     required: false
 
 outputs:

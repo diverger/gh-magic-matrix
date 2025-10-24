@@ -61,6 +61,27 @@ export interface AnimationOptions {
       color?: string;
       fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
       fontStyle?: 'normal' | 'italic';
+      image?: {
+        url: string;
+        width: number;
+        height: number;
+        offsetY?: number;
+        anchor?: 'top-left' | 'top-center' | 'top-right'
+               | 'center-left' | 'center' | 'center-right'
+               | 'bottom-left' | 'bottom-center' | 'bottom-right';
+        anchorX?: number;
+        anchorY?: number;
+        sprite?: {
+          frames: number;
+          frameWidth?: number;
+          frameHeight?: number;
+          frameDuration?: number;
+          layout?: 'horizontal' | 'vertical';
+          mode?: 'sync' | 'loop';
+          duration?: number;
+          fps?: number;
+        };
+      };
     }>;
     contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
   };

@@ -286,6 +286,86 @@ export interface ProgressStackResult {
 export type CounterPosition = 'top-left' | 'top-right' | 'follow';
 
 /**
+ * Image configuration for counter display.
+ */
+export interface CounterImageConfig {
+  /** Image URL (data URI or external URL) */
+  url: string;
+  /** Image width in pixels */
+  width: number;
+  /** Image height in pixels */
+  height: number;
+  /** Vertical offset from baseline (positive = up, negative = down) */
+  offsetY?: number;
+  /**
+   * Anchor point on the image that will be aligned to the text baseline
+   * Defines which point of the image should be placed at the reference position
+   *
+   * - 'top-left': Image's top-left corner aligns to baseline
+   * - 'top-center': Image's top-center point aligns to baseline
+   * - 'top-right': Image's top-right corner aligns to baseline
+   * - 'center-left': Image's center-left point aligns to baseline
+   * - 'center': Image's center point aligns to baseline (useful when icon is centered in a larger frame)
+   * - 'center-right': Image's center-right point aligns to baseline
+   * - 'bottom-left': Image's bottom-left corner aligns to baseline
+   * - 'bottom-center': Image's bottom-center point aligns to baseline (default, good for text alignment)
+   * - 'bottom-right': Image's bottom-right corner aligns to baseline
+   *
+   * Default: 'bottom-center'
+   *
+   * Example: If you have a 32x32 frame with a 24x24 icon centered inside,
+   * use anchor: 'center' to align the icon's visual center to the baseline,
+   * not the frame's edge.
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right'
+         | 'center-left' | 'center' | 'center-right'
+         | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Custom anchor X position (0-1 normalized, 0 = left edge, 0.5 = center, 1 = right edge)
+   * Overrides the X component of 'anchor' if set
+   *
+   * This value specifies which point on the image (horizontally) will be aligned to the reference position.
+   * Example: 0.5 = image's horizontal center point aligns to baseline
+   */
+  anchorX?: number;
+  /**
+   * Custom anchor Y position (0-1 normalized, 0 = top edge, 0.5 = center, 1 = bottom edge)
+   * Overrides the Y component of 'anchor' if set
+   *
+   * This value specifies which point on the image (vertically) will be aligned to the reference position.
+   * Example: 0.85 = a point at 85% down from the top (useful for character feet) aligns to baseline
+   */
+  anchorY?: number;
+  /** Sprite sheet configuration (for animated sprites) */
+  sprite?: {
+    /** Number of frames in the sprite sheet */
+    frames: number;
+    /** Frame width (if different from image width / frames) */
+    frameWidth?: number;
+    /** Frame height (if different from image height) */
+    frameHeight?: number;
+    /** Layout: 'horizontal' (default) or 'vertical' */
+    layout?: 'horizontal' | 'vertical';
+    /**
+     * Animation mode:
+     * - 'sync': Synced with progress bar (frame changes with progress steps)
+     * - 'loop': Independent looping animation (CSS-based)
+     */
+    mode?: 'sync' | 'loop';
+    /**
+     * Animation duration in milliseconds (for loop mode only)
+     * Default: same as progress bar duration
+     */
+    duration?: number;
+    /**
+     * Frames per second (for loop mode only, alternative to duration)
+     * If both fps and duration are set, fps takes precedence
+     */
+    fps?: number;
+  };
+}
+
+/**
  * Configuration for a single counter display.
  */
 export interface CounterDisplayConfig {
@@ -311,6 +391,12 @@ export interface CounterDisplayConfig {
   fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
   /** Font style: 'normal' or 'italic' */
   fontStyle?: 'normal' | 'italic';
+  /**
+   * Array of images that can be referenced in text using {img:0}, {img:1}, etc.
+   * Images will be inserted at the placeholder position in the text.
+   * If no text is provided, the first image will be displayed alone.
+   */
+  images?: CounterImageConfig[];
 }
 
 /**

@@ -95,14 +95,14 @@ export const createSvg = (
   // textY = progressBarY - fontSize * 0.5
   // Text extends from (progressBarY - fontSize) to progressBarY
   // Need: gridBottom to progressBarY distance >= fontSize + small padding
-  
-  const textSpaceInCells = maxCounterFontSize > 0 
+
+  const textSpaceInCells = maxCounterFontSize > 0
     ? Math.ceil((maxCounterFontSize * 1.5) / drawOptions.sizeCell) // 1.5x for padding above and below text
     : 0;
-  
+
   // Gap between grid and progress bar: max of 2 cells (original) or text space requirement
   const gapCells = Math.max(2, textSpaceInCells);
-  
+
   // Total extra space after grid: gap + progress bar (1) + bottom margin (2)
   const extraCells = gapCells + 3;
 
