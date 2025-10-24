@@ -12,7 +12,7 @@ import { Point } from "../types/point";
 import { Snake } from "../types/snake";
 import { renderAnimatedSvgGrid, createAnimatedGridCells } from "./svg-grid-renderer";
 import { renderAnimatedSvgSnake } from "./svg-snake-renderer";
-import { createProgressStack } from "./svg-stack-renderer";
+import { createProgressStack, ContributionCounterConfig } from "./svg-stack-renderer";
 import { createElement } from "./svg-utils";
 
 /**
@@ -48,6 +48,8 @@ export interface SvgRenderOptions {
 export interface AnimationOptions {
   /** Duration per frame in milliseconds */
   frameDuration: number;
+  /** Optional contribution counter configuration */
+  contributionCounter?: ContributionCounterConfig;
 }
 
 /**
@@ -65,7 +67,7 @@ export const createSvg = (
   cells: Point[] | null,
   chain: Snake[],
   drawOptions: SvgRenderOptions,
-  animationOptions: Pick<AnimationOptions, "frameDuration">,
+  animationOptions: AnimationOptions,
 ): string => {
   const width = (grid.width + 2) * drawOptions.sizeCell;
   const height = (grid.height + 5) * drawOptions.sizeCell;
@@ -105,6 +107,7 @@ export const createSvg = (
     grid.width * drawOptions.sizeCell,
     (grid.height + 2) * drawOptions.sizeCell,
     duration,
+    animationOptions.contributionCounter, // Pass counter config
   );
 
   // Create viewBox

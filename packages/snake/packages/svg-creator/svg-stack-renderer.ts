@@ -277,6 +277,26 @@ export interface ProgressStackResult {
 }
 
 /**
+ * Configuration for contribution counter display.
+ */
+export interface ContributionCounterConfig {
+  /** Enable counter display */
+  enabled: boolean;
+  /** Text prefix (can include emoji) */
+  prefix?: string;
+  /** Text suffix (can include emoji) */
+  suffix?: string;
+  /** Font size in pixels */
+  fontSize?: number;
+  /** Font family */
+  fontFamily?: string;
+  /** Text color */
+  color?: string;
+  /** Map from cell color to contribution count */
+  contributionMap?: Map<number, number>;
+}
+
+/**
  * Creates a horizontal progress bar showing cell consumption over time.
  * This matches SNK's createStack functionality - a timeline showing when cells are eaten.
  *
@@ -289,6 +309,7 @@ export interface ProgressStackResult {
  * @param width - Total width of the progress bar.
  * @param y - Y position of the progress bar.
  * @param duration - Animation duration in milliseconds.
+ * @param counterConfig - Optional configuration for contribution counter display.
  * @returns SVG elements and styles for the animated progress bar.
  *
  * @example
@@ -298,7 +319,8 @@ export interface ProgressStackResult {
  *   12,
  *   gridWidth * cellSize,
  *   (gridHeight + 2) * cellSize,
- *   duration
+ *   duration,
+ *   { enabled: true, prefix: '🎯 ', suffix: ' contributions' }
  * );
  * ```
  */
@@ -308,6 +330,7 @@ export const createProgressStack = (
   width: number,
   y: number,
   duration: number,
+  counterConfig?: ContributionCounterConfig,
 ): ProgressStackResult => {
   const svgElements: string[] = [];
   const styles: string[] = [
@@ -402,6 +425,102 @@ export const createProgressStack = (
 
     currentX += block.times.length * cellWidth;
     blockIndex++;
+  }
+
+  // Add contribution counter if enabled
+  if (counterConfig?.enabled) {
+    const fontSize = counterConfig.fontSize || 12;
+    const fontFamily = counterConfig.fontFamily || 'Arial, sans-serif';
+    const textColor = counterConfig.color || '#666';
+    const prefix = counterConfig.prefix || '';
+    const suffix = counterConfig.suffix || '';
+
+    // Calculate total contributions
+    const totalContributions = sortedCells.reduce((sum, cell) => {
+      const count = counterConfig.contributionMap?.get(cell.color as number) || 1;
+      return sum + count;
+    }, 0);
+
+    // Position to the right of the progress bar
+    const textX = width + fontSize;
+    const textY = y + dotSize / 2 + fontSize / 3; // Vertically center with progress bar
+
+    // Create multiple text elements, one for each state, and animate their opacity
+    let cumulativeCount = 0;
+    const textElements: Array<{ count: number; percentage: string; time: number }> = [
+      { count: 0, percentage: '0.0', time: 0 }
+    ];
+
+    sortedCells.forEach((cell, index) => {
+      const count = counterConfig.contributionMap?.get(cell.color as number) || 1;
+      cumulativeCount += count;
+      const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
+      textElements.push({
+        count: cumulativeCount,
+        percentage,
+        time: cell.t!,
+      });
+    });
+
+    // Create text elements with opacity animations
+    textElements.forEach((elem, index) => {
+      const textId = `contrib-text-${index}`;
+      const displayText = `${prefix}${elem.count} (${elem.percentage}%)${suffix}`;
+
+      svgElements.push(
+        createElement("text", {
+          class: `contrib-counter ${textId}`,
+          x: textX.toString(),
+          y: textY.toString(),
+          "font-size": fontSize.toString(),
+          "font-family": fontFamily,
+          fill: textColor,
+          "text-anchor": "start",
+        }).replace("/>", `>${displayText}</text>`)
+      );
+
+      // Create opacity animation
+      const keyframes: AnimationKeyframe[] = [];
+
+      // Before this element's time: opacity 0
+      if (index === 0) {
+        // First element: visible from start
+        keyframes.push({ t: 0, style: 'opacity:1' });
+      } else {
+        // Start invisible
+        keyframes.push({ t: 0, style: 'opacity:0' });
+        // Stay invisible until just before this element's time
+        if (elem.time > 0) {
+          keyframes.push({ t: Math.max(0, elem.time - 0.0001), style: 'opacity:0' });
+        }
+      }
+
+      // At this element's time: opacity 1
+      if (elem.time > 0 || index > 0) {
+        keyframes.push({ t: Math.max(0, elem.time), style: 'opacity:1' });
+      }
+
+      // At next element's time: opacity 0 (or stay at 1 if last)
+      if (index < textElements.length - 1) {
+        const nextTime = textElements[index + 1].time;
+        if (nextTime > elem.time) {
+          keyframes.push({ t: Math.max(0, Math.min(1, nextTime - 0.0001)), style: 'opacity:1' });
+        }
+        keyframes.push({ t: Math.max(0, Math.min(1, nextTime)), style: 'opacity:0' });
+        keyframes.push({ t: 1, style: 'opacity:0' });
+      } else {
+        keyframes.push({ t: 1, style: 'opacity:1' });
+      }
+
+      const animName = `contrib-anim-${index}`;
+      styles.push(
+        createKeyframeAnimation(animName, keyframes),
+        `.${textId} {
+          animation: ${animName} linear ${duration}ms infinite;
+          opacity: 0;
+        }`
+      );
+    });
   }
 
   return { svgElements, styles: styles.join('\n') };

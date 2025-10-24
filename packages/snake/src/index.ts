@@ -16,6 +16,12 @@ interface SnakeActionInputs {
   snake_length: number;
   frame_duration: number; // Duration per frame in milliseconds (like SNK)
   colors: string[];
+  // Contribution counter options
+  show_contribution_counter?: boolean;
+  counter_prefix?: string;
+  counter_suffix?: string;
+  counter_font_size?: number;
+  counter_color?: string;
 }
 
 interface ContributionData {
@@ -196,6 +202,23 @@ export class SnakeAction {
       colorDots[i] = this.inputs.colors[i];
     }
 
+    // Build contribution count map (color level -> total contribution count)
+    const contributionMap = new Map<number, number>();
+    for (let x = 0; x < this.grid.width; x++) {
+      for (let y = 0; y < this.grid.height; y++) {
+        const color = this.grid.getColor(x, y);
+        if (!this.grid.isEmptyCell(color)) {
+          // Find the contribution data for this cell
+          const index = y * this.grid.width + x;
+          if (index < this.contributionData.length) {
+            const contrib = this.contributionData[index];
+            const currentCount = contributionMap.get(color as number) || 0;
+            contributionMap.set(color as number, currentCount + contrib.count);
+          }
+        }
+      }
+    }
+
     // Prepare drawing options matching svg-builder interface
     const drawOptions = {
       colorDots,
@@ -209,6 +232,14 @@ export class SnakeAction {
 
     const animationOptions = {
       frameDuration: this.inputs.frame_duration, // in milliseconds
+      contributionCounter: this.inputs.show_contribution_counter ? {
+        enabled: true,
+        prefix: this.inputs.counter_prefix,
+        suffix: this.inputs.counter_suffix,
+        fontSize: this.inputs.counter_font_size,
+        color: this.inputs.counter_color,
+        contributionMap,
+      } : undefined,
     };
 
     // Collect all non-empty cells
@@ -251,6 +282,12 @@ export async function run(): Promise<void> {
     // SNK logic: use frame_duration (milliseconds) instead of total animation_duration
     frame_duration: parseFloat(process.env.INPUT_FRAME_DURATION || '100'), // Default 100ms
     colors: (process.env.INPUT_COLORS || '#161b22,#0e4429,#006d32,#26a641,#39d353').split(','),
+    // Contribution counter options
+    show_contribution_counter: process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === 'true',
+    counter_prefix: process.env.INPUT_COUNTER_PREFIX || '🎯 ',
+    counter_suffix: process.env.INPUT_COUNTER_SUFFIX || ' contributions',
+    counter_font_size: parseInt(process.env.INPUT_COUNTER_FONT_SIZE || '14'),
+    counter_color: process.env.INPUT_COUNTER_COLOR || '#666',
   };
 
   const action = new SnakeAction(inputs);
