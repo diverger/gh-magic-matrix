@@ -468,7 +468,8 @@ export const createProgressStack = (
       const fontFamily = display.fontFamily || 'Arial, sans-serif';
       const textColor = display.color || '#666';
       const position = display.position;
-      const textY = y - fontSize * 0.5; // Above progress bar
+      // follow mode: same line as progress bar; others: above progress bar
+      const textY = position === 'follow' ? (y + dotSize / 2) : (y - fontSize * 0.5);
       const textOffsetX = fontSize * 0.5; // Small offset
 
       // Check if this is a fixed text display
