@@ -315,11 +315,6 @@ export class Tunnel {
       const current = openList.shift()!;
       const head = current.snake.getHead();
 
-      // Mark as visited when popping from openList (strict UCS/Dijkstra semantics)
-      const stateKey = current.snake.getRawData().join(',');
-      if (visited.has(stateKey)) continue;
-      visited.add(stateKey);
-
       // Check if we reached outside
       //! For BFS, the first one will be the shortest one
       if (outsideGrid.isOutside(head.x, head.y)) {
@@ -340,11 +335,13 @@ export class Tunnel {
           const newStateKey = newSnake.getRawData().join(',');
 
           //! Check visited set with O(1) lookup instead of O(n) array scan
-          //! Mark visited only when popping to allow cheaper paths to be discovered
+          //! Mark as visited when generating (closed-on-generation) to match SNK's approach
           if (!visited.has(newStateKey)) {
-            //! Higher cost for target color cells to discourage their use, only when cell color equal to maxColor, it
-            //! will have a much higher cost
-            const moveCost = (cellColor as number) === (maxColor as number) ? 1000 : 1;
+            visited.add(newStateKey);
+
+            //! Cost calculation matches SNK: base cost of 1, plus 1000 penalty if eating target color
+            //! SNK: w = o.w + 1 + +(c === color) * 1000
+            const moveCost = (cellColor as number) === (maxColor as number) ? 1000 : 0;
             const cost = current.cost + 1 + moveCost;
 
             //! This makes sure the one with lowest cost will be chosen first
