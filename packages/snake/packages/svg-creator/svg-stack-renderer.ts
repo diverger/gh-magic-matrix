@@ -389,6 +389,25 @@ export interface CounterImageConfig {
    * Example: 0.85 = a point at 85% down from the top (useful for character feet) aligns to baseline
    */
   anchorY?: number;
+
+  /**
+   * Text anchor point for image alignment (0-1 normalized)
+   * Specifies which vertical point of the text to use as the alignment reference.
+   *
+   * - 0.0: Top of text (cap height)
+   * - 0.5: Middle of text (default, matches dominant-baseline="middle")
+   * - 1.0: Bottom of text (baseline where characters sit)
+   * - Custom: Any value between 0-1
+   *
+   * Combined with `anchorY`, determines how image aligns to text:
+   * - textAnchorY=1.0, anchorY=1.0: Image bottom aligns with text baseline
+   * - textAnchorY=0.5, anchorY=0.5: Image center aligns with text center
+   * - textAnchorY=1.0, anchorY=0.5: Image center aligns with text baseline
+   *
+   * Default: 0.5 (text center, matching dominant-baseline="middle")
+   */
+  textAnchorY?: number;
+
   /** Sprite sheet or multi-image animation configuration */
   sprite?: {
     /**
@@ -1145,18 +1164,19 @@ export const createProgressStack = async (
                       // Calculate image position based on anchor
                       const anchorX = imageConfig.anchorX || 0;
                       const anchorY = imageConfig.anchorY || 0.5; // default middle
+                      const textAnchorY = imageConfig.textAnchorY ?? 0.5; // default text center
 
-                      // Since text uses dominant-baseline="middle", textY is at text's vertical center
-                      // To align image bottom with text baseline (bottom), we need to offset by half the text height
-                      // Approximate text height as fontSize (simplified, actual height may vary)
-                      const textHalfHeight = fontSize * 0.5;
-                      const baselineY = textY + textHalfHeight; // Text baseline (bottom) position
+                      // Text uses dominant-baseline="middle", so textY is at text's vertical center
+                      // textAnchorY determines which point of the text to use as reference:
+                      // - 0.0: top of text (textY - fontSize*0.5)
+                      // - 0.5: center of text (textY) - default
+                      // - 1.0: baseline/bottom of text (textY + fontSize*0.5)
+                      const textReferenceY = textY + (textAnchorY - 0.5) * fontSize;
 
-                      // Calculate image Y position: baseline - (image height * anchor ratio)
-                      // anchorY=1.0 means image bottom aligns with baseline
-                      // anchorY=0.5 means image middle aligns with baseline
+                      // Calculate image Y position: reference point - (image height * anchor ratio)
+                      // Example: textAnchorY=1.0, anchorY=1.0 → image bottom aligns with text baseline
                       const imgX = currentX - (imageConfig.width * anchorX);
-                      const imgY = baselineY - (imageConfig.height * anchorY);
+                      const imgY = textReferenceY - (imageConfig.height * anchorY);
 
                       // Use <use> element to reference the image definition
                       // This avoids duplicating the large data URI in every frame

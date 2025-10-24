@@ -226,6 +226,7 @@ jobs:
                     "width": 32,
                     "height": 43,
                     "anchorY": 1.0,
+                    "textAnchorY": 1.0,
                     "sprite": {
                       "framesPerLevel": 8,
                       "frameWidth": 48,
