@@ -710,6 +710,24 @@ export const createProgressStack = async (
           });
         });
 
+        // Pre-load image data URIs to avoid duplication in every frame
+        // IMPORTANT: Without this optimization, each animation frame would embed
+        // a full copy of the image data URI, causing SVG files to balloon to
+        // hundreds of MB (e.g., 365 frames × 50KB image = 18MB+ just for one image).
+        // By loading once and reusing the same data URI string, we keep file sizes manageable.
+        const imageDataMap = new Map<number, string>();
+        if (display.images && display.images.length > 0) {
+          for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
+            const imageConfig = display.images[imgIdx];
+            if (validateImageConfig(imageConfig) && imageConfig.url) {
+              const resolvedUrl = await resolveImageUrl(imageConfig.url);
+              if (resolvedUrl) {
+                imageDataMap.set(imgIdx, resolvedUrl);
+              }
+            }
+          }
+        }
+
         // Create text elements with position and opacity animations
         for (let index = 0; index < textElements.length; index++) {
           const elem = textElements[index];
@@ -766,27 +784,14 @@ export const createProgressStack = async (
 
                 currentX += textWidth;
               } else if (segment.type === 'image' && segment.imageIndex !== undefined) {
-                // Image segment - create image element
+                // Image segment - create image element using pre-loaded data
                 const imageIndex = segment.imageIndex;
 
                 if (display.images && imageIndex < display.images.length) {
                   const imageConfig = display.images[imageIndex];
 
-                  // Validate image config
-                  if (!validateImageConfig(imageConfig)) {
-                    console.warn(`Invalid image config at display ${displayIndex}, image ${imageIndex}`);
-                    continue;
-                  }
-
-                  // Get image URL (single image mode only for placeholders)
-                  const imageUrl = imageConfig.url;
-                  if (!imageUrl) {
-                    console.warn(`Image placeholder {img:${imageIndex}} requires url property`);
-                    continue;
-                  }
-
-                  // Resolve image URL (local file → data URI or external URL)
-                  const resolvedUrl = await resolveImageUrl(imageUrl);
+                  // Get pre-loaded image data URI from map
+                  const resolvedUrl = imageDataMap.get(imageIndex);
 
                   if (resolvedUrl) {
                     // Calculate image position based on anchor
