@@ -20,7 +20,7 @@ interface SnakeActionInputs {
   show_contribution_counter?: boolean;
   counter_prefix?: string;
   counter_suffix?: string;
-  counter_font_size?: number;
+  counter_font_size?: number; // If undefined, defaults to cell_size
   counter_color?: string;
 }
 
@@ -236,7 +236,7 @@ export class SnakeAction {
         enabled: true,
         prefix: this.inputs.counter_prefix,
         suffix: this.inputs.counter_suffix,
-        fontSize: this.inputs.counter_font_size,
+        fontSize: this.inputs.counter_font_size || this.inputs.cell_size, // Default to cell_size (dotSize)
         color: this.inputs.counter_color,
         contributionMap,
       } : undefined,
@@ -286,7 +286,7 @@ export async function run(): Promise<void> {
     show_contribution_counter: process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === 'true',
     counter_prefix: process.env.INPUT_COUNTER_PREFIX || '🎯 ',
     counter_suffix: process.env.INPUT_COUNTER_SUFFIX || ' contributions',
-    counter_font_size: parseInt(process.env.INPUT_COUNTER_FONT_SIZE || '14'),
+    counter_font_size: process.env.INPUT_COUNTER_FONT_SIZE ? parseInt(process.env.INPUT_COUNTER_FONT_SIZE) : undefined, // Default to cell_size if not specified
     counter_color: process.env.INPUT_COUNTER_COLOR || '#666',
   };
 

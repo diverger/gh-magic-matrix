@@ -61,6 +61,9 @@ jobs:
           snake_length: "6"
           animation_duration: "20"
           colors: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          show_contribution_counter: "true"
+          counter_prefix: "🎯 "
+          counter_suffix: " contributions"
 
       - name: Test snake with dark theme
         uses: diverger/gh-magic-matrix/snake@main
@@ -70,6 +73,9 @@ jobs:
           snake_length: "6"
           animation_duration: "20"
           colors: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          show_contribution_counter: "true"
+          counter_prefix: "🎯 "
+          counter_suffix: " contributions"
 
       - name: Verify all outputs exist
         run: |

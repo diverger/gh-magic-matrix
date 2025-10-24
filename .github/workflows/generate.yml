@@ -75,6 +75,9 @@ jobs:
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_PREFIX: "🎯 "
+          INPUT_COUNTER_SUFFIX: " contributions"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with dark theme
@@ -82,6 +85,9 @@ jobs:
         env:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_PREFIX: "🎯 "
+          INPUT_COUNTER_SUFFIX: " contributions"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify outputs

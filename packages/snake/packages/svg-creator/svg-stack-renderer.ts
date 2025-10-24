@@ -429,7 +429,7 @@ export const createProgressStack = (
 
   // Add contribution counter if enabled
   if (counterConfig?.enabled) {
-    const fontSize = counterConfig.fontSize || 12;
+    const fontSize = counterConfig.fontSize || dotSize; // Default to dotSize (progress bar height)
     const fontFamily = counterConfig.fontFamily || 'Arial, sans-serif';
     const textColor = counterConfig.color || '#666';
     const prefix = counterConfig.prefix || '';
