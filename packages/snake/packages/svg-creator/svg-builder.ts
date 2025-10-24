@@ -69,8 +69,45 @@ export const createSvg = (
   drawOptions: SvgRenderOptions,
   animationOptions: AnimationOptions,
 ): string => {
+  // Calculate required space for counter text
+  // Find the maximum font size from all displays (top-left/top-right need space above progress bar)
+  let maxCounterFontSize = 0;
+  if (animationOptions.contributionCounter?.enabled && animationOptions.contributionCounter.displays) {
+    for (const display of animationOptions.contributionCounter.displays) {
+      if (display.position !== 'follow') { // follow mode doesn't need extra space
+        const fontSize = display.fontSize || drawOptions.sizeDot;
+        maxCounterFontSize = Math.max(maxCounterFontSize, fontSize);
+      }
+    }
+  }
+
+  // Layout breakdown:
+  // - viewBox y offset: -2 cells (top margin)
+  // - Grid: grid.height cells
+  // - Gap between grid and progress bar: need to fit counter text
+  // - Progress bar: 1 cell (dotSize)
+  // - Bottom margin: at least 1 cell
+  //
+  // Original layout: grid.height + 5 cells total
+  //   = grid.height + 2 (gap) + 1 (progress bar) + 2 (bottom margin, adjusted for viewBox)
+  //
+  // For counter text above progress bar:
+  // textY = progressBarY - fontSize * 0.5
+  // Text extends from (progressBarY - fontSize) to progressBarY
+  // Need: gridBottom to progressBarY distance >= fontSize + small padding
+  
+  const textSpaceInCells = maxCounterFontSize > 0 
+    ? Math.ceil((maxCounterFontSize * 1.5) / drawOptions.sizeCell) // 1.5x for padding above and below text
+    : 0;
+  
+  // Gap between grid and progress bar: max of 2 cells (original) or text space requirement
+  const gapCells = Math.max(2, textSpaceInCells);
+  
+  // Total extra space after grid: gap + progress bar (1) + bottom margin (2)
+  const extraCells = gapCells + 3;
+
   const width = (grid.width + 2) * drawOptions.sizeCell;
-  const height = (grid.height + 5) * drawOptions.sizeCell;
+  const height = (grid.height + extraCells) * drawOptions.sizeCell;
   const duration = animationOptions.frameDuration * chain.length;
 
   // Create animated grid cells
@@ -96,6 +133,9 @@ export const createSvg = (
     animationDuration: duration, // Keep in milliseconds
   }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
 
+  // Calculate progress bar Y position (leaving space for counter text above if needed)
+  const progressBarY = (grid.height + gapCells) * drawOptions.sizeCell;
+
   // Create progress stack (timeline bar showing cell consumption)
   // Convert AnimatedGridCell to the format expected by createProgressStack
   const stackResult = createProgressStack(
@@ -107,7 +147,7 @@ export const createSvg = (
     })),
     drawOptions.sizeDot,
     grid.width * drawOptions.sizeCell,
-    (grid.height + 2) * drawOptions.sizeCell,
+    progressBarY,
     duration,
     animationOptions.contributionCounter, // Pass counter config
   );
