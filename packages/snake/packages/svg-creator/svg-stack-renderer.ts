@@ -317,13 +317,6 @@ export interface ContributionCounterConfig {
   enabled: boolean;
   /** Array of counter displays (can show multiple counters at different positions) */
   displays?: CounterDisplayConfig[];
-  /** Legacy single counter config (for backward compatibility) */
-  prefix?: string;
-  suffix?: string;
-  fontSize?: number;
-  fontFamily?: string;
-  color?: string;
-  position?: CounterPosition;
   /** Map from "x,y" coordinates to contribution count */
   contributionMap?: Map<string, number>;
 }
@@ -460,7 +453,7 @@ export const createProgressStack = (
   }
 
   // Add contribution counter if enabled
-  if (counterConfig?.enabled) {
+  if (counterConfig?.enabled && counterConfig.displays) {
     // Calculate total contributions from map or fall back to cell count
     const totalContributions = counterConfig.contributionMap
       ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
@@ -469,18 +462,8 @@ export const createProgressStack = (
     // Calculate width per cell
     const cellWidth = width / sortedCells.length;
 
-    // Build displays array (support both new displays and legacy single config)
-    const displays: CounterDisplayConfig[] = counterConfig.displays || [{
-      position: counterConfig.position || 'follow',
-      prefix: counterConfig.prefix,
-      suffix: counterConfig.suffix,
-      fontSize: counterConfig.fontSize,
-      fontFamily: counterConfig.fontFamily,
-      color: counterConfig.color,
-    }];
-
     // Process each display
-    displays.forEach((display, displayIndex) => {
+    counterConfig.displays.forEach((display, displayIndex) => {
       const fontSize = display.fontSize || dotSize;
       const fontFamily = display.fontFamily || 'Arial, sans-serif';
       const textColor = display.color || '#666';
@@ -539,8 +522,10 @@ export const createProgressStack = (
           if (position === 'top-left') {
             x = 0;
           } else if (position === 'top-right') {
-            x = cumulativeWidth;
+            // Clamp x to width to prevent text overflow when using text-anchor="end"
+            x = Math.min(cumulativeWidth, width);
           } else {
+            // follow mode
             x = cumulativeWidth + textOffsetX;
           }
 

@@ -32,15 +32,10 @@ const runAction = async (): Promise<void> => {
     const githubToken =
       core.getInput("github_token") || process.env.INPUT_GITHUB_TOKEN || process.env.GITHUB_TOKEN || "";
 
-    // Parse contribution counter options from environment variables
+    // Parse contribution counter configuration
     const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
-    const counterPrefix = process.env.INPUT_COUNTER_PREFIX || "";
-    const counterSuffix = process.env.INPUT_COUNTER_SUFFIX || "";
-    const counterFontSize = process.env.INPUT_COUNTER_FONT_SIZE ? parseInt(process.env.INPUT_COUNTER_FONT_SIZE) : undefined;
-    const counterColor = process.env.INPUT_COUNTER_COLOR || "#666";
-    const counterPosition = (process.env.INPUT_COUNTER_POSITION || 'follow') as 'top-left' | 'top-right' | 'follow';
     
-    // Parse multiple displays configuration (if provided)
+    // Parse multiple displays configuration
     let counterDisplays: any[] | undefined;
     if (process.env.INPUT_COUNTER_DISPLAYS) {
       try {
@@ -62,12 +57,8 @@ const runAction = async (): Promise<void> => {
     console.log(`📝 Processing ${outputs.length} output(s)`);
 
     // Add contribution counter configuration to all outputs if enabled
-    if (showContributionCounter) {
-      if (counterDisplays) {
-        console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
-      } else {
-        console.log(`📊 Contribution counter enabled: ${counterPrefix}X${counterSuffix} (position: ${counterPosition})`);
-      }
+    if (showContributionCounter && counterDisplays) {
+      console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
       
       // Note: contributionMap will be built in generate-contribution-snake.ts
       outputs.forEach(output => {
@@ -75,12 +66,6 @@ const runAction = async (): Promise<void> => {
           output.animationOptions.contributionCounter = {
             enabled: true,
             displays: counterDisplays,
-            // Legacy single counter config (for backward compatibility)
-            prefix: counterPrefix,
-            suffix: counterSuffix,
-            fontSize: counterFontSize,
-            color: counterColor,
-            position: counterPosition,
           };
         }
       });

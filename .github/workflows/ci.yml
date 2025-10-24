@@ -116,11 +116,11 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
           INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Legacy single counter mode
-          INPUT_COUNTER_PREFIX: "🎯 "
-          INPUT_COUNTER_SUFFIX: " contributions"
-          INPUT_COUNTER_POSITION: "follow"
-          INPUT_COUNTER_COLOR: "#7ee787"
+          # Single counter following progress bar
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#7ee787"}
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify all outputs exist

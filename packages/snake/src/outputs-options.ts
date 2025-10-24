@@ -60,13 +60,6 @@ export interface AnimationOptions {
       fontFamily?: string;
       color?: string;
     }>;
-    /** Legacy single counter config (for backward compatibility) */
-    prefix?: string;
-    suffix?: string;
-    fontSize?: number;
-    fontFamily?: string;
-    color?: string;
-    position?: 'top-left' | 'top-right' | 'follow';
     contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
   };
 }
