@@ -615,7 +615,16 @@ export const createProgressStack = async (
     for (let displayIndex = 0; displayIndex < counterConfig.displays.length; displayIndex++) {
       const display = counterConfig.displays[displayIndex];
       const fontSize = display.fontSize || dotSize;
-      const fontFamily = display.fontFamily || 'Arial, sans-serif';
+
+      // Use monospace font for accurate width calculation when using image placeholders
+      // This ensures precise alignment between text and images
+      const hasImagePlaceholders = display.prefix?.includes('{img:') ||
+                                    display.suffix?.includes('{img:') ||
+                                    display.text?.includes('{img:');
+      const fontFamily = hasImagePlaceholders
+        ? (display.fontFamily || "'Courier New', 'Consolas', monospace")
+        : (display.fontFamily || 'Arial, sans-serif');
+
       const textColor = display.color || '#666';
       const fontWeight = display.fontWeight || 'normal';
       const fontStyle = display.fontStyle || 'normal';
@@ -796,7 +805,7 @@ export const createProgressStack = async (
               let totalWidth = 0;
               for (const segment of segments) {
                 if (segment.type === 'text') {
-                  totalWidth += estimateTextWidth(segment.content, fontSize);
+                  totalWidth += estimateTextWidth(segment.content, fontSize, fontFamily);
                 } else if (segment.type === 'image' && segment.imageIndex !== undefined) {
                   if (display.images && segment.imageIndex < display.images.length) {
                     totalWidth += display.images[segment.imageIndex].width;
@@ -823,7 +832,7 @@ export const createProgressStack = async (
             for (const segment of segments) {
               if (segment.type === 'text') {
                 // Text segment - create text element
-                const textWidth = estimateTextWidth(segment.content, fontSize);
+                const textWidth = estimateTextWidth(segment.content, fontSize, fontFamily);
 
                 groupElements.push(
                   createElement("text", {
@@ -1121,13 +1130,19 @@ const parseTextWithPlaceholders = (text: string): TextSegment[] => {
  *
  * @param text - Text to measure
  * @param fontSize - Font size in pixels
+ * @param fontFamily - Font family string to detect monospace fonts
  * @returns Estimated width in pixels
  */
-const estimateTextWidth = (text: string, fontSize: number): number => {
-  // Average character width is approximately 0.5-0.6 times the font size
-  // Using 0.55 as a reasonable middle ground for monospace-ish fonts
-  // For more accurate results, could use canvas.measureText() but this adds complexity
-  return text.length * fontSize * 0.55;
+const estimateTextWidth = (text: string, fontSize: number, fontFamily: string): number => {
+  // Check if monospace font is being used
+  const isMonospace = fontFamily.toLowerCase().includes('courier') ||
+                      fontFamily.toLowerCase().includes('consolas') ||
+                      fontFamily.toLowerCase().includes('monospace');
+
+  // Monospace fonts: ~0.6x fontSize per character (accurate)
+  // Proportional fonts: ~0.5x fontSize average (less accurate)
+  const charWidthRatio = isMonospace ? 0.6 : 0.5;
+  return text.length * fontSize * charWidthRatio;
 };
 
 /**
