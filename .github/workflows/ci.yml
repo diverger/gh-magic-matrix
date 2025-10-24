@@ -225,7 +225,7 @@ jobs:
                     "url": ".github/assets/sprite.png",
                     "width": 32,
                     "height": 43,
-                    "anchorY": 0.625,
+                    "anchorY": 0.688,
                     "sprite": {
                       "framesPerLevel": 8,
                       "frameWidth": 48,
