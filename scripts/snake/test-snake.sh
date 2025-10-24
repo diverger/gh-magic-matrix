@@ -45,7 +45,18 @@ fi
 
 # Export environment variables for the snake action
 export INPUT_GITHUB_USER_NAME="$GITHUB_USER"
+export INPUT_GITHUB_TOKEN="${GITHUB_TOKEN:-${INPUT_GITHUB_TOKEN:-}}"
 export INPUT_OUTPUTS="$OUTPUT_FILE?palette=$THEME"
+export INPUT_SHOW_CONTRIBUTION_COUNTER="true"
+export INPUT_COUNTER_PREFIX="🎯 "
+export INPUT_COUNTER_SUFFIX=" contributions"
+
+# Check if token is available
+if [ -z "$INPUT_GITHUB_TOKEN" ]; then
+    echo "⚠️  Warning: GITHUB_TOKEN not set. The action may fail to fetch contribution data."
+    echo "   Set GITHUB_TOKEN environment variable or INPUT_GITHUB_TOKEN to use authenticated API."
+    echo ""
+fi
 
 echo "🐍 Testing Snake GitHub Action"
 echo "================================"
@@ -75,8 +86,8 @@ fi
 echo "🔨 Building with ncc..."
 bun run build
 
-if [ ! -f "dist/index.js" ]; then
-    echo "❌ Error: Build failed - dist/index.js not found"
+if [ ! -f "../../../../dist/snake/index.js" ]; then
+    echo "❌ Error: Build failed - ../../../../dist/snake/index.js not found"
     exit 1
 fi
 
@@ -85,7 +96,7 @@ echo ""
 
 # Run the snake action
 echo "🚀 Running snake action..."
-bun dist/index.js
+bun ../../../../dist/snake/index.js
 
 # Return to original directory
 cd - > /dev/null
