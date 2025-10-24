@@ -1146,8 +1146,17 @@ export const createProgressStack = async (
                       const anchorX = imageConfig.anchorX || 0;
                       const anchorY = imageConfig.anchorY || 0.5; // default middle
 
+                      // Since text uses dominant-baseline="middle", textY is at text's vertical center
+                      // To align image bottom with text baseline (bottom), we need to offset by half the text height
+                      // Approximate text height as fontSize (simplified, actual height may vary)
+                      const textHalfHeight = fontSize * 0.5;
+                      const baselineY = textY + textHalfHeight; // Text baseline (bottom) position
+
+                      // Calculate image Y position: baseline - (image height * anchor ratio)
+                      // anchorY=1.0 means image bottom aligns with baseline
+                      // anchorY=0.5 means image middle aligns with baseline
                       const imgX = currentX - (imageConfig.width * anchorX);
-                      const imgY = textY - (imageConfig.height * anchorY);
+                      const imgY = baselineY - (imageConfig.height * anchorY);
 
                       // Use <use> element to reference the image definition
                       // This avoids duplicating the large data URI in every frame
