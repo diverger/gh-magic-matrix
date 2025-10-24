@@ -100,12 +100,12 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
           INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Multiple displays example: fixed text + dynamic count + percentage
+          # Multiple displays example: fixed text + dynamic count + percentage with font styles
           INPUT_COUNTER_DISPLAYS: |
             [
-              {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14},
-              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989"},
-              {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922"}
+              {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
+              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
+              {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

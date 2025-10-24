@@ -307,6 +307,10 @@ export interface CounterDisplayConfig {
   fontFamily?: string;
   /** Text color */
   color?: string;
+  /** Font weight: 'normal', 'bold', or numeric (100-900) */
+  fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
+  /** Font style: 'normal' or 'italic' */
+  fontStyle?: 'normal' | 'italic';
 }
 
 /**
@@ -467,10 +471,31 @@ export const createProgressStack = (
       const fontSize = display.fontSize || dotSize;
       const fontFamily = display.fontFamily || 'Arial, sans-serif';
       const textColor = display.color || '#666';
+      const fontWeight = display.fontWeight || 'normal';
+      const fontStyle = display.fontStyle || 'normal';
       const position = display.position;
       // follow mode: same line as progress bar; others: above progress bar
       const textY = position === 'follow' ? (y + dotSize / 2) : (y - fontSize * 0.5);
       const textOffsetX = fontSize * 0.5; // Small offset
+
+      // Build common text attributes
+      const textAttrs: Record<string, string> = {
+        "font-size": fontSize.toString(),
+        "font-family": fontFamily,
+        fill: textColor,
+        "text-anchor": position === 'top-right' ? 'end' : 'start',
+        "dominant-baseline": "middle",
+      };
+
+      // Add font-weight if not normal
+      if (fontWeight !== 'normal') {
+        textAttrs["font-weight"] = fontWeight.toString();
+      }
+
+      // Add font-style if not normal
+      if (fontStyle !== 'normal') {
+        textAttrs["font-style"] = fontStyle;
+      }
 
       // Check if this is a fixed text display
       if (display.text) {
@@ -480,11 +505,7 @@ export const createProgressStack = (
             class: `contrib-counter contrib-fixed-${displayIndex}`,
             x: position === 'top-right' ? width.toFixed(1) : '0',
             y: textY.toString(),
-            "font-size": fontSize.toString(),
-            "font-family": fontFamily,
-            fill: textColor,
-            "text-anchor": position === 'top-right' ? 'end' : 'start',
-            "dominant-baseline": "middle",
+            ...textAttrs,
           }).replace("/>", `>${display.text}</text>`)
         );
       } else {
@@ -538,9 +559,6 @@ export const createProgressStack = (
           });
         });
 
-        // Determine text anchor based on position mode
-        const textAnchor = position === 'top-right' ? 'end' : 'start';
-
         // Create text elements with position and opacity animations
         textElements.forEach((elem, index) => {
           const textId = `contrib-text-${displayIndex}-${index}`;
@@ -561,11 +579,7 @@ export const createProgressStack = (
               class: `contrib-counter ${textId}`,
               x: elem.x.toFixed(1),
               y: textY.toString(),
-              "font-size": fontSize.toString(),
-              "font-family": fontFamily,
-              fill: textColor,
-              "text-anchor": textAnchor,
-              "dominant-baseline": "middle",
+              ...textAttrs,
             }).replace("/>", `>${displayText}</text>`)
           );
 

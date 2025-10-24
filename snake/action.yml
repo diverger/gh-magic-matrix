@@ -68,7 +68,9 @@ inputs:
       - text: Fixed text to display (if set, count/percentage are ignored)
       - prefix, suffix: Text around count/percentage
       - showCount, showPercentage: Control what to display (default: both true)
-      - fontSize, fontFamily, color: Styling options
+      - fontSize, fontFamily, color: Text styling
+      - fontWeight: 'normal', 'bold', or numeric (100-900)
+      - fontStyle: 'normal' or 'italic'
     required: false
 
 outputs:

@@ -59,6 +59,8 @@ export interface AnimationOptions {
       fontSize?: number;
       fontFamily?: string;
       color?: string;
+      fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
+      fontStyle?: 'normal' | 'italic';
     }>;
     contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
   };
