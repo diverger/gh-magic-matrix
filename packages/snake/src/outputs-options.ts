@@ -48,11 +48,25 @@ export interface AnimationOptions {
   /** Optional contribution counter configuration */
   contributionCounter?: {
     enabled: boolean;
+    /** Array of counter displays (for showing multiple counters) */
+    displays?: Array<{
+      position: 'top-left' | 'top-right' | 'follow';
+      text?: string; // Fixed text mode (if set, only this text is shown)
+      prefix?: string;
+      suffix?: string;
+      showCount?: boolean;
+      showPercentage?: boolean;
+      fontSize?: number;
+      fontFamily?: string;
+      color?: string;
+    }>;
+    /** Legacy single counter config (for backward compatibility) */
     prefix?: string;
     suffix?: string;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
+    position?: 'top-left' | 'top-right' | 'follow';
     contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
   };
 }

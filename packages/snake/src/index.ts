@@ -38,6 +38,17 @@ const runAction = async (): Promise<void> => {
     const counterSuffix = process.env.INPUT_COUNTER_SUFFIX || "";
     const counterFontSize = process.env.INPUT_COUNTER_FONT_SIZE ? parseInt(process.env.INPUT_COUNTER_FONT_SIZE) : undefined;
     const counterColor = process.env.INPUT_COUNTER_COLOR || "#666";
+    const counterPosition = (process.env.INPUT_COUNTER_POSITION || 'follow') as 'top-left' | 'top-right' | 'follow';
+    
+    // Parse multiple displays configuration (if provided)
+    let counterDisplays: any[] | undefined;
+    if (process.env.INPUT_COUNTER_DISPLAYS) {
+      try {
+        counterDisplays = JSON.parse(process.env.INPUT_COUNTER_DISPLAYS);
+      } catch (e) {
+        console.warn(`⚠️  Failed to parse INPUT_COUNTER_DISPLAYS: ${e}`);
+      }
+    }
 
     if (!userName) {
       throw new Error("github_user_name input is required");
@@ -52,16 +63,24 @@ const runAction = async (): Promise<void> => {
 
     // Add contribution counter configuration to all outputs if enabled
     if (showContributionCounter) {
-      console.log(`📊 Contribution counter enabled: ${counterPrefix}X${counterSuffix}`);
+      if (counterDisplays) {
+        console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
+      } else {
+        console.log(`📊 Contribution counter enabled: ${counterPrefix}X${counterSuffix} (position: ${counterPosition})`);
+      }
+      
       // Note: contributionMap will be built in generate-contribution-snake.ts
       outputs.forEach(output => {
         if (output) {
           output.animationOptions.contributionCounter = {
             enabled: true,
+            displays: counterDisplays,
+            // Legacy single counter config (for backward compatibility)
             prefix: counterPrefix,
             suffix: counterSuffix,
             fontSize: counterFontSize,
             color: counterColor,
+            position: counterPosition,
           };
         }
       });

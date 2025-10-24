@@ -100,8 +100,13 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
           INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          INPUT_COUNTER_PREFIX: "🎯 "
-          INPUT_COUNTER_SUFFIX: " contributions"
+          # Multiple displays example: fixed text + dynamic count + percentage
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14},
+              {"position": "top-right", "prefix": "Total: ", "showCount": true, "showPercentage": false, "color": "#bf3989"},
+              {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922"}
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake contribution (dark theme)
@@ -111,8 +116,11 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
           INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Legacy single counter mode
           INPUT_COUNTER_PREFIX: "🎯 "
           INPUT_COUNTER_SUFFIX: " contributions"
+          INPUT_COUNTER_POSITION: "follow"
+          INPUT_COUNTER_COLOR: "#7ee787"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify all outputs exist

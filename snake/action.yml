@@ -33,6 +33,65 @@ inputs:
           ocean.svg?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
     required: false
     default: 'snake.svg'
+  show_contribution_counter:
+    description: 'Show contribution counter with progress bar'
+    required: false
+    default: 'false'
+  counter_prefix:
+    description: 'Text prefix for contribution counter (supports emoji)'
+    required: false
+    default: ''
+  counter_suffix:
+    description: 'Text suffix for contribution counter (supports emoji)'
+    required: false
+    default: ''
+  counter_position:
+    description: |
+      Position of the contribution counter text (legacy single counter mode):
+      - 'top-left': Fixed at left edge, does not move
+      - 'top-right': Fixed at right edge, follows progress bar right edge
+      - 'follow': Follows progress bar head (default)
+      
+      For multiple counters with different styles, use counter_displays instead.
+    required: false
+    default: 'follow'
+  counter_displays:
+    description: |
+      JSON array of multiple counter displays. Each display can have different position, text, colors.
+      
+      Example:
+        [{
+          "position": "top-left",
+          "text": "GitHub Contributions",
+          "color": "#58a6ff",
+          "fontSize": 16
+        }, {
+          "position": "top-right",
+          "prefix": "Total: ",
+          "showCount": true,
+          "showPercentage": false,
+          "color": "#7ee787"
+        }, {
+          "position": "follow",
+          "prefix": "🎯 ",
+          "suffix": " commits",
+          "color": "#ffa657"
+        }]
+      
+      Fields:
+      - position: 'top-left' | 'top-right' | 'follow' (required)
+      - text: Fixed text to display (if set, count/percentage are ignored)
+      - prefix, suffix: Text around count/percentage
+      - showCount, showPercentage: Control what to display (default: both true)
+      - fontSize, fontFamily, color: Styling options
+    required: false
+  counter_font_size:
+    description: 'Font size for contribution counter (defaults to progress bar height)'
+    required: false
+  counter_color:
+    description: 'Color for contribution counter text'
+    required: false
+    default: '#666'
 
 outputs:
   svg_path:

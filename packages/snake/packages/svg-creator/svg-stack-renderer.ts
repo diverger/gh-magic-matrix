@@ -281,21 +281,49 @@ export interface ProgressStackResult {
 }
 
 /**
- * Configuration for contribution counter display.
+ * Text position mode for contribution counter.
  */
-export interface ContributionCounterConfig {
-  /** Enable counter display */
-  enabled: boolean;
-  /** Text prefix (can include emoji) */
+export type CounterPosition = 'top-left' | 'top-right' | 'follow';
+
+/**
+ * Configuration for a single counter display.
+ */
+export interface CounterDisplayConfig {
+  /** Text position mode */
+  position: CounterPosition;
+  /** Fixed text to display (if set, only this text is shown, no count/percentage) */
+  text?: string;
+  /** Text prefix (used when showing count, can include emoji) */
   prefix?: string;
-  /** Text suffix (can include emoji) */
+  /** Text suffix (used when showing count, can include emoji) */
   suffix?: string;
+  /** Show count number (default: true if text is not set) */
+  showCount?: boolean;
+  /** Show percentage (default: true if text is not set) */
+  showPercentage?: boolean;
   /** Font size in pixels */
   fontSize?: number;
   /** Font family */
   fontFamily?: string;
   /** Text color */
   color?: string;
+}
+
+/**
+ * Configuration for contribution counter display.
+ */
+export interface ContributionCounterConfig {
+  /** Enable counter display */
+  enabled: boolean;
+  /** Array of counter displays (can show multiple counters at different positions) */
+  displays?: CounterDisplayConfig[];
+  /** Legacy single counter config (for backward compatibility) */
+  prefix?: string;
+  suffix?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  position?: CounterPosition;
   /** Map from "x,y" coordinates to contribution count */
   contributionMap?: Map<string, number>;
 }
@@ -433,12 +461,6 @@ export const createProgressStack = (
 
   // Add contribution counter if enabled
   if (counterConfig?.enabled) {
-    const fontSize = counterConfig.fontSize || dotSize; // Default to dotSize (progress bar height)
-    const fontFamily = counterConfig.fontFamily || 'Arial, sans-serif';
-    const textColor = counterConfig.color || '#666';
-    const prefix = counterConfig.prefix || '';
-    const suffix = counterConfig.suffix || '';
-
     // Calculate total contributions from map or fall back to cell count
     const totalContributions = counterConfig.contributionMap
       ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
@@ -447,54 +469,119 @@ export const createProgressStack = (
     // Calculate width per cell
     const cellWidth = width / sortedCells.length;
 
-    // Starting position (left edge of progress bar with offset)
-    const textStartX = 0;
-    const textOffsetX = fontSize * 0.5; // Offset to the right of progress bar head
-    const textY = y + dotSize / 2; // Vertically center with progress bar
+    // Build displays array (support both new displays and legacy single config)
+    const displays: CounterDisplayConfig[] = counterConfig.displays || [{
+      position: counterConfig.position || 'follow',
+      prefix: counterConfig.prefix,
+      suffix: counterConfig.suffix,
+      fontSize: counterConfig.fontSize,
+      fontFamily: counterConfig.fontFamily,
+      color: counterConfig.color,
+    }];
 
-    // Create multiple text elements, one for each state, and animate their position and opacity
-    let cumulativeCount = 0;
-    let cumulativeWidth = 0;
-    const textElements: Array<{ count: number; percentage: string; time: number; x: number }> = [
-      { count: 0, percentage: '0.0', time: 0, x: textStartX }
-    ];
+    // Process each display
+    displays.forEach((display, displayIndex) => {
+      const fontSize = display.fontSize || dotSize;
+      const fontFamily = display.fontFamily || 'Arial, sans-serif';
+      const textColor = display.color || '#666';
+      const position = display.position;
+      const textY = y - fontSize * 0.5; // Above progress bar
+      const textOffsetX = fontSize * 0.5; // Small offset
 
-    sortedCells.forEach((cell, index) => {
-      // Get contribution count for this cell using its coordinates
-      let count = 1; // Default to 1 if no map or coordinates
-      if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
-        const key = `${cell.x},${cell.y}`;
-        count = counterConfig.contributionMap.get(key) || 1;
-      }
+      // Check if this is a fixed text display
+      if (display.text) {
+        // Fixed text mode - show only the static text
+        svgElements.push(
+          createElement("text", {
+            class: `contrib-counter contrib-fixed-${displayIndex}`,
+            x: position === 'top-right' ? width.toFixed(1) : '0',
+            y: textY.toString(),
+            "font-size": fontSize.toString(),
+            "font-family": fontFamily,
+            fill: textColor,
+            "text-anchor": position === 'top-right' ? 'end' : 'start',
+            "dominant-baseline": "middle",
+          }).replace("/>", `>${display.text}</text>`)
+        );
+      } else {
+        // Dynamic counter mode - show animated count/percentage
+        const prefix = display.prefix || '';
+        const suffix = display.suffix || '';
+        const showCount = display.showCount !== false; // Default true
+        const showPercentage = display.showPercentage !== false; // Default true
 
-      cumulativeCount += count;
-      cumulativeWidth += cellWidth;
-      const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
-      textElements.push({
-        count: cumulativeCount,
-        percentage,
-        time: cell.t!,
-        x: cumulativeWidth + textOffsetX,
-      });
-    });
+        // Build counter states
+        let cumulativeCount = 0;
+        let cumulativeWidth = 0;
+        const textElements: Array<{ count: number; percentage: string; time: number; x: number }> = [];
 
-    // Create text elements with position and opacity animations
-    textElements.forEach((elem, index) => {
-      const textId = `contrib-text-${index}`;
-      const displayText = `${prefix}${elem.count} (${elem.percentage}%)${suffix}`;
+        // Initial state
+        textElements.push({
+          count: 0,
+          percentage: '0.0',
+          time: 0,
+          x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0)
+        });
 
-      svgElements.push(
-        createElement("text", {
-          class: `contrib-counter ${textId}`,
-          x: elem.x.toFixed(1),
-          y: textY.toString(),
-          "font-size": fontSize.toString(),
-          "font-family": fontFamily,
-          fill: textColor,
-          "text-anchor": "start",
-          "dominant-baseline": "middle",
-        }).replace("/>", `>${displayText}</text>`)
-      );
+        sortedCells.forEach((cell, index) => {
+          // Get contribution count for this cell using its coordinates
+          let count = 1; // Default to 1 if no map or coordinates
+          if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
+            const key = `${cell.x},${cell.y}`;
+            count = counterConfig.contributionMap.get(key) || 1;
+          }
+
+          cumulativeCount += count;
+          cumulativeWidth += cellWidth;
+          const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
+          
+          let x: number;
+          if (position === 'top-left') {
+            x = 0;
+          } else if (position === 'top-right') {
+            x = cumulativeWidth;
+          } else {
+            x = cumulativeWidth + textOffsetX;
+          }
+
+          textElements.push({
+            count: cumulativeCount,
+            percentage,
+            time: cell.t!,
+            x,
+          });
+        });
+
+        // Determine text anchor based on position mode
+        const textAnchor = position === 'top-right' ? 'end' : 'start';
+
+        // Create text elements with position and opacity animations
+        textElements.forEach((elem, index) => {
+          const textId = `contrib-text-${displayIndex}-${index}`;
+          
+          // Build display text based on showCount and showPercentage flags
+          let displayText = prefix;
+          if (showCount && showPercentage) {
+            displayText += `${elem.count} (${elem.percentage}%)`;
+          } else if (showCount) {
+            displayText += `${elem.count}`;
+          } else if (showPercentage) {
+            displayText += `${elem.percentage}%`;
+          }
+          displayText += suffix;
+
+          svgElements.push(
+            createElement("text", {
+              class: `contrib-counter ${textId}`,
+              x: elem.x.toFixed(1),
+              y: textY.toString(),
+              "font-size": fontSize.toString(),
+              "font-family": fontFamily,
+              fill: textColor,
+              "text-anchor": textAnchor,
+              "dominant-baseline": "middle",
+            }).replace("/>", `>${displayText}</text>`)
+          );
 
       // Create opacity animation keyframes
       const keyframes: AnimationKeyframe[] = [];
@@ -529,16 +616,18 @@ export const createProgressStack = (
         keyframes.push({ t: 1, style: 'opacity:1' });
       }
 
-      const animName = `contrib-anim-${index}`;
-      styles.push(
-        createKeyframeAnimation(animName, keyframes),
-        `.${textId} {
-          animation: ${animName} linear ${duration}ms infinite;
-          opacity: 0;
-        }`
-      );
-    });
-  }
+          const animName = `contrib-anim-${displayIndex}-${index}`;
+          styles.push(
+            createKeyframeAnimation(animName, keyframes),
+            `.${textId} {
+              animation: ${animName} linear ${duration}ms infinite;
+              opacity: 0;
+            }`
+          );
+        }); // End textElements.forEach
+      } // End if (display.text) else
+    }); // End displays.forEach
+  } // End if (counterConfig?.enabled)
 
   return { svgElements, styles: styles.join('\n') };
 };
