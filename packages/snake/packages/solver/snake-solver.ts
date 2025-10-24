@@ -351,7 +351,8 @@ export class SnakeSolver {
     for (let x = 0; x < this.grid.width; x++) {
       for (let y = 0; y < this.grid.height; y++) {
         const color = this.grid.getColor(x, y);
-        if (!this.grid.isEmptyCell(color) && (color as number) < (targetColor as number)) {
+        // SNK uses <= for clean phase (includes target color cells)
+        if (!this.grid.isEmptyCell(color) && (color as number) <= (targetColor as number)) {
           const tunnel = Tunnel.findBestTunnel(
             this.grid,
             this.outside,
@@ -362,7 +363,12 @@ export class SnakeSolver {
           );
 
           if (tunnel) {
-            points.push(new Point(x, y));
+            // SNK adds all tunnel points, not just the start point
+            for (const point of tunnel.toArray()) {
+              if (!this.isEmptySafe(point.x, point.y)) {
+                points.push(point);
+              }
+            }
           }
         }
       }
