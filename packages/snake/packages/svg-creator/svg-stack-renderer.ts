@@ -768,7 +768,7 @@ export const createProgressStack = async (
           // Build display text based on showCount and showPercentage flags
           let displayText = prefix;
           if (showCount && showPercentage) {
-            displayText += `${elem.count} (${elem.percentage}%)`;
+            displayText += `${elem.count}(${elem.percentage}%)`;
           } else if (showCount) {
             displayText += `${elem.count}`;
           } else if (showPercentage) {
