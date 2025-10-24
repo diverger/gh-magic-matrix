@@ -62,13 +62,13 @@ export interface AnimationOptions {
  * @param animationOptions - Animation timing options.
  * @returns Complete SVG string.
  */
-export const createSvg = (
+export const createSvg = async (
   grid: Grid,
   cells: Point[] | null,
   chain: Snake[],
   drawOptions: SvgRenderOptions,
   animationOptions: AnimationOptions,
-): string => {
+): Promise<string> => {
   // Calculate required space for counter text
   // Find the maximum font size from all displays (top-left/top-right need space above progress bar)
   let maxCounterFontSize = 0;
@@ -138,7 +138,7 @@ export const createSvg = (
 
   // Create progress stack (timeline bar showing cell consumption)
   // Convert AnimatedGridCell to the format expected by createProgressStack
-  const stackResult = createProgressStack(
+  const stackResult = await createProgressStack(
     animatedCells.map(cell => ({
       t: cell.animationTime,
       color: cell.color,

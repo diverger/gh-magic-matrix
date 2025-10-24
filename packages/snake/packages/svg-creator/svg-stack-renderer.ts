@@ -287,10 +287,46 @@ export type CounterPosition = 'top-left' | 'top-right' | 'follow';
 
 /**
  * Image configuration for counter display.
+ *
+ * Supports three modes:
+ * 1. Single image: Just provide `url`
+ * 2. Sprite sheet: Provide `url` and `sprite` config
+ * 3. Multiple separate images: Provide `urlFolder` (GitHub workflows compatible)
  */
 export interface CounterImageConfig {
-  /** Image URL (data URI or external URL) */
-  url: string;
+  /**
+   * Single image URL (data URI or external URL)
+   * Use this for single image or sprite sheet
+   */
+  url?: string;
+
+  /**
+   * Folder path containing numbered images for animation frames
+   * Images should be named: frame-0.png, frame-1.png, frame-2.png, etc.
+   * This path will be resolved relative to the workspace in GitHub Actions.
+   *
+   * Example: 'images/character' will look for:
+   *   - images/character/frame-0.png
+   *   - images/character/frame-1.png
+   *   - images/character/frame-2.png
+   *   - ...
+   *
+   * Note: In GitHub workflows, these files should be committed to the repository
+   * or generated before the action runs.
+   */
+  urlFolder?: string;
+
+  /**
+   * Pattern for frame filenames when using urlFolder
+   * Default: 'frame-{n}.png' where {n} is the frame number (0-indexed)
+   *
+   * Examples:
+   *   - 'frame-{n}.png' -> frame-0.png, frame-1.png, ...
+   *   - 'img_{n}.gif' -> img_0.gif, img_1.gif, ...
+   *   - 'sprite{n}.webp' -> sprite0.webp, sprite1.webp, ...
+   */
+  framePattern?: string;
+
   /** Image width in pixels */
   width: number;
   /** Image height in pixels */
@@ -336,15 +372,30 @@ export interface CounterImageConfig {
    * Example: 0.85 = a point at 85% down from the top (useful for character feet) aligns to baseline
    */
   anchorY?: number;
-  /** Sprite sheet configuration (for animated sprites) */
+  /** Sprite sheet or multi-image animation configuration */
   sprite?: {
-    /** Number of frames in the sprite sheet */
+    /**
+     * Number of frames in the animation
+     * - For sprite sheet (url): number of frames in the sheet
+     * - For separate images (urlFolder): number of image files to load
+     */
     frames: number;
-    /** Frame width (if different from image width / frames) */
+    /**
+     * Frame width (only for sprite sheet mode)
+     * If not provided, calculated as: image width / frames (horizontal) or image width (vertical)
+     */
     frameWidth?: number;
-    /** Frame height (if different from image height) */
+    /**
+     * Frame height (only for sprite sheet mode)
+     * If not provided, calculated as: image height (horizontal) or image height / frames (vertical)
+     */
     frameHeight?: number;
-    /** Layout: 'horizontal' (default) or 'vertical' */
+    /**
+     * Layout (only for sprite sheet mode)
+     * - 'horizontal': frames arranged left to right
+     * - 'vertical': frames arranged top to bottom
+     * Default: 'horizontal'
+     */
     layout?: 'horizontal' | 'vertical';
     /**
      * Animation mode:
@@ -439,14 +490,14 @@ export interface ContributionCounterConfig {
  * );
  * ```
  */
-export const createProgressStack = (
+export const createProgressStack = async (
   cells: AnimatedCellData[],
   dotSize: number,
   width: number,
   y: number,
   duration: number,
   counterConfig?: ContributionCounterConfig,
-): ProgressStackResult => {
+): Promise<ProgressStackResult> => {
   const svgElements: string[] = [];
   const styles: string[] = [
     `.u{
@@ -553,7 +604,8 @@ export const createProgressStack = (
     const cellWidth = width / sortedCells.length;
 
     // Process each display
-    counterConfig.displays.forEach((display, displayIndex) => {
+    for (let displayIndex = 0; displayIndex < counterConfig.displays.length; displayIndex++) {
+      const display = counterConfig.displays[displayIndex];
       const fontSize = display.fontSize || dotSize;
       const fontFamily = display.fontFamily || 'Arial, sans-serif';
       const textColor = display.color || '#666';
@@ -712,8 +764,312 @@ export const createProgressStack = (
           );
         }); // End textElements.forEach
       } // End if (display.text) else
-    }); // End displays.forEach
+
+      // Render images if provided
+      if (display.images && display.images.length > 0) {
+        // Process images sequentially to handle async resolveImageUrl
+        for (let imageIndex = 0; imageIndex < display.images.length; imageIndex++) {
+          const imageConfig = display.images[imageIndex];
+
+          // Validate image config
+          if (!validateImageConfig(imageConfig)) {
+            console.warn(`Invalid image config at display ${displayIndex}, image ${imageIndex}`);
+            continue;
+          }
+
+          // Resolve image mode
+          const imageMode = resolveImageMode(imageConfig);
+
+          // For static image (single mode), render it directly
+          if (imageMode.mode === 'single' && imageMode.spriteUrl) {
+            // Resolve image URL (convert local files to data URI, keep external URLs as-is)
+            const resolvedUrl = await resolveImageUrl(imageMode.spriteUrl);
+
+            // Parse anchor configuration
+            // Anchor defines which point on the image aligns to the text baseline
+            const anchor = imageConfig.anchor || 'bottom-center';
+            let anchorX = 0.5; // default center
+            let anchorY = 1.0; // default bottom (aligns bottom of image to baseline)
+
+            // Parse anchor string
+            if (anchor.includes('top')) anchorY = 0;
+            else if (anchor.includes('center') && !anchor.includes('left') && !anchor.includes('right')) anchorY = 0.5;
+            else if (anchor.includes('bottom')) anchorY = 1.0;
+
+            if (anchor.includes('left')) anchorX = 0;
+            else if (anchor.includes('right')) anchorX = 1.0;
+            else if (anchor.includes('center')) anchorX = 0.5;
+
+            // Override with custom anchor values if provided
+            if (imageConfig.anchorX !== undefined) anchorX = imageConfig.anchorX;
+            if (imageConfig.anchorY !== undefined) anchorY = imageConfig.anchorY;
+
+            // Calculate base X position based on display position
+            let baseX: number;
+            if (position === 'top-left') {
+              baseX = 0;
+            } else if (position === 'top-right') {
+              baseX = width;
+            } else {
+              // follow mode
+              baseX = 0;
+            }
+
+            // Calculate final image position
+            // The anchor point on the image should align to (baseX, textY)
+            // SVG image x,y is the top-left corner, so we need to offset by the anchor point
+            const imgX = baseX - imageConfig.width * anchorX;
+            let imgY = textY - imageConfig.height * anchorY;
+
+            // Apply vertical offset if provided (positive = move up, negative = move down)
+            if (imageConfig.offsetY) {
+              imgY -= imageConfig.offsetY;
+            }
+
+            // Create SVG image element
+            svgElements.push(
+              createElement("image", {
+                class: `contrib-image contrib-image-${displayIndex}-${imageIndex}`,
+                href: resolvedUrl,
+                x: imgX.toFixed(1),
+                y: imgY.toFixed(1),
+                width: imageConfig.width.toString(),
+                height: imageConfig.height.toString(),
+              })
+            );
+          }
+
+          // TODO: Implement sprite-sheet and multi-file animation modes
+          if (imageMode.mode === 'sprite-sheet') {
+            console.warn('Sprite sheet animation not yet implemented');
+          }
+          if (imageMode.mode === 'multi-file') {
+            console.warn('Multi-file animation not yet implemented');
+          }
+        }
+      } // End if (display.images)
+    } // End displays loop
   } // End if (counterConfig?.enabled)
 
   return { svgElements, styles: styles.join('\n') };
 };
+
+/**
+ * Helper function to generate frame URLs from folder path and pattern.
+ * This is used when the user provides multiple separate image files instead of a sprite sheet.
+ *
+ * @param urlFolder - Folder path containing the frame images
+ * @param framePattern - Pattern for frame filenames (default: 'frame-{n}.png')
+ * @param frameCount - Number of frames to generate URLs for
+ * @returns Array of URLs for each frame
+ *
+ * @example
+ * ```typescript
+ * // Default pattern
+ * const urls = generateFrameUrls('images/character', undefined, 5);
+ * // Returns: ['images/character/frame-0.png', 'images/character/frame-1.png', ...]
+ *
+ * // Custom pattern
+ * const urls = generateFrameUrls('assets/sprite', 'img_{n}.gif', 3);
+ * // Returns: ['assets/sprite/img_0.gif', 'assets/sprite/img_1.gif', 'assets/sprite/img_2.gif']
+ * ```
+ */
+export const generateFrameUrls = (
+  urlFolder: string,
+  framePattern: string = 'frame-{n}.png',
+  frameCount: number
+): string[] => {
+  const urls: string[] = [];
+
+  // Normalize folder path (remove trailing slash if present)
+  const normalizedFolder = urlFolder.replace(/\/$/, '');
+
+  for (let i = 0; i < frameCount; i++) {
+    // Replace {n} placeholder with frame number
+    const filename = framePattern.replace('{n}', i.toString());
+    const url = `${normalizedFolder}/${filename}`;
+    urls.push(url);
+  }
+
+  return urls;
+};
+
+/**
+ * Validates that a CounterImageConfig has either url or urlFolder set.
+ *
+ * @param config - Image configuration to validate
+ * @returns True if valid, false otherwise
+ */
+export const validateImageConfig = (config: CounterImageConfig): boolean => {
+  // Must have either url or urlFolder
+  if (!config.url && !config.urlFolder) {
+    console.error('CounterImageConfig must have either "url" or "urlFolder" set');
+    return false;
+  }
+
+  // Cannot have both url and urlFolder
+  if (config.url && config.urlFolder) {
+    console.error('CounterImageConfig cannot have both "url" and "urlFolder" set');
+    return false;
+  }
+
+  // If urlFolder is used, sprite.frames must be set
+  if (config.urlFolder && (!config.sprite || !config.sprite.frames)) {
+    console.error('When using "urlFolder", sprite.frames must be specified');
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Resolves the image configuration to determine what mode is being used
+ * and returns the appropriate rendering information.
+ *
+ * @param config - Image configuration
+ * @returns Object containing mode and relevant data
+ */
+export const resolveImageMode = (config: CounterImageConfig): {
+  mode: 'single' | 'sprite-sheet' | 'multi-file';
+  frameUrls?: string[];
+  spriteUrl?: string;
+} => {
+  if (!validateImageConfig(config)) {
+    throw new Error('Invalid CounterImageConfig');
+  }
+
+  // Multi-file mode: separate images in a folder
+  if (config.urlFolder) {
+    const frameCount = config.sprite!.frames;
+    const framePattern = config.framePattern || 'frame-{n}.png';
+    const frameUrls = generateFrameUrls(config.urlFolder, framePattern, frameCount);
+
+    return {
+      mode: 'multi-file',
+      frameUrls,
+    };
+  }
+
+  // Sprite sheet or single image mode
+  if (config.sprite && config.sprite.frames > 1) {
+    return {
+      mode: 'sprite-sheet',
+      spriteUrl: config.url!,
+    };
+  }
+
+  // Single static image
+  return {
+    mode: 'single',
+    spriteUrl: config.url!,
+  };
+};
+
+/**
+ * Checks if a URL is an external HTTP/HTTPS URL
+ *
+ * @param url - URL to check
+ * @returns True if it's an external URL, false if it's a local file path
+ */
+export const isExternalUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
+/**
+ * Converts a local image file to a data URI for embedding in SVG
+ * This function is used in GitHub Actions to read image files from the user's repository
+ * and embed them directly into the SVG output.
+ *
+ * @param filePath - Path to the local image file (relative to workspace root)
+ * @returns Data URI string (e.g., 'data:image/png;base64,...') or null if file not found
+ *
+ * @example
+ * ```typescript
+ * const dataUri = await loadImageAsDataUri('.github/assets/tree.png');
+ * // Returns: 'data:image/png;base64,iVBORw0KGgoAAAA...'
+ * ```
+ */
+export const loadImageAsDataUri = async (filePath: string): Promise<string | null> => {
+  try {
+    // Dynamic import to avoid bundling issues
+    const fs = await import('fs');
+    const path = await import('path');
+
+    // Resolve absolute path
+    const absolutePath = path.resolve(filePath);
+
+    // Check if file exists
+    if (!fs.existsSync(absolutePath)) {
+      console.error(`Image file not found: ${filePath}`);
+      return null;
+    }
+
+    // Read file as buffer
+    const imageBuffer = fs.readFileSync(absolutePath);
+
+    // Detect MIME type from file extension
+    const ext = path.extname(filePath).toLowerCase();
+    let mimeType = 'image/png'; // default
+
+    switch (ext) {
+      case '.png':
+        mimeType = 'image/png';
+        break;
+      case '.jpg':
+      case '.jpeg':
+        mimeType = 'image/jpeg';
+        break;
+      case '.gif':
+        mimeType = 'image/gif';
+        break;
+      case '.webp':
+        mimeType = 'image/webp';
+        break;
+      case '.svg':
+        mimeType = 'image/svg+xml';
+        break;
+      default:
+        mimeType = 'image/png';
+    }
+
+    // Convert to base64
+    const base64 = imageBuffer.toString('base64');
+
+    // Return data URI
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.error(`Error loading image ${filePath}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Resolves an image URL to either use as-is (external URL) or convert to data URI (local file)
+ *
+ * @param url - Image URL or local file path
+ * @returns Resolved URL (original if external, data URI if local file)
+ *
+ * @example
+ * ```typescript
+ * // External URL - returns as-is
+ * const url1 = await resolveImageUrl('https://example.com/image.png');
+ * // Returns: 'https://example.com/image.png'
+ *
+ * // Local file - converts to data URI
+ * const url2 = await resolveImageUrl('.github/assets/tree.png');
+ * // Returns: 'data:image/png;base64,iVBORw0KGgoAAAA...'
+ * ```
+ */
+export const resolveImageUrl = async (url: string): Promise<string> => {
+  // If it's an external URL, use it directly
+  if (isExternalUrl(url)) {
+    return url;
+  }
+
+  // Otherwise, load local file and convert to data URI
+  const dataUri = await loadImageAsDataUri(url);
+
+  // If conversion failed, return original URL (will likely fail to load, but that's expected)
+  return dataUri || url;
+};
+

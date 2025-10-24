@@ -57,7 +57,7 @@ export class SnakeAction {
       const snakePath = this.generateSnakePath();
 
       // 4. Create SVG animation
-      const svg = this.createSVGAnimation(snakePath);
+      const svg = await this.createSVGAnimation(snakePath);
 
       // 5. Save SVG file
       await this.saveSVG(svg);
@@ -193,7 +193,7 @@ export class SnakeAction {
   /**
    * Create SVG animation from snake path
    */
-  private createSVGAnimation(snakePath: Snake[]): string {
+  private async createSVGAnimation(snakePath: Snake[]): Promise<string> {
     console.log("🎬 Creating SVG animation");
 
     // Build color dots mapping (contribution level -> color hex)
@@ -262,7 +262,7 @@ export class SnakeAction {
     }
 
     // Delegate to existing svg-builder
-    return createSvg(this.grid, cells, snakePath, drawOptions, animationOptions);
+    return await createSvg(this.grid, cells, snakePath, drawOptions, animationOptions);
   }
 
   /**

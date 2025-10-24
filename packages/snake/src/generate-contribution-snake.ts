@@ -136,7 +136,7 @@ export const generateContributionSnake = async (
             }
 
             // Create complete SVG using the comprehensive createSvg function
-            const svgContent = createSvg(
+            const svgContent = await createSvg(
               grid,
               null, // Use all cells
               route,

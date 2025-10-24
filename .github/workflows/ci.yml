@@ -123,6 +123,32 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate snake with static image (tree.png test)
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-image.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test static image display with tree.png
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "prefix": "🌲 ",
+                "suffix": " contributions",
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 32,
+                    "height": 32,
+                    "anchorY": 0.875
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify all outputs exist
         run: |
           ls -la dist/
@@ -135,7 +161,16 @@ jobs:
           test -f dist/blinking-contrib/dark.svg
           test -f dist/snake/light.svg
           test -f dist/snake/dark.svg
+          test -f dist/snake/with-image.svg
           echo "✅ All output files generated successfully"
+
+          # Verify static image is embedded as data URI
+          if grep -q "data:image" dist/snake/with-image.svg; then
+            echo "✅ Static image embedded as data URI in with-image.svg"
+          else
+            echo "❌ Static image NOT embedded in with-image.svg"
+            exit 1
+          fi
 
       - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
