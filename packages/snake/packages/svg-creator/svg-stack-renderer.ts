@@ -710,22 +710,43 @@ export const createProgressStack = async (
           });
         });
 
-        // Pre-load image data URIs to avoid duplication in every frame
+        // Pre-load image data URIs and create SVG defs
         // IMPORTANT: Without this optimization, each animation frame would embed
         // a full copy of the image data URI, causing SVG files to balloon to
         // hundreds of MB (e.g., 365 frames × 50KB image = 18MB+ just for one image).
-        // By loading once and reusing the same data URI string, we keep file sizes manageable.
+        // By defining images in <defs> once and using <use> references, we keep file sizes manageable.
         const imageDataMap = new Map<number, string>();
+        const imageDefsElements: string[] = [];
         if (display.images && display.images.length > 0) {
           for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
             const imageConfig = display.images[imgIdx];
             if (validateImageConfig(imageConfig) && imageConfig.url) {
               const resolvedUrl = await resolveImageUrl(imageConfig.url);
               if (resolvedUrl) {
-                imageDataMap.set(imgIdx, resolvedUrl);
+                const defId = `contrib-img-${displayIndex}-${imgIdx}`;
+                imageDataMap.set(imgIdx, defId);
+
+                // Create image definition in <defs>
+                imageDefsElements.push(
+                  createElement("image", {
+                    id: defId,
+                    href: resolvedUrl,
+                    width: imageConfig.width.toString(),
+                    height: imageConfig.height.toString(),
+                  })
+                );
               }
             }
           }
+        }
+
+        // Add defs to svgElements if we have any images
+        if (imageDefsElements.length > 0) {
+          svgElements.push(
+            "<defs>",
+            ...imageDefsElements,
+            "</defs>"
+          );
         }
 
         // Create text elements with position and opacity animations
@@ -784,16 +805,16 @@ export const createProgressStack = async (
 
                 currentX += textWidth;
               } else if (segment.type === 'image' && segment.imageIndex !== undefined) {
-                // Image segment - create image element using pre-loaded data
+                // Image segment - use <use> to reference predefined image in <defs>
                 const imageIndex = segment.imageIndex;
 
                 if (display.images && imageIndex < display.images.length) {
                   const imageConfig = display.images[imageIndex];
 
-                  // Get pre-loaded image data URI from map
-                  const resolvedUrl = imageDataMap.get(imageIndex);
+                  // Get image def ID from map
+                  const defId = imageDataMap.get(imageIndex);
 
-                  if (resolvedUrl) {
+                  if (defId) {
                     // Calculate image position based on anchor
                     const anchorX = imageConfig.anchorX || 0;
                     const anchorY = imageConfig.anchorY || 0.5; // default middle
@@ -801,14 +822,14 @@ export const createProgressStack = async (
                     const imgX = currentX - (imageConfig.width * anchorX);
                     const imgY = textY - (imageConfig.height * anchorY);
 
+                    // Use <use> element to reference the image definition
+                    // This avoids duplicating the large data URI in every frame
                     groupElements.push(
-                      createElement("image", {
+                      createElement("use", {
                         class: `contrib-image ${textId}`,
-                        href: resolvedUrl,
+                        href: `#${defId}`,
                         x: imgX.toFixed(1),
                         y: imgY.toFixed(1),
-                        width: imageConfig.width.toString(),
-                        height: imageConfig.height.toString(),
                       })
                     );
 
@@ -867,90 +888,6 @@ export const createProgressStack = async (
           );
         } // End for loop
       } // End if (display.text) else
-
-      // Render images if provided
-      if (display.images && display.images.length > 0) {
-        // Process images sequentially to handle async resolveImageUrl
-        for (let imageIndex = 0; imageIndex < display.images.length; imageIndex++) {
-          const imageConfig = display.images[imageIndex];
-
-          // Validate image config
-          if (!validateImageConfig(imageConfig)) {
-            console.warn(`Invalid image config at display ${displayIndex}, image ${imageIndex}`);
-            continue;
-          }
-
-          // Resolve image mode
-          const imageMode = resolveImageMode(imageConfig);
-
-          // For static image (single mode), render it directly
-          if (imageMode.mode === 'single' && imageMode.spriteUrl) {
-            // Resolve image URL (convert local files to data URI, keep external URLs as-is)
-            const resolvedUrl = await resolveImageUrl(imageMode.spriteUrl);
-
-            // Parse anchor configuration
-            // Anchor defines which point on the image aligns to the text baseline
-            const anchor = imageConfig.anchor || 'bottom-center';
-            let anchorX = 0.5; // default center
-            let anchorY = 1.0; // default bottom (aligns bottom of image to baseline)
-
-            // Parse anchor string
-            if (anchor.includes('top')) anchorY = 0;
-            else if (anchor.includes('center') && !anchor.includes('left') && !anchor.includes('right')) anchorY = 0.5;
-            else if (anchor.includes('bottom')) anchorY = 1.0;
-
-            if (anchor.includes('left')) anchorX = 0;
-            else if (anchor.includes('right')) anchorX = 1.0;
-            else if (anchor.includes('center')) anchorX = 0.5;
-
-            // Override with custom anchor values if provided
-            if (imageConfig.anchorX !== undefined) anchorX = imageConfig.anchorX;
-            if (imageConfig.anchorY !== undefined) anchorY = imageConfig.anchorY;
-
-            // Calculate base X position based on display position
-            let baseX: number;
-            if (position === 'top-left') {
-              baseX = 0;
-            } else if (position === 'top-right') {
-              baseX = width;
-            } else {
-              // follow mode
-              baseX = 0;
-            }
-
-            // Calculate final image position
-            // The anchor point on the image should align to (baseX, textY)
-            // SVG image x,y is the top-left corner, so we need to offset by the anchor point
-            const imgX = baseX - imageConfig.width * anchorX;
-            let imgY = textY - imageConfig.height * anchorY;
-
-            // Apply vertical offset if provided (positive = move up, negative = move down)
-            if (imageConfig.offsetY) {
-              imgY -= imageConfig.offsetY;
-            }
-
-            // Create SVG image element
-            svgElements.push(
-              createElement("image", {
-                class: `contrib-image contrib-image-${displayIndex}-${imageIndex}`,
-                href: resolvedUrl,
-                x: imgX.toFixed(1),
-                y: imgY.toFixed(1),
-                width: imageConfig.width.toString(),
-                height: imageConfig.height.toString(),
-              })
-            );
-          }
-
-          // TODO: Implement sprite-sheet and multi-file animation modes
-          if (imageMode.mode === 'sprite-sheet') {
-            console.warn('Sprite sheet animation not yet implemented');
-          }
-          if (imageMode.mode === 'multi-file') {
-            console.warn('Multi-file animation not yet implemented');
-          }
-        }
-      } // End if (display.images)
     } // End displays loop
   } // End if (counterConfig?.enabled)
 
