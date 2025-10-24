@@ -875,8 +875,10 @@ export const createProgressStack = async (
                       }
 
                       // Create a symbol that crops to just this frame
+                      // Symbol should maintain the frame's aspect ratio (frameWidth × frameHeight)
+                      // The actual display size will be controlled by the <use> element
                       imageDefsElements.push(
-                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">`,
+                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}">`,
                         `  <use href="#${spriteImageId}" />`,
                         `</symbol>`
                       );
@@ -1149,12 +1151,15 @@ export const createProgressStack = async (
 
                       // Use <use> element to reference the image definition
                       // This avoids duplicating the large data URI in every frame
+                      // width/height control the final display size (may differ from sprite frame size)
                       groupElements.push(
                         createElement("use", {
                           class: `contrib-image ${textId}`,
                           href: `#${defId}`,
                           x: imgX.toFixed(1),
                           y: imgY.toFixed(1),
+                          width: imageConfig.width.toString(),
+                          height: imageConfig.height.toString(),
                         })
                       );
 
