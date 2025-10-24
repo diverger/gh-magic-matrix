@@ -327,9 +327,17 @@ export interface CounterImageConfig {
    */
   framePattern?: string;
 
-  /** Image width in pixels */
+  /**
+   * Display width in SVG pixels (how wide the image will be rendered)
+   * This is the scaled/display size, not the original image dimensions.
+   * Example: If actual image is 100x100 but you set width=32, it displays at 32px wide
+   */
   width: number;
-  /** Image height in pixels */
+  /**
+   * Display height in SVG pixels (how tall the image will be rendered)
+   * This is the scaled/display size, not the original image dimensions.
+   * Example: If actual image is 100x100 but you set height=32, it displays at 32px tall
+   */
   height: number;
   /** Vertical offset from baseline (positive = up, negative = down) */
   offsetY?: number;
@@ -612,8 +620,13 @@ export const createProgressStack = async (
       const fontWeight = display.fontWeight || 'normal';
       const fontStyle = display.fontStyle || 'normal';
       const position = display.position;
+
+      // Calculate the actual line height needed (considering images)
+      const lineHeight = calculateLineHeight(fontSize, display.images);
+
       // follow mode: same line as progress bar; others: above progress bar
-      const textY = position === 'follow' ? (y + dotSize / 2) : (y - fontSize * 0.5);
+      // For top positions, we need enough space above the progress bar for the tallest element
+      const textY = position === 'follow' ? (y + dotSize / 2) : (y - lineHeight * 0.5);
       const textOffsetX = fontSize * 0.5; // Small offset
 
       // Build common text attributes
@@ -698,7 +711,8 @@ export const createProgressStack = async (
         });
 
         // Create text elements with position and opacity animations
-        textElements.forEach((elem, index) => {
+        for (let index = 0; index < textElements.length; index++) {
+          const elem = textElements[index];
           const textId = `contrib-text-${displayIndex}-${index}`;
 
           // Build display text based on showCount and showPercentage flags
@@ -712,14 +726,98 @@ export const createProgressStack = async (
           }
           displayText += suffix;
 
-          svgElements.push(
-            createElement("text", {
-              class: `contrib-counter ${textId}`,
-              x: elem.x.toFixed(1),
-              y: textY.toString(),
-              ...textAttrs,
-            }).replace("/>", `>${displayText}</text>`)
-          );
+          // Parse text for image placeholders
+          const segments = parseTextWithPlaceholders(displayText);
+
+          // Check if we have any image placeholders
+          const hasImages = segments.some(seg => seg.type === 'image');
+
+          if (!hasImages) {
+            // Simple text without images - use original logic
+            svgElements.push(
+              createElement("text", {
+                class: `contrib-counter ${textId}`,
+                x: elem.x.toFixed(1),
+                y: textY.toString(),
+                ...textAttrs,
+              }).replace("/>", `>${displayText}</text>`)
+            );
+          } else {
+            // Mixed text and images - create group with text spans and image elements
+            const groupId = `contrib-group-${displayIndex}-${index}`;
+            let currentX = elem.x;
+
+            // Create a g (group) element to contain all segments
+            const groupElements: string[] = [];
+
+            for (const segment of segments) {
+              if (segment.type === 'text') {
+                // Text segment - create tspan element
+                const textWidth = estimateTextWidth(segment.content, fontSize);
+
+                groupElements.push(
+                  createElement("text", {
+                    class: `contrib-counter ${textId}`,
+                    x: currentX.toFixed(1),
+                    y: textY.toString(),
+                    ...textAttrs,
+                  }).replace("/>", `>${segment.content}</text>`)
+                );
+
+                currentX += textWidth;
+              } else if (segment.type === 'image' && segment.imageIndex !== undefined) {
+                // Image segment - create image element
+                const imageIndex = segment.imageIndex;
+
+                if (display.images && imageIndex < display.images.length) {
+                  const imageConfig = display.images[imageIndex];
+
+                  // Validate image config
+                  if (!validateImageConfig(imageConfig)) {
+                    console.warn(`Invalid image config at display ${displayIndex}, image ${imageIndex}`);
+                    continue;
+                  }
+
+                  // Get image URL (single image mode only for placeholders)
+                  const imageUrl = imageConfig.url;
+                  if (!imageUrl) {
+                    console.warn(`Image placeholder {img:${imageIndex}} requires url property`);
+                    continue;
+                  }
+
+                  // Resolve image URL (local file → data URI or external URL)
+                  const resolvedUrl = await resolveImageUrl(imageUrl);
+
+                  if (resolvedUrl) {
+                    // Calculate image position based on anchor
+                    const anchorX = imageConfig.anchorX || 0;
+                    const anchorY = imageConfig.anchorY || 0.5; // default middle
+
+                    const imgX = currentX - (imageConfig.width * anchorX);
+                    const imgY = textY - (imageConfig.height * anchorY);
+
+                    groupElements.push(
+                      createElement("image", {
+                        class: `contrib-image ${textId}`,
+                        href: resolvedUrl,
+                        x: imgX.toFixed(1),
+                        y: imgY.toFixed(1),
+                        width: imageConfig.width.toString(),
+                        height: imageConfig.height.toString(),
+                      })
+                    );
+
+                    currentX += imageConfig.width;
+                  }
+                }
+              }
+            }
+
+            // Add all group elements with shared animation class
+            groupElements.forEach(elem => {
+              svgElements.push(elem);
+            });
+          }
 
       // Create opacity animation keyframes
       const keyframes: AnimationKeyframe[] = [];
@@ -762,7 +860,7 @@ export const createProgressStack = async (
               opacity: 0;
             }`
           );
-        }); // End textElements.forEach
+        } // End for loop
       } // End if (display.text) else
 
       // Render images if provided
@@ -973,6 +1071,120 @@ export const resolveImageMode = (config: CounterImageConfig): {
  */
 export const isExternalUrl = (url: string): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
+};
+
+/**
+ * Text segment type for placeholder parsing
+ */
+interface TextSegment {
+  type: 'text' | 'image';
+  content: string;      // Text content or image index as string
+  imageIndex?: number;  // Parsed image index for type='image'
+}
+
+/**
+ * Parse text containing {img:N} placeholders into segments
+ *
+ * @param text - Text with optional {img:0}, {img:1}, etc. placeholders
+ * @returns Array of text and image segments in order
+ *
+ * @example
+ * ```typescript
+ * parseTextWithPlaceholders("Total: {img:0} 123 {img:1}")
+ * // Returns: [
+ * //   { type: 'text', content: 'Total: ' },
+ * //   { type: 'image', content: '{img:0}', imageIndex: 0 },
+ * //   { type: 'text', content: ' 123 ' },
+ * //   { type: 'image', content: '{img:1}', imageIndex: 1 }
+ * // ]
+ * ```
+ */
+const parseTextWithPlaceholders = (text: string): TextSegment[] => {
+  const segments: TextSegment[] = [];
+  const placeholderRegex = /\{img:(\d+)\}/g;
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = placeholderRegex.exec(text)) !== null) {
+    // Add text before placeholder
+    if (match.index > lastIndex) {
+      const textContent = text.substring(lastIndex, match.index);
+      if (textContent) {
+        segments.push({ type: 'text', content: textContent });
+      }
+    }
+
+    // Add image placeholder
+    const imageIndex = parseInt(match[1], 10);
+    segments.push({
+      type: 'image',
+      content: match[0],
+      imageIndex
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last placeholder
+  if (lastIndex < text.length) {
+    const textContent = text.substring(lastIndex);
+    if (textContent) {
+      segments.push({ type: 'text', content: textContent });
+    }
+  }
+
+  // If no placeholders found, return text as single segment
+  if (segments.length === 0 && text) {
+    segments.push({ type: 'text', content: text });
+  }
+
+  return segments;
+};
+
+/**
+ * Estimate text width based on character count and font size
+ * This is a rough estimation for layout purposes
+ *
+ * @param text - Text to measure
+ * @param fontSize - Font size in pixels
+ * @returns Estimated width in pixels
+ */
+const estimateTextWidth = (text: string, fontSize: number): number => {
+  // Average character width is approximately 0.5-0.6 times the font size
+  // Using 0.55 as a reasonable middle ground for monospace-ish fonts
+  // For more accurate results, could use canvas.measureText() but this adds complexity
+  return text.length * fontSize * 0.55;
+};
+
+/**
+ * Calculate the required line height for a display with text and images
+ *
+ * @param fontSize - Font size in pixels
+ * @param images - Array of image configurations (optional)
+ * @returns Maximum height needed for this line in pixels
+ */
+const calculateLineHeight = (fontSize: number, images?: CounterImageConfig[]): number => {
+  // Start with font size as base height
+  let maxHeight = fontSize;
+
+  // Check if any images would be taller
+  if (images && images.length > 0) {
+    for (const img of images) {
+      // Calculate how much vertical space the image needs
+      // considering its anchor point
+      const anchorY = img.anchorY || 0.5;
+
+      // Image extends from (textY - height * anchorY) to (textY + height * (1 - anchorY))
+      // So the total height impact is the max of these two components
+      const heightAboveBaseline = img.height * anchorY;
+      const heightBelowBaseline = img.height * (1 - anchorY);
+
+      maxHeight = Math.max(maxHeight, heightAboveBaseline + heightBelowBaseline);
+    }
+  }
+
+  return maxHeight;
 };
 
 /**

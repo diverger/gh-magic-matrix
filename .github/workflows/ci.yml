@@ -130,12 +130,13 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/with-image.svg?palette=github-light"
           INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Test static image display with tree.png
+          # Test image placeholder syntax: {img:0} embeds image inline with text
+          # Note: width/height are display sizes (how it appears in SVG), not original image dimensions
           INPUT_COUNTER_DISPLAYS: |
             [
               {
                 "position": "top-left",
-                "prefix": "🌲 ",
+                "prefix": "{img:0} ",
                 "suffix": " contributions",
                 "images": [
                   {
@@ -143,6 +144,61 @@ jobs:
                     "width": 32,
                     "height": 32,
                     "anchorY": 0.875
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with images in all positions
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-image-all-positions.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test images in all three positions: top-left, top-right, follow
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "prefix": "{img:0} ",
+                "suffix": "",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 24,
+                    "height": 24,
+                    "anchorY": 0.8
+                  }
+                ]
+              },
+              {
+                "position": "top-right",
+                "prefix": "",
+                "suffix": " {img:0}",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 24,
+                    "height": 24,
+                    "anchorY": 0.8
+                  }
+                ]
+              },
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 12,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 20,
+                    "height": 20,
+                    "anchorY": 0.75
                   }
                 ]
               }
@@ -162,6 +218,7 @@ jobs:
           test -f dist/snake/light.svg
           test -f dist/snake/dark.svg
           test -f dist/snake/with-image.svg
+          test -f dist/snake/with-image-all-positions.svg
           echo "✅ All output files generated successfully"
 
           # Verify static image is embedded as data URI
@@ -169,6 +226,14 @@ jobs:
             echo "✅ Static image embedded as data URI in with-image.svg"
           else
             echo "❌ Static image NOT embedded in with-image.svg"
+            exit 1
+          fi
+
+          # Verify all positions test
+          if grep -q "data:image" dist/snake/with-image-all-positions.svg; then
+            echo "✅ Images embedded in all-positions test"
+          else
+            echo "❌ Images NOT embedded in all-positions test"
             exit 1
           fi
 
