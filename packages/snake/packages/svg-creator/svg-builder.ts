@@ -112,7 +112,7 @@ export const createSvg = async (
 
   // Create animated grid cells
   const animatedCells = createAnimatedGridCells(grid, chain, cells);
-  
+
   console.log(`📊 SVG Builder Debug:`);
   console.log(`  - Grid: ${grid.width}x${grid.height} cells`);
   console.log(`  - Total animated cells: ${animatedCells.length}`);

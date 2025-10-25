@@ -57,19 +57,33 @@ const runAction = async (): Promise<void> => {
     console.log(`📝 Processing ${outputs.length} output(s)`);
 
     // Add contribution counter configuration to all outputs if enabled
-    if (showContributionCounter && counterDisplays) {
-      console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
+    if (showContributionCounter) {
+      if (counterDisplays && counterDisplays.length > 0) {
+        console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
 
-      // Note: contributionMap will be built in generate-contribution-snake.ts
-      outputs.forEach(output => {
-        if (output) {
-          output.animationOptions.contributionCounter = {
-            enabled: true,
-            displays: counterDisplays,
-            progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
-          };
-        }
-      });
+        // Note: contributionMap will be built in generate-contribution-snake.ts
+        outputs.forEach(output => {
+          if (output) {
+            output.animationOptions.contributionCounter = {
+              enabled: true,
+              displays: counterDisplays,
+              progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
+            };
+          }
+        });
+      } else {
+        // Counter enabled but no displays - still enable contribution mode for progress bar
+        console.log(`📊 Contribution counter enabled (no displays, progress bar only)`);
+
+        outputs.forEach(output => {
+          if (output) {
+            output.animationOptions.contributionCounter = {
+              enabled: true,
+              progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
+            };
+          }
+        });
+      }
     }
 
     const results = await generateContributionSnake(userName, outputs, {
