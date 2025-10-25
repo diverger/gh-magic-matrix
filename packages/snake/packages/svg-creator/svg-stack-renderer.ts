@@ -1381,8 +1381,8 @@ export const createProgressStack = async (
                       // Track level distribution
                       levelDistribution.set(currentLevel, (levelDistribution.get(currentLevel) || 0) + 1);
 
-                      // Debug: log level distribution for first few frames
-                      if (index < 10) {
+                      // Debug: log level distribution for first few frames and when contribution=0
+                      if (index < 10 || elem.currentContribution === 0) {
                         console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=${currentLevel}`);
                       }
 
@@ -1403,37 +1403,46 @@ export const createProgressStack = async (
                           animationStates.set(imageKey, state);
                         }
 
+                        // Get the frame count for the PREVIOUS level (currently playing)
+                        const prevLevelFrameCount = Array.isArray(framesPerLevel)
+                          ? framesPerLevel[state.prevLevel]
+                          : framesPerLevel;
+
                         // Decide which level to use for this frame
-                        // Mid-cycle: use the level from when this cycle started (ignore intermediate changes)
-                        // Cycle complete: sample current level for next cycle
-                        const currentCycleFrame = Math.floor(state.accumulatedFrames / 0.5); // 0.5 = globalFramesPerSpriteFrame
-                        const isCycleComplete = (currentCycleFrame % levelFrameCount === 0) && currentCycleFrame > 0;
+                        // Check if previous level's cycle is complete
+                        const globalFramesPerSpriteFrame = 0.5;
+                        const currentCycleFrame = Math.floor(state.accumulatedFrames / globalFramesPerSpriteFrame);
+                        const isCycleComplete = (currentCycleFrame % prevLevelFrameCount === 0) && currentCycleFrame > 0;
 
                         if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
+                          const oldLevel = state.prevLevel;
                           level = currentLevel;
                           state.prevLevel = currentLevel;
                           state.accumulatedFrames = 0;
 
-                          if (index < 10) {
-                            console.log(`  → Cycle complete at frame ${index}, switching to level ${level}`);
+                          if (index < 20 || currentLevel === 0 || oldLevel === 0) {
+                            console.log(`  → Frame ${index}: Cycle complete, switching from L${oldLevel} to L${level} (contribution=${elem.currentContribution}, frames=${prevLevelFrameCount})`);
                           }
                         } else {
                           // Mid-cycle - use previous level
                           level = state.prevLevel;
+
+                          if (currentLevel === 0 && level !== 0) {
+                            console.log(`  ⚠️ Frame ${index}: currentLevel=L0 but still playing L${level} (mid-cycle, frames left: ${prevLevelFrameCount - (currentCycleFrame % prevLevelFrameCount)})`);
+                          }
                         }
 
                         // Increment frame counter for next iteration
                         state.accumulatedFrames++;
 
-                        // Global frames per sprite frame (consistent across all levels)
-                        // 0.5 means: 2 sprite frames per 1 global frame = 50ms per sprite frame
-                        // Complete 8-frame cycle = 400ms (0.4s) - natural action speed
-                        const globalFramesPerSpriteFrame = 0.5;
-
                         // Calculate current frame within the animation cycle
-                        const cycleFrame = Math.floor((state.accumulatedFrames - 1) / globalFramesPerSpriteFrame); // -1 because we incremented
-                        frameIndex = cycleFrame % levelFrameCount;
+                        // Use the selected level's frame count
+                        const selectedLevelFrameCount = Array.isArray(framesPerLevel)
+                          ? framesPerLevel[level]
+                          : framesPerLevel;
+                        const cycleFrame = Math.floor((state.accumulatedFrames - 1) / globalFramesPerSpriteFrame);
+                        frameIndex = cycleFrame % selectedLevelFrameCount;
                       } else {
                         // Static image (1 frame) - use current level directly
                         level = currentLevel;
