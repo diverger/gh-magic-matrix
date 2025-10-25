@@ -99,6 +99,41 @@ export const generateContributionSnake = async (
 
   console.log(`🎯 Route computed: ${route.length} steps (including return path)`);
 
+  // Analyze route to find empty cells that the snake passes through
+  // Build a map of all contributions for quick lookup
+  const contributionLookup = new Map<string, number>();
+  for (const cell of contributionData) {
+    const key = `${cell.x},${cell.y}`;
+    contributionLookup.set(key, cell.count);
+  }
+
+  // Extract unique cells from route (snake may pass through same cell multiple times)
+  const visitedCells = new Set<string>();
+  const emptyCellsInRoute: Array<{ x: number; y: number }> = [];
+
+  for (const snakeState of route) {
+    // Get the head position from each snake state in the route
+    const head = snakeState.getHead();
+    const key = `${head.x},${head.y}`;
+
+    if (!visitedCells.has(key)) {
+      visitedCells.add(key);
+
+      const count = contributionLookup.get(key);
+      if (count === 0) {
+        emptyCellsInRoute.push({ x: head.x, y: head.y });
+      }
+    }
+  }
+
+  if (emptyCellsInRoute.length > 0) {
+    console.log(`📍 Snake passes through ${emptyCellsInRoute.length} empty cells (contribution=0)`);
+    console.log(`   Empty cells:`, emptyCellsInRoute.slice(0, 5).map(c => `(${c.x},${c.y})`).join(', '),
+                emptyCellsInRoute.length > 5 ? '...' : '');
+  } else {
+    console.log(`📍 Snake does not pass through any empty cells`);
+  }
+
   // Step 5: Generate outputs in requested formats
   console.log(`🎨 Generating ${outputs.length} output(s)...`);
 

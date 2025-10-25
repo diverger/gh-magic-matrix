@@ -966,12 +966,27 @@ export const createProgressStack = async (
           currentContribution: 0
         });
 
+        // Track when each cell is first eaten (by coordinates)
+        // This is used to determine if a cell has already been consumed when the snake passes through it again
+        const firstEatenTime = new Map<string, number>();
+
         sortedCells.forEach((cell, index) => {
           // Get contribution count for this cell using its coordinates
           let count = 0; // Default to 0 for empty cells (no contribution)
           if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
             const key = `${cell.x},${cell.y}`;
-            count = counterConfig.contributionMap.get(key) || 0;
+
+            // Check if this cell has been eaten before (snake passing through again)
+            if (firstEatenTime.has(key)) {
+              // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
+              count = 0;
+            } else {
+              // First time eating this cell - use its original contribution value
+              count = counterConfig.contributionMap.get(key) || 0;
+
+              // Record the time this cell is first eaten
+              firstEatenTime.set(key, cell.t!);
+            }
 
             // Debug: log cells with no contribution data
             if (!counterConfig.contributionMap.has(key) && index < 20) {
@@ -1559,7 +1574,13 @@ export const generateFrameUrls = (
 
 /**
  * Calculate contribution level (0-4) based on contribution value.
- * Matches GitHub's 5-level contribution intensity system.
+ * Maps contribution values to 5 sprite levels (L0-L4).
+ * Since the snake only eats cells with contributions > 0, we map:
+ * - L0: lowest contributions (1 to ~20% of max)
+ * - L1: low contributions (~20% to ~40% of max)
+ * - L2: medium contributions (~40% to ~60% of max)
+ * - L3: high contributions (~60% to ~80% of max)
+ * - L4: highest contributions (~80% to 100% of max)
  *
  * @param contribution - Contribution count for a cell
  * @param maxContribution - Maximum contribution value in the dataset
@@ -1571,14 +1592,15 @@ export const getContributionLevel = (
   maxContribution: number,
   levels: number = 5
 ): number => {
+  // Edge case: no contribution or no max
   if (contribution === 0 || maxContribution === 0) return 0;
 
-  // Distribute contributions evenly across levels
-  // level 0: contribution = 0 (handled above)
-  // level 1-4: divided by quartiles of max
+  // Map all positive contributions (1 to max) across all 5 levels (L0-L4)
+  // This ensures L0 is used for lowest contributions, not for zero
   const normalizedValue = contribution / maxContribution;
-  const level = Math.ceil(normalizedValue * (levels - 1));
+  const level = Math.floor(normalizedValue * levels);
 
+  // Clamp to valid range [0, levels-1]
   return Math.max(0, Math.min(levels - 1, level));
 };
 
