@@ -196,9 +196,13 @@ export const createSvg = async (
     optimizeCss(style),
     "</style>",
 
+    // Separate defs elements (gradients) from other stack elements
+    ...stackResult.svgElements.filter(e => e.startsWith('<defs>')),
     ...gridResult.svgElements,
-    ...stackResult.svgElements,
+    ...stackResult.svgElements.filter(e => !e.startsWith('<defs>') && !e.startsWith('<!--')),
     ...snakeResult.elements,
+    // Add debug comments at the end
+    ...stackResult.svgElements.filter(e => e.startsWith('<!--')),
 
     "</svg>",
   ].join("");

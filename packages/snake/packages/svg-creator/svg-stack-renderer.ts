@@ -699,7 +699,7 @@ export const createProgressStack = async (
 
   // Create gradient definitions for contribution mode
   const gradientDefs: string[] = [];
-  
+
   let blockIndex = 0;
   let cumulativeContribution = 0;
   let cumulativeCellCount = 0; // For uniform mode
@@ -722,16 +722,16 @@ export const createProgressStack = async (
       block.contributions.forEach((contribution, i) => {
         const prevAccumulated = accumulatedContribution;
         accumulatedContribution += contribution;
-        
+
         // Calculate position as percentage of total block
         const startOffset = ((prevAccumulated / blockTotalContribution) * 100).toFixed(2);
         const endOffset = ((accumulatedContribution / blockTotalContribution) * 100).toFixed(2);
-        
+
         // Determine color based on CUMULATIVE contribution progress (0-1)
         // Map cumulative progress to color intensity (1=coldest, 4=hottest)
         const cumulativeProgress = accumulatedContribution / blockTotalContribution;
         const colorLevel = Math.max(1, Math.min(4, Math.ceil(cumulativeProgress * 4))) as Color;
-        
+
         // Create gradient stops for smooth transition
         if (i === 0) {
           stops.push(`<stop offset="${startOffset}%" stop-color="var(--c${colorLevel})"/>`);
@@ -743,16 +743,16 @@ export const createProgressStack = async (
       gradientDefs.push(
         `<linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
           ${stops.join('\n          ')}
-        </linearGradient>`
+        </linearGradient>`,
       );
     }
 
     // ALL blocks start at x=0 and have full width
     // They will be clipped/scaled to show only their portion
-    const fillAttr = progressBarMode === 'contribution' 
-      ? `url(#${gradientId})` 
+    const fillAttr = progressBarMode === 'contribution'
+      ? `url(#${gradientId})`
       : `var(--c${block.color})`;
-    
+
     svgElements.push(
       createElement("rect", {
         class: `u ${blockId}`,
@@ -838,7 +838,7 @@ export const createProgressStack = async (
     const cssStyle = progressBarMode === 'contribution'
       ? `.u.${blockId} { animation-name: ${animationName}; }`  // fill already set on element
       : `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
-    
+
     styles.push(
       createKeyframeAnimation(animationName, keyframes),
       cssStyle,
@@ -1448,6 +1448,10 @@ export const createProgressStack = async (
   svgElements.push(debugComment);
 
   // Prepend gradient definitions if in contribution mode
+  console.log(`[DEFS DEBUG] progressBarMode: ${progressBarMode}, gradientDefs.length: ${gradientDefs.length}`);
+  if (gradientDefs.length > 0) {
+    console.log(`[DEFS DEBUG] Full gradient:\n${gradientDefs[0]}`);
+  }
   if (progressBarMode === 'contribution' && gradientDefs.length > 0) {
     svgElements.unshift(`<defs>${gradientDefs.join('\n')}</defs>`);
   }
