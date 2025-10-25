@@ -983,6 +983,10 @@ export const createProgressStack = async (
         const firstEatenTime = new Map<string, number>();
         let repeatedCellCount = 0;
 
+        // Track animation state for smooth level transitions
+        // For each image, track: previous level and accumulated frame count
+        const animationStates = new Map<number, { prevLevel: number; accumulatedFrames: number }>();
+
         sortedCells.forEach((cell, index) => {
           // Get contribution count for this cell using its coordinates
           let count = 0; // Default to 0 for empty cells (no contribution)
@@ -1397,20 +1401,36 @@ export const createProgressStack = async (
                       const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
 
                       if (levelFrameCount > 1) {
-                        // Sprite animation syncs with snake eating progress
-                        // All levels play at the SAME speed - the animation content itself
-                        // (L0 calm, L4 intense) conveys the contribution intensity
+                        // Ensure complete animation cycles - never stop mid-action
+                        // Track animation progress per image to handle level changes smoothly
+
+                        const imageKey = displayIndex * 1000 + imageIndex; // Unique key per image
+                        let state = animationStates.get(imageKey);
+
+                        if (!state) {
+                          // Initialize state for this image
+                          state = { prevLevel: level, accumulatedFrames: 0 };
+                          animationStates.set(imageKey, state);
+                        }
+
+                        // Check if level changed
+                        if (level !== state.prevLevel) {
+                          // Level changed - reset to start of new animation cycle
+                          state.prevLevel = level;
+                          state.accumulatedFrames = 0;
+                        } else {
+                          // Same level - continue animation
+                          state.accumulatedFrames++;
+                        }
 
                         // Global frames per sprite frame (consistent across all levels)
-                        // 0.5 means: 2 sprite frames per 1 global frame
-                        // With 8 sprite frames and 100ms per global frame:
-                        // - Complete cycle = 8 frames ÷ 2 = 4 global frames = 400ms (0.4s)
-                        // This gives a natural running/action speed
+                        // 0.5 means: 2 sprite frames per 1 global frame = 50ms per sprite frame
+                        // Complete 8-frame cycle = 400ms (0.4s) - natural action speed
                         const globalFramesPerSpriteFrame = 0.5;
-                        const frameOffset = level * 2; // Each level starts at different frame for variety
 
-                        // Calculate sprite frame: divide global frame by speed to get smooth progression
-                        frameIndex = (Math.floor(index / globalFramesPerSpriteFrame) + frameOffset) % levelFrameCount;
+                        // Calculate current frame within the animation cycle
+                        const currentCycleFrame = Math.floor(state.accumulatedFrames / globalFramesPerSpriteFrame);
+                        frameIndex = currentCycleFrame % levelFrameCount;
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
