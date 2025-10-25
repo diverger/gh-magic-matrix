@@ -1448,10 +1448,6 @@ export const createProgressStack = async (
   svgElements.push(debugComment);
 
   // Prepend gradient definitions if in contribution mode
-  console.log(`[DEFS DEBUG] progressBarMode: ${progressBarMode}, gradientDefs.length: ${gradientDefs.length}`);
-  if (gradientDefs.length > 0) {
-    console.log(`[DEFS DEBUG] Full gradient:\n${gradientDefs[0]}`);
-  }
   if (progressBarMode === 'contribution' && gradientDefs.length > 0) {
     svgElements.unshift(`<defs>${gradientDefs.join('\n')}</defs>`);
   }
