@@ -123,12 +123,11 @@ export const generateContributionSnake = async (
               let totalCount = 0;
 
               // Store each cell's contribution count by its coordinates
+              // Include all cells, even those with 0 contributions (level 0)
               for (const contrib of contributionData) {
-                if (contrib.level > 0) {
-                  const key = `${contrib.x},${contrib.y}`;
-                  contributionMap.set(key, contrib.count);
-                  totalCount += contrib.count;
-                }
+                const key = `${contrib.x},${contrib.y}`;
+                contributionMap.set(key, contrib.count);
+                totalCount += contrib.count;
               }
 
               console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);

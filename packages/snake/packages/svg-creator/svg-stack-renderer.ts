@@ -972,6 +972,11 @@ export const createProgressStack = async (
           if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
             const key = `${cell.x},${cell.y}`;
             count = counterConfig.contributionMap.get(key) || 0;
+
+            // Debug: log cells with no contribution data
+            if (!counterConfig.contributionMap.has(key) && index < 20) {
+              console.log(`⚠️  Cell ${index} at (${cell.x}, ${cell.y}) has no contribution data in map`);
+            }
           }
 
           cumulativeCount += count;
