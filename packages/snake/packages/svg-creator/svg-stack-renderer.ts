@@ -627,36 +627,70 @@ export const createProgressStack = async (
     ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
     : sortedCells.length;
 
-  // Group consecutive cells of the same color into blocks
-  interface ColorBlock {
-    color: Color;
-    times: number[];
-    contributions: number[]; // Track contribution for each cell in this block
-  }
-
-  const blocks: ColorBlock[] = [];
-
-  for (const cell of sortedCells) {
-    const latestBlock = blocks[blocks.length - 1];
-
-    // Get contribution for this cell
+  // Build cell data with contributions
+  const cellsWithContributions = sortedCells.map(cell => {
     let contribution = 1;
     if (counterConfig?.contributionMap) {
       const key = `${cell.x},${cell.y}`;
       contribution = counterConfig.contributionMap.get(key) || 1;
     }
+    return {
+      time: cell.t!,
+      color: cell.color as Color,
+      contribution,
+    };
+  });
 
-    if (latestBlock && latestBlock.color === cell.color) {
-      // Same color as previous block - add to existing block
-      latestBlock.times.push(cell.t!);
-      latestBlock.contributions.push(contribution);
-    } else {
-      // Different color - create new block
-      blocks.push({
-        color: cell.color as Color,
-        times: [cell.t!],
-        contributions: [contribution],
-      });
+  // Group blocks differently based on mode
+  interface ProgressBlock {
+    color: Color;
+    times: number[];
+    contributions: number[];
+  }
+
+  const blocks: ProgressBlock[] = [];
+
+  if (progressBarMode === 'contribution') {
+    // Contribution mode: Single block for entire progress bar
+    // Use the most common color or a default
+    const colorCounts = new Map<Color, number>();
+    cellsWithContributions.forEach(cell => {
+      colorCounts.set(cell.color, (colorCounts.get(cell.color) || 0) + 1);
+    });
+
+    // Find most frequent color
+    let mostFrequentColor: Color = 1 as Color;
+    let maxCount = 0;
+    colorCounts.forEach((count, color) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequentColor = color;
+      }
+    });
+
+    // Create single block with all cells
+    blocks.push({
+      color: mostFrequentColor,
+      times: cellsWithContributions.map(c => c.time),
+      contributions: cellsWithContributions.map(c => c.contribution),
+    });
+  } else {
+    // Uniform mode: Group by color as before
+    for (const cell of cellsWithContributions) {
+      const latestBlock = blocks[blocks.length - 1];
+
+      if (latestBlock && latestBlock.color === cell.color) {
+        // Same color - add to existing block
+        latestBlock.times.push(cell.time);
+        latestBlock.contributions.push(cell.contribution);
+      } else {
+        // Different color - create new block
+        blocks.push({
+          color: cell.color,
+          times: [cell.time],
+          contributions: [cell.contribution],
+        });
+      }
     }
   }
 
