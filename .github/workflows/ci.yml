@@ -258,7 +258,7 @@ jobs:
               {
                 "position": "follow",
                 "prefix": "{img:0} ",
-                "suffix": " commits",
+                "suffix": "",
                 "fontSize": 14,
                 "images": [
                   {

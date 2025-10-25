@@ -379,8 +379,8 @@ export interface CounterImageConfig {
    * not the frame's edge.
    */
   anchor?: 'top-left' | 'top-center' | 'top-right'
-         | 'center-left' | 'center' | 'center-right'
-         | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  | 'center-left' | 'center' | 'center-right'
+  | 'bottom-left' | 'bottom-center' | 'bottom-right';
   /**
    * Custom anchor X position (0-1 normalized, 0 = left edge, 0.5 = center, 1 = right edge)
    * Overrides the X component of 'anchor' if set
@@ -795,15 +795,17 @@ async function preloadCounterImages(
                 viewBoxY = frameIdx * frameHeight;
               }
 
-            // Create a symbol that crops to just this frame
-            const useElement = `<use href="#${spriteImageId}" />`;
-            const symbolElement = createElement("symbol", {
-              id: symbolId,
-              viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
-            }).replace("/>", `>${useElement}</symbol>`);
+              // Create a symbol that crops to just this frame
+              const useElement = `<use href="#${spriteImageId}" />`;
+              const symbolElement = createElement("symbol", {
+                id: symbolId,
+                viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
+              }).replace("/>", `>${useElement}</symbol>`);
 
-            imageDefsElements.push(symbolElement);
-          }            if (counterConfig.debug) {
+              imageDefsElements.push(symbolElement);
+            }
+
+            if (counterConfig.debug) {
               console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
             }
           }
@@ -877,31 +879,33 @@ async function preloadCounterImages(
 
         for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
           const symbolId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
-        frameMap.set(frameIdx, symbolId);
+          frameMap.set(frameIdx, symbolId);
 
-        let viewBoxX = 0;
-        let viewBoxY = 0;
+          let viewBoxX = 0;
+          let viewBoxY = 0;
 
-        if (layout === 'horizontal') {
-          viewBoxX = frameIdx * frameWidth;
-          viewBoxY = 0;
-        } else {
-          viewBoxX = 0;
-          viewBoxY = frameIdx * frameHeight;
+          if (layout === 'horizontal') {
+            viewBoxX = frameIdx * frameWidth;
+            viewBoxY = 0;
+          } else {
+            viewBoxX = 0;
+            viewBoxY = frameIdx * frameHeight;
+          }
+
+          const useElement = `<use href="#${spriteImageId}" />`;
+          const symbolElement = createElement("symbol", {
+            id: symbolId,
+            viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
+          }).replace("/>", `>${useElement}</symbol>`);
+
+          imageDefsElements.push(symbolElement);
         }
-
-        const useElement = `<use href="#${spriteImageId}" />`;
-        const symbolElement = createElement("symbol", {
-          id: symbolId,
-          viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
-        }).replace("/>", `>${useElement}</symbol>`);
-
-        imageDefsElements.push(symbolElement);
       }
-    }
-  } else if (imageConfig.url) {
-    // Static image (single frame, single level)
-    const resolvedUrl = await resolveImageUrl(imageConfig.url);      if (resolvedUrl) {
+    } else if (imageConfig.url) {
+      // Static image (single frame, single level)
+      const resolvedUrl = await resolveImageUrl(imageConfig.url);
+
+      if (resolvedUrl) {
         const defId = `contrib-img-${displayIndex}-${imgIdx}`;
         const frameMap = new Map<number, string>();
         levelMap.set(0, frameMap); // Single level (level 0)
@@ -980,7 +984,7 @@ export const createProgressStack = async (
 
     // If grid dimensions provided, filter out outside cells
     if (gridWidth !== undefined && gridHeight !== undefined &&
-        cell.x !== undefined && cell.y !== undefined) {
+      cell.x !== undefined && cell.y !== undefined) {
       if (cell.x < 0 || cell.y < 0 || cell.x >= gridWidth || cell.y >= gridHeight) {
         return false; // Outside cell - exclude from progress bar calculation
       }
@@ -1270,8 +1274,8 @@ export const createProgressStack = async (
       // Use monospace font for accurate width calculation when using image placeholders
       // This ensures precise alignment between text and images
       const hasImagePlaceholders = display.prefix?.includes('{img:') ||
-                                    display.suffix?.includes('{img:') ||
-                                    display.text?.includes('{img:');
+        display.suffix?.includes('{img:') ||
+        display.text?.includes('{img:');
       const fontFamily = hasImagePlaceholders
         ? (display.fontFamily || "'Courier New', 'Consolas', monospace")
         : (display.fontFamily || 'Arial, sans-serif');
@@ -1528,6 +1532,7 @@ export const createProgressStack = async (
                         if (counterConfig.debug && index < 15) {
                           console.log(`  Frame ${index}: cycleStartIndex=${state.cycleStartIndex}, elapsedFrames=${elapsedFrames}, prevLevelFrameCount=${prevLevelFrameCount}, isCycleComplete=${isCycleComplete}`);
                           console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
+                          console.log(`    → Will use level=L${currentLevel === 0 && state.prevLevel !== 0 ? 0 : (isCycleComplete ? currentLevel : state.prevLevel)}, frameIndex will be ${elapsedFrames % prevLevelFrameCount}`);
                         }
 
                         // Special case: If switching to L0 (cleared/eaten cell), force immediate switch
@@ -1561,12 +1566,17 @@ export const createProgressStack = async (
                         }
 
                         // Calculate current frame within the animation cycle
-                        // Use the selected level's frame count
+                        // CRITICAL: Recalculate elapsedFrames AFTER cycleStartIndex may have been updated!
+                        const currentElapsedFrames = index - state.cycleStartIndex;
                         const selectedLevelFrameCount = Array.isArray(framesPerLevel)
                           ? framesPerLevel[level]
                           : framesPerLevel;
                         // Simply use elapsed time to determine frame
-                        frameIndex = elapsedFrames % selectedLevelFrameCount;
+                        frameIndex = currentElapsedFrames % selectedLevelFrameCount;
+
+                        if (counterConfig.debug && currentElapsedFrames === 0) {
+                          console.log(`    ✅ Frame ${index}: Cycle reset! frameIndex=${frameIndex}, level=L${level}`);
+                        }
                       } else {
                         // Static image (1 frame) - use current level directly
                         level = currentLevel;
@@ -1659,38 +1669,38 @@ export const createProgressStack = async (
             }
           }
 
-      // Create opacity animation keyframes
-      const keyframes: AnimationKeyframe[] = [];
+          // Create opacity animation keyframes
+          const keyframes: AnimationKeyframe[] = [];
 
-      // Before this element's time: opacity 0
-      if (index === 0) {
-        // First element: visible from start
-        keyframes.push({ t: 0, style: 'opacity:1' });
-      } else {
-        // Start invisible
-        keyframes.push({ t: 0, style: 'opacity:0' });
-        // Stay invisible until just before this element's time
-        if (elem.time > 0) {
-          keyframes.push({ t: Math.max(0, elem.time - 0.0001), style: 'opacity:0' });
-        }
-      }
+          // Before this element's time: opacity 0
+          if (index === 0) {
+            // First element: visible from start
+            keyframes.push({ t: 0, style: 'opacity:1' });
+          } else {
+            // Start invisible
+            keyframes.push({ t: 0, style: 'opacity:0' });
+            // Stay invisible until just before this element's time
+            if (elem.time > 0) {
+              keyframes.push({ t: Math.max(0, elem.time - 0.0001), style: 'opacity:0' });
+            }
+          }
 
-      // At this element's time: opacity 1
-      if (elem.time > 0 || index > 0) {
-        keyframes.push({ t: Math.max(0, elem.time), style: 'opacity:1' });
-      }
+          // At this element's time: opacity 1
+          if (elem.time > 0 || index > 0) {
+            keyframes.push({ t: Math.max(0, elem.time), style: 'opacity:1' });
+          }
 
-      // At next element's time: opacity 0 (or stay at 1 if last)
-      if (index < textElements.length - 1) {
-        const nextTime = textElements[index + 1].time;
-        if (nextTime > elem.time) {
-          keyframes.push({ t: Math.max(0, Math.min(1, nextTime - 0.0001)), style: 'opacity:1' });
-        }
-        keyframes.push({ t: Math.max(0, Math.min(1, nextTime)), style: 'opacity:0' });
-        keyframes.push({ t: 1, style: 'opacity:0' });
-      } else {
-        keyframes.push({ t: 1, style: 'opacity:1' });
-      }
+          // At next element's time: opacity 0 (or stay at 1 if last)
+          if (index < textElements.length - 1) {
+            const nextTime = textElements[index + 1].time;
+            if (nextTime > elem.time) {
+              keyframes.push({ t: Math.max(0, Math.min(1, nextTime - 0.0001)), style: 'opacity:1' });
+            }
+            keyframes.push({ t: Math.max(0, Math.min(1, nextTime)), style: 'opacity:0' });
+            keyframes.push({ t: 1, style: 'opacity:0' });
+          } else {
+            keyframes.push({ t: 1, style: 'opacity:1' });
+          }
 
           const animName = `contrib-anim-${displayIndex}-${index}`;
           styles.push(
@@ -1836,11 +1846,8 @@ export const validateImageConfig = (config: CounterImageConfig): boolean => {
     return false;
   }
 
-  // If urlFolder is used, sprite.framesPerLevel must be set
-  if (config.urlFolder && (!config.sprite || !config.sprite.framesPerLevel)) {
-    console.error('When using "urlFolder", sprite.framesPerLevel must be specified');
-    return false;
-  }
+  // Note: framesPerLevel defaults to 1 (static image) if omitted, so no validation needed
+  // The code at line 747 handles: framesPerLevel = imageConfig.sprite?.framesPerLevel || 1
 
   return true;
 };
