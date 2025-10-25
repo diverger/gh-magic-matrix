@@ -980,12 +980,19 @@ export const createProgressStack = async (
             if (firstEatenTime.has(key)) {
               // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
               count = 0;
+              if (index < 10) {
+                console.log(`  Cell ${index} at ${key}: already eaten (2nd+ pass) → count=0`);
+              }
             } else {
               // First time eating this cell - use its original contribution value
               count = counterConfig.contributionMap.get(key) || 0;
 
               // Record the time this cell is first eaten
               firstEatenTime.set(key, cell.t!);
+
+              if (index < 10) {
+                console.log(`  Cell ${index} at ${key}: first time → count=${count}`);
+              }
             }
 
             // Debug: log cells with no contribution data
@@ -1596,9 +1603,10 @@ export const getContributionLevel = (
   if (contribution === 0 || maxContribution === 0) return 0;
 
   // Map all positive contributions (1 to max) across all 5 levels (L0-L4)
-  // This ensures L0 is used for lowest contributions, not for zero
+  // Use Math.ceil to ensure contribution=1 maps to L1, not L0
+  // This gives better distribution across levels
   const normalizedValue = contribution / maxContribution;
-  const level = Math.floor(normalizedValue * levels);
+  const level = Math.ceil(normalizedValue * (levels - 1));
 
   // Clamp to valid range [0, levels-1]
   return Math.max(0, Math.min(levels - 1, level));
