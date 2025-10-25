@@ -556,6 +556,13 @@ export interface ContributionCounterConfig {
   displays?: CounterDisplayConfig[];
   /** Map from "x,y" coordinates to contribution count */
   contributionMap?: Map<string, number>;
+  /**
+   * Progress bar growth mode
+   * - 'uniform': Each cell occupies equal width (original behavior)
+   * - 'contribution': Width allocated based on contribution value (new behavior)
+   * Default: 'contribution'
+   */
+  progressBarMode?: 'uniform' | 'contribution';
 }
 
 /**
@@ -612,6 +619,9 @@ export const createProgressStack = async (
     return { svgElements, styles: styles.join('\n') };
   }
 
+  // Determine progress bar mode (default to 'contribution')
+  const progressBarMode = counterConfig?.progressBarMode ?? 'contribution';
+
   // Calculate total contributions for progress bar scaling
   const totalContributions = counterConfig?.contributionMap
     ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
@@ -650,69 +660,102 @@ export const createProgressStack = async (
     }
   }
 
-  // No longer use fixed cellWidth - will calculate based on contributions
-  // const cellWidth = width / sortedCells.length;
+  // No longer use fixed cellWidth in contribution mode
+  // In uniform mode, each cell occupies equal width
+  const cellWidth = progressBarMode === 'uniform' ? width / sortedCells.length : 0;
 
   let blockIndex = 0;
-  let currentX = 0;
   let cumulativeContribution = 0;
+  let cumulativeCellCount = 0; // For uniform mode
 
   for (const block of blocks) {
-    // Calculate block's total contribution
+    // Calculate block's total contribution and cell count
     const blockTotalContribution = block.contributions.reduce((sum, c) => sum + c, 0);
-    const blockWidth = (width * blockTotalContribution / totalContributions + 0.6).toFixed(1);
+    const blockCellCount = block.times.length;
 
     // Generate unique ID for this block
     const blockId = "u" + blockIndex.toString(36);
     const animationName = blockId;
-    const x = currentX.toFixed(1);
 
-    // Create SVG rect element for this block
+    // ALL blocks start at x=0 and have full width
+    // They will be clipped/scaled to show only their portion
     svgElements.push(
       createElement("rect", {
         class: `u ${blockId}`,
         height: dotSize.toString(),
-        width: blockWidth,
-        x,
+        width: width.toString(),
+        x: "0",
         y: y.toString(),
       }),
     );
 
-    // Create scale animation keyframes based on contribution accumulation
+    // Create animation keyframes based on progress bar mode
+    // Each block is clipped to show only its range: [startX, endX]
+    let blockStartX: number, blockEndX: number;
+
+    if (progressBarMode === 'contribution') {
+      // Contribution mode: allocate space based on contribution value
+      blockStartX = cumulativeContribution / totalContributions;
+      blockEndX = (cumulativeContribution + blockTotalContribution) / totalContributions;
+    } else {
+      // Uniform mode: allocate equal space per cell
+      blockStartX = cumulativeCellCount / sortedCells.length;
+      blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
+    }
+
     const keyframes: AnimationKeyframe[] = [];
     let blockCumulativeContribution = 0;
+    let blockCumulativeCellCount = 0; // For uniform mode
 
     block.times.forEach((t, i) => {
       const prevContribution = blockCumulativeContribution;
       blockCumulativeContribution += block.contributions[i];
 
+      const prevCellCount = blockCumulativeCellCount;
+      blockCumulativeCellCount += 1;
+
       const t1 = Math.max(0, t - 0.0001);
       const t2 = Math.min(1, t + 0.0001);
 
-      // Calculate scale relative to the entire progress bar (from x=0)
-      // When this block should be fully visible
-      const blockEndContribution = cumulativeContribution + blockTotalContribution;
-      const fullScale = blockEndContribution / totalContributions;
+      // Calculate current right edge of the visible progress based on mode
+      let currentRightEdge: number, prevRightEdge: number;
 
-      // Current scale based on how much of total contribution has been accumulated
-      const currentTotalContribution = cumulativeContribution + blockCumulativeContribution;
-      const currScale = Math.min(fullScale, currentTotalContribution / totalContributions);
+      if (progressBarMode === 'contribution') {
+        // Contribution mode: position based on accumulated contribution
+        const currentTotalContribution = cumulativeContribution + blockCumulativeContribution;
+        currentRightEdge = currentTotalContribution / totalContributions;
 
-      const prevTotalContribution = cumulativeContribution + prevContribution;
-      const prevScale = Math.min(fullScale, prevTotalContribution / totalContributions);
+        const prevTotalContribution = cumulativeContribution + prevContribution;
+        prevRightEdge = prevTotalContribution / totalContributions;
+      } else {
+        // Uniform mode: position based on cell count
+        const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
+        currentRightEdge = currentTotalCells / sortedCells.length;
+
+        const prevTotalCells = cumulativeCellCount + prevCellCount;
+        prevRightEdge = prevTotalCells / sortedCells.length;
+      }
+
+      // Clip path: left edge is where this block starts, right edge grows with progress
+      // Format: inset(top right bottom left)
+      // right = (1 - rightEdge) * 100% (how much to cut from right)
+      // left = startX * 100% (how much to cut from left)
+      const prevRight = ((1 - Math.min(prevRightEdge, blockEndX)) * 100).toFixed(1);
+      const currRight = ((1 - Math.min(currentRightEdge, blockEndX)) * 100).toFixed(1);
+      const left = (blockStartX * 100).toFixed(1);
 
       keyframes.push(
-        { t: t1, style: `transform:scale(${prevScale.toFixed(3)},1)` },
-        { t: t2, style: `transform:scale(${currScale.toFixed(3)},1)` },
+        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${left}%)` },
+        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${left}%)` },
       );
     });
 
-    // Add final keyframe - this block stays at its final scale
-    const blockEndContribution = cumulativeContribution + blockTotalContribution;
-    const finalScale = blockEndContribution / totalContributions;
+    // Add final keyframe - this block is fully visible within its range
+    const finalRight = ((1 - blockEndX) * 100).toFixed(1);
+    const left = (blockStartX * 100).toFixed(1);
     keyframes.push({
       t: 1,
-      style: `transform:scale(${finalScale.toFixed(3)},1)`,
+      style: `clip-path:inset(0 ${finalRight}% 0 ${left}%)`,
     });
 
     // Generate CSS animation and styles
@@ -722,12 +765,11 @@ export const createProgressStack = async (
       `.u.${blockId} {
         fill: var(--c${block.color});
         animation-name: ${animationName};
-        transform-origin: 0px 0;
       }`,
     );
 
-    currentX += parseFloat(blockWidth);
     cumulativeContribution += blockTotalContribution;
+    cumulativeCellCount += blockCellCount;
     blockIndex++;
   }
 
