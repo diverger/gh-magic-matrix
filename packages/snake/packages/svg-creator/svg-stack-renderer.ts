@@ -1538,20 +1538,24 @@ export const createProgressStack = async (
                         if (counterConfig.debug && index < 15) {
                           console.log(`  Frame ${index}: cycleStartIndex=${state.cycleStartIndex}, elapsedFrames=${elapsedFrames}, prevLevelFrameCount=${prevLevelFrameCount}, isCycleComplete=${isCycleComplete}`);
                           console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
-                          console.log(`    → Will use level=L${currentLevel === 0 && state.prevLevel !== 0 ? 0 : (isCycleComplete ? currentLevel : state.prevLevel)}, frameIndex will be ${elapsedFrames % prevLevelFrameCount}`);
                         }
 
-                        // Special case: If switching to L0 (cleared/eaten cell), force immediate switch
-                        // This ensures visual feedback is instant when snake revisits eaten cells
+                        // Level selection logic (hybrid approach):
+                        // 1. L0 (empty/repeated cells) → immediate switch (important negative feedback)
+                        // 2. L1-L4 transitions → wait for cycle complete (smooth animation)
+                        // 3. Mid-cycle → continue playing prevLevel (don't interrupt)
+
                         if (currentLevel === 0 && state.prevLevel !== 0) {
+                          // Special case: Immediate switch to L0 for cleared/repeated cells
+                          // This provides instant visual feedback when snake revisits eaten cells
                           const oldLevel = state.prevLevel;
                           level = 0;
                           state.prevLevel = 0;
-                          state.cycleStartIndex = index; // ⚡ Reset cycle start - start from f0!
+                          state.cycleStartIndex = index;
 
-                          if (counterConfig.debug) {
-                            console.log(`  ⚡ Frame ${index}: Force switch to L0 (cleared cell, contribution=${elem.currentContribution}, was L${oldLevel})`);
-                            console.log(`     → cycleStartIndex reset to ${index}, next elapsedFrames will be 0`);
+                          if (counterConfig.debug && index < 100) {
+                            console.log(`  ⚡ Frame ${index}: L0 immediate switch from L${oldLevel} (contribution=${elem.currentContribution})`);
+                            console.log(`     → cycleStartIndex reset to ${index}`);
                           }
                         } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
@@ -1560,11 +1564,14 @@ export const createProgressStack = async (
                           state.prevLevel = currentLevel;
                           state.cycleStartIndex = index; // Reset cycle start for new level
 
-                          if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0)) {
-                            console.log(`  → Frame ${index}: Cycle complete, switching from L${oldLevel} to L${level} (contribution=${elem.currentContribution}, frames=${prevLevelFrameCount})`);
+                          if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel)) {
+                            console.log(`  ⚡ Frame ${index}: Cycle complete, ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution})`);
+                            if (oldLevel !== currentLevel) {
+                              console.log(`     → Level changed! cycleStartIndex reset to ${index}`);
+                            }
                           }
                         } else {
-                          // Mid-cycle - use previous level
+                          // Mid-cycle - use previous level (don't interrupt animation)
                           level = state.prevLevel;
 
                           if (counterConfig.debug && currentLevel === 0 && index < 50) {

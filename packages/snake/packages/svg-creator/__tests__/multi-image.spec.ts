@@ -83,16 +83,16 @@ it('should reject config with both url and urlFolder', () => {
   expect(validateImageConfig(config)).toBe(false);
 });
 
-it('should reject urlFolder without sprite.framesPerLevel', () => {
+it('should accept urlFolder without sprite.framesPerLevel (defaults to 1 for static images)', () => {
   const config: CounterImageConfig = {
     urlFolder: 'images/character',
     width: 32,
     height: 32,
   };
-  expect(validateImageConfig(config)).toBe(false);
+  expect(validateImageConfig(config)).toBe(true);
 });
 
-it('should reject urlFolder with sprite but no framesPerLevel', () => {
+it('should accept urlFolder with sprite but no framesPerLevel (defaults to 1)', () => {
   const config: CounterImageConfig = {
     urlFolder: 'images/character',
     width: 32,
@@ -101,7 +101,7 @@ it('should reject urlFolder with sprite but no framesPerLevel', () => {
       mode: 'sync',
     } as any,
   };
-  expect(validateImageConfig(config)).toBe(false);
+  expect(validateImageConfig(config)).toBe(true);
 });
 
 // resolveImageMode tests
