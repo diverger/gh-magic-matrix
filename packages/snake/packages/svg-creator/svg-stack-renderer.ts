@@ -697,6 +697,9 @@ export const createProgressStack = async (
   // In uniform mode, each cell occupies equal width
   const cellWidth = progressBarMode === 'uniform' ? width / sortedCells.length : 0;
 
+  // Create gradient definitions for contribution mode
+  const gradientDefs: string[] = [];
+  
   let blockIndex = 0;
   let cumulativeContribution = 0;
   let cumulativeCellCount = 0; // For uniform mode
@@ -709,12 +712,51 @@ export const createProgressStack = async (
     // Generate unique ID for this block
     const blockId = "u" + blockIndex.toString(36);
     const animationName = blockId;
+    const gradientId = `gradient-${blockId}`;
+
+    // Create gradient for contribution mode
+    if (progressBarMode === 'contribution') {
+      const stops: string[] = [];
+      let accumulatedContribution = 0;
+
+      block.contributions.forEach((contribution, i) => {
+        const prevAccumulated = accumulatedContribution;
+        accumulatedContribution += contribution;
+        
+        // Calculate position as percentage of total block
+        const startOffset = ((prevAccumulated / blockTotalContribution) * 100).toFixed(2);
+        const endOffset = ((accumulatedContribution / blockTotalContribution) * 100).toFixed(2);
+        
+        // Determine color based on CUMULATIVE contribution progress (0-1)
+        // Map cumulative progress to color intensity (1=coldest, 4=hottest)
+        const cumulativeProgress = accumulatedContribution / blockTotalContribution;
+        const colorLevel = Math.max(1, Math.min(4, Math.ceil(cumulativeProgress * 4))) as Color;
+        
+        // Create gradient stops for smooth transition
+        if (i === 0) {
+          stops.push(`<stop offset="${startOffset}%" stop-color="var(--c${colorLevel})"/>`);
+        }
+        stops.push(`<stop offset="${endOffset}%" stop-color="var(--c${colorLevel})"/>`);
+      });
+
+      // Create linearGradient definition
+      gradientDefs.push(
+        `<linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
+          ${stops.join('\n          ')}
+        </linearGradient>`
+      );
+    }
 
     // ALL blocks start at x=0 and have full width
     // They will be clipped/scaled to show only their portion
+    const fillAttr = progressBarMode === 'contribution' 
+      ? `url(#${gradientId})` 
+      : `var(--c${block.color})`;
+    
     svgElements.push(
       createElement("rect", {
         class: `u ${blockId}`,
+        fill: fillAttr,
         height: dotSize.toString(),
         width: width.toString(),
         x: "0",
@@ -793,12 +835,13 @@ export const createProgressStack = async (
 
     // Generate CSS animation and styles
     // CRITICAL: transform-origin must be 0 for all blocks to grow from left
+    const cssStyle = progressBarMode === 'contribution'
+      ? `.u.${blockId} { animation-name: ${animationName}; }`  // fill already set on element
+      : `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
+    
     styles.push(
       createKeyframeAnimation(animationName, keyframes),
-      `.u.${blockId} {
-        fill: var(--c${block.color});
-        animation-name: ${animationName};
-      }`,
+      cssStyle,
     );
 
     cumulativeContribution += blockTotalContribution;
@@ -1403,6 +1446,11 @@ export const createProgressStack = async (
     First few elements: ${svgElements.slice(0, 3).join(', ')}
   -->`;
   svgElements.push(debugComment);
+
+  // Prepend gradient definitions if in contribution mode
+  if (progressBarMode === 'contribution' && gradientDefs.length > 0) {
+    svgElements.unshift(`<defs>${gradientDefs.join('\n')}</defs>`);
+  }
 
   return { svgElements, styles: styles.join('\n') };
 };
