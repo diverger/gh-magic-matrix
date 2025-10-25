@@ -1488,10 +1488,10 @@ export const createProgressStack = async (
                       levelDistribution.set(currentLevel, (levelDistribution.get(currentLevel) || 0) + 1);
 
                       // Debug: log level distribution for first few frames and when contribution=0
-                      if (counterConfig.debug && (index < 10 || elem.currentContribution === 0)) {
-                        console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=${currentLevel}, time=${elem.time}`);
-                        if (elem.currentContribution === 0 && index > 0) {
-                          console.log(`  → This is a L0 cell at frame ${index}, should use L0 sprite`);
+                      if (counterConfig.debug && (index < 10 || (elem.currentContribution === 0 && index < 100))) {
+                        console.log(`📊 Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=L${currentLevel}, time=${elem.time}`);
+                        if (elem.currentContribution === 0) {
+                          console.log(`   → L0 cell at frame ${index} (${index < 10 ? 'early' : 'later'} in animation)`);
                         }
                       }
 
@@ -1512,9 +1512,15 @@ export const createProgressStack = async (
                         let state = animationStates.get(imageKey);
 
                         if (!state) {
-                          // Initialize state: start with current level and record start time
+                          // Initialize state: start animation cycle at current position
+                          // IMPORTANT: For L0 cells, we still want to play L0 animation from frame 0
+                          // prevLevel is used to detect CHANGES, not to store the actual playing level
                           state = { prevLevel: currentLevel, cycleStartIndex: index };
                           animationStates.set(imageKey, state);
+
+                          if (counterConfig.debug && index < 20) {
+                            console.log(`  🆕 Frame ${index}: Init state for image ${imageKey}, currentLevel=L${currentLevel}, cycleStartIndex=${index}`);
+                          }
                         }
 
                         // Get the frame count for the PREVIOUS level (currently playing)
@@ -1545,6 +1551,7 @@ export const createProgressStack = async (
 
                           if (counterConfig.debug) {
                             console.log(`  ⚡ Frame ${index}: Force switch to L0 (cleared cell, contribution=${elem.currentContribution}, was L${oldLevel})`);
+                            console.log(`     → cycleStartIndex reset to ${index}, next elapsedFrames will be 0`);
                           }
                         } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
@@ -1560,8 +1567,8 @@ export const createProgressStack = async (
                           // Mid-cycle - use previous level
                           level = state.prevLevel;
 
-                          if (counterConfig.debug && currentLevel === 0 && level !== 0) {
-                            console.log(`  ⚠️ Frame ${index}: currentLevel=L0 but still playing L${level} (mid-cycle, frames left: ${prevLevelFrameCount - (elapsedFrames % prevLevelFrameCount)})`);
+                          if (counterConfig.debug && currentLevel === 0 && index < 50) {
+                            console.log(`  🎯 Frame ${index}: Using prevLevel=L${level} (currentLevel=L${currentLevel}, mid-cycle, elapsed=${elapsedFrames}/${prevLevelFrameCount})`);
                           }
                         }
 
@@ -1574,8 +1581,8 @@ export const createProgressStack = async (
                         // Simply use elapsed time to determine frame
                         frameIndex = currentElapsedFrames % selectedLevelFrameCount;
 
-                        if (counterConfig.debug && currentElapsedFrames === 0) {
-                          console.log(`    ✅ Frame ${index}: Cycle reset! frameIndex=${frameIndex}, level=L${level}`);
+                        if (counterConfig.debug && (currentElapsedFrames === 0 || (currentLevel === 0 && index < 50))) {
+                          console.log(`    ✅ Frame ${index}: level=L${level}, currentElapsedFrames=${currentElapsedFrames}, frameIndex=${frameIndex}, contribution=${elem.currentContribution}`);
                         }
                       } else {
                         // Static image (1 frame) - use current level directly
