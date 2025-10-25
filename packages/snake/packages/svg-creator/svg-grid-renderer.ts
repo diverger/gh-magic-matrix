@@ -27,6 +27,8 @@ export interface SvgGridRenderOptions {
   cellSize: number;
   dotSize: number;
   dotBorderRadius: number;
+  gridWidth?: number; // Optional: grid width for filtering outside cells
+  gridHeight?: number; // Optional: grid height for filtering outside cells
 }
 
 /**
@@ -87,6 +89,14 @@ export const renderAnimatedSvgGrid = (
 
   for (const cell of cells) {
     const { x, y, color, animationTime } = cell;
+
+    // Skip cells outside the grid boundaries (used for L0 animation only, no grid rendering)
+    if (options.gridWidth !== undefined && options.gridHeight !== undefined) {
+      if (x < 0 || y < 0 || x >= options.gridWidth || y >= options.gridHeight) {
+        continue; // Outside cell - don't render grid rectangle, only progress bar will show L0 animation
+      }
+    }
+
     const classes = ["grid-cell"];
 
     // Calculate position within cell

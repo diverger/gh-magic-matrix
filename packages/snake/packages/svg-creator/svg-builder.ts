@@ -132,6 +132,8 @@ export const createSvg = async (
     cellSize: drawOptions.sizeCell,
     dotSize: drawOptions.sizeDot,
     dotBorderRadius: drawOptions.sizeDotBorderRadius,
+    gridWidth: grid.width,
+    gridHeight: grid.height,
   }, duration);
 
   // Render the animated snake
