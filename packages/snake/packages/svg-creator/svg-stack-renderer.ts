@@ -1362,6 +1362,15 @@ export const createProgressStack = async (
     } // End displays loop
   } // End if (counterConfig?.enabled)
 
+  // Debug: Add SVG comment with diagnostic info
+  const debugComment = `<!-- PROGRESS BAR DEBUG:
+    Total svgElements: ${svgElements.length}
+    Progress bar rects: ${svgElements.filter(e => e.includes('class="u u')).length}
+    Blocks processed: ${blockIndex}
+    First few elements: ${svgElements.slice(0, 3).join(', ')}
+  -->`;
+  svgElements.push(debugComment);
+
   return { svgElements, styles: styles.join('\n') };
 };
 

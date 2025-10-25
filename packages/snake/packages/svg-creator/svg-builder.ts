@@ -166,6 +166,16 @@ export const createSvg = async (
     snakeResult.styles + "\n" +
     stackResult.styles;
 
+  // Debug comments
+  const debugComments = [
+    `<!-- SVG BUILDER DEBUG:`,
+    `  gridResult.svgElements: ${gridResult.svgElements.length}`,
+    `  stackResult.svgElements: ${stackResult.svgElements.length}`,
+    `  snakeResult.elements: ${snakeResult.elements.length}`,
+    `  First stackResult element: ${stackResult.svgElements[0] || 'NONE'}`,
+    `-->`,
+  ];
+
   // Create complete SVG structure
   const svg = [
     createElement("svg", {
@@ -179,6 +189,8 @@ export const createSvg = async (
     "<desc>",
     "Generated with https://github.com/diverger/gh-magic-matrix",
     "</desc>",
+
+    ...debugComments,
 
     "<style>",
     optimizeCss(style),
