@@ -1208,13 +1208,9 @@ export const createProgressStack = async (
           }
         }
 
-        // Add defs to svgElements if we have any images
+        // Add image defs to svgElements (without <defs> wrapper - svg-builder will handle that)
         if (imageDefsElements.length > 0) {
-          svgElements.push(
-            "<defs>",
-            ...imageDefsElements,
-            "</defs>"
-          );
+          svgElements.push(...imageDefsElements);
         }
 
         // Create text elements with position and opacity animations
