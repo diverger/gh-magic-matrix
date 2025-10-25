@@ -88,6 +88,8 @@ export interface AnimationOptions {
     progressBarMode?: 'uniform' | 'contribution';
     /** Color map for gradient (level -> hex color) */
     colorDots?: Record<number, string>;
+    /** Hide the progress bar (opacity: 0, but still in DOM for follow mode positioning) */
+    hideProgressBar?: boolean;
   };
 }
 

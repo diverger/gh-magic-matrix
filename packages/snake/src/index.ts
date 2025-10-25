@@ -34,6 +34,7 @@ const runAction = async (): Promise<void> => {
 
     // Parse contribution counter configuration
     const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
+    const hideProgressBar = process.env.INPUT_HIDE_PROGRESS_BAR === "true";
 
     // Parse multiple displays configuration
     let counterDisplays: any[] | undefined;
@@ -68,6 +69,7 @@ const runAction = async (): Promise<void> => {
               enabled: true,
               displays: counterDisplays,
               progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
+              hideProgressBar, // Apply hide setting
             };
           }
         });
@@ -80,6 +82,7 @@ const runAction = async (): Promise<void> => {
             output.animationOptions.contributionCounter = {
               enabled: true,
               progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
+              hideProgressBar, // Apply hide setting
             };
           }
         });

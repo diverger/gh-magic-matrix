@@ -620,13 +620,12 @@ export const createProgressStack = async (
   const svgElements: string[] = [];
   const isHidden = counterConfig?.hideProgressBar ?? false;
 
-  const styles: string[] = [
-    `.u{
+  const baseStyle = `.u{
       transform-origin: 0 0;
-      animation: none linear ${duration}ms infinite;
-      ${isHidden ? 'opacity: 0;' : ''}
-    }`,
-  ];
+      animation: none linear ${duration}ms infinite;${isHidden ? '\n      opacity: 0;' : ''}
+    }`;
+
+  const styles: string[] = [baseStyle];
 
   if (isHidden) {
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
