@@ -696,9 +696,6 @@ export const createProgressStack = async (
       ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
       : sortedCells.length;
 
-    // Calculate width per cell
-    const cellWidth = width / sortedCells.length;
-
     // Process each display
     for (let displayIndex = 0; displayIndex < counterConfig.displays.length; displayIndex++) {
       const display = counterConfig.displays[displayIndex];
@@ -794,7 +791,13 @@ export const createProgressStack = async (
           }
 
           cumulativeCount += count;
-          cumulativeWidth += cellWidth;
+          
+          // Calculate cell width based on contribution ratio
+          // Each cell's width is proportional to its contribution value
+          const contributionRatio = count / totalContributions;
+          const currentCellWidth = width * contributionRatio;
+          cumulativeWidth += currentCellWidth;
+          
           const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
 
           let x: number;
