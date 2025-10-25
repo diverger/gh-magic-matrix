@@ -1522,7 +1522,10 @@ export const createProgressStack = async (
                           : framesPerLevel;
 
                         // Decide which level to use for this frame
-                        const globalFramesPerSpriteFrame = 0.5;
+                        // Changed from 0.5 to 1.0 to fix frame-skipping bug
+                        // With 0.5: each cell advances cycleFrame by 2, causing odd frames (1,3,5,7) to be skipped
+                        // With 1.0: each cell advances cycleFrame by 1, using all 8 frames properly
+                        const globalFramesPerSpriteFrame = 1.0;
                         const currentCycleFrame = Math.floor(state.accumulatedFrames / globalFramesPerSpriteFrame);
                         const isCycleComplete = (currentCycleFrame % prevLevelFrameCount === 0) && currentCycleFrame > 0;
 
