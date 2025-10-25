@@ -167,15 +167,20 @@ export const createAnimatedGridCells = (
     const snake = snakeChain[i];
     const head = snake.getHead();
 
-    if (workingGrid.isInside(head.x, head.y) &&
-        !workingGrid.isEmptyCell(workingGrid.getColor(head.x, head.y))) {
+    if (workingGrid.isInside(head.x, head.y)) {
+      const cellColor = workingGrid.getColor(head.x, head.y);
+      const isEmpty = workingGrid.isEmptyCell(cellColor);
 
-      // Mark this cell as consumed at this time (matching SNK)
-      workingGrid.setColorEmpty(head.x, head.y);
+      // Mark non-empty cells as consumed (for grid rendering)
+      if (!isEmpty) {
+        workingGrid.setColorEmpty(head.x, head.y);
+      }
 
+      // Set animation time for ALL cells (including empty ones)
+      // This enables progress stack to show animations for empty cells (L0 sprite)
       const cell = animatedCells.find(c => c.x === head.x && c.y === head.y);
       if (cell && cell.animationTime === null) {
-        // SNK uses i / snakeChain.length - cell disappears when snake head touches it
+        // SNK uses i / snakeChain.length - cell appears when snake head touches it
         // Only set animationTime on first visit (for return path, don't re-trigger animation)
         cell.animationTime = i / snakeChain.length;
       }

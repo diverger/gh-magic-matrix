@@ -969,6 +969,7 @@ export const createProgressStack = async (
         // Track when each cell is first eaten (by coordinates)
         // This is used to determine if a cell has already been consumed when the snake passes through it again
         const firstEatenTime = new Map<string, number>();
+        let repeatedCellCount = 0;
 
         sortedCells.forEach((cell, index) => {
           // Get contribution count for this cell using its coordinates
@@ -980,6 +981,7 @@ export const createProgressStack = async (
             if (firstEatenTime.has(key)) {
               // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
               count = 0;
+              repeatedCellCount++;
               if (index < 10) {
                 console.log(`  Cell ${index} at ${key}: already eaten (2nd+ pass) → count=0`);
               }
@@ -1028,6 +1030,12 @@ export const createProgressStack = async (
             currentContribution: count // Store current cell's contribution for dynamic frame selection
           });
         });
+
+        if (repeatedCellCount > 0) {
+          console.log(`🔄 Snake re-visited ${repeatedCellCount} cells (these will use L0 animation)`);
+        } else {
+          console.log(`📍 Snake visited each cell only once (L0 only used for contribution=0 cells)`);
+        }
 
         // Pre-load image data URIs and create SVG defs
         // IMPORTANT: Without this optimization, each animation frame would embed
