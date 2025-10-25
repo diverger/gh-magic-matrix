@@ -168,6 +168,8 @@ export const createSvg = async (
           colorDots: drawOptions.colorDots, // Pass color map for gradients
         }
       : undefined,
+    grid.width, // Pass grid dimensions to filter outside cells
+    grid.height,
   );
 
   // Create viewBox

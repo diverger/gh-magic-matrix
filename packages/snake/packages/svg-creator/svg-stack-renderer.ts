@@ -573,6 +573,12 @@ export interface ContributionCounterConfig {
    * Default: false
    */
   hideProgressBar?: boolean;
+  /**
+   * Enable debug logging
+   * When true, outputs detailed progress bar and animation state information to console
+   * Default: false
+   */
+  debug?: boolean;
 }
 
 /**
@@ -610,6 +616,8 @@ export const createProgressStack = async (
   y: number,
   duration: number,
   counterConfig?: ContributionCounterConfig,
+  gridWidth?: number, // Optional: grid width for filtering outside cells
+  gridHeight?: number, // Optional: grid height for filtering outside cells
 ): Promise<ProgressStackResult> => {
   const svgElements: string[] = [];
   const isHidden = counterConfig?.hideProgressBar ?? false;
@@ -621,24 +629,39 @@ export const createProgressStack = async (
 
   const styles: string[] = [baseStyle];
 
-  if (isHidden) {
+  if (isHidden && counterConfig?.debug) {
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
   }
 
-  // Filter and sort cells by animation time
-  const sortedCells = cells
-    .filter((cell) => cell.t !== null)
-    .sort((a, b) => a.t! - b.t!);
+  // Filter out cells outside the grid (used for L0 animation only, not for progress calculation)
+  const filteredCells = cells.filter((cell) => {
+    if (cell.t === null) return false;
+
+    // If grid dimensions provided, filter out outside cells
+    if (gridWidth !== undefined && gridHeight !== undefined &&
+        cell.x !== undefined && cell.y !== undefined) {
+      if (cell.x < 0 || cell.y < 0 || cell.x >= gridWidth || cell.y >= gridHeight) {
+        return false; // Outside cell - exclude from progress bar calculation
+      }
+    }
+
+    return true;
+  });
+
+  // Sort remaining cells by animation time
+  const sortedCells = filteredCells.sort((a, b) => a.t! - b.t!);
 
   // Determine progress bar mode (default to 'contribution')
   const progressBarMode = counterConfig?.progressBarMode ?? 'contribution';
 
-  console.log(`📊 Progress Bar Debug:`);
-  console.log(`  - Total cells passed: ${cells.length}`);
-  console.log(`  - Cells with animation (t !== null): ${sortedCells.length}`);
-  console.log(`  - Progress bar mode: ${progressBarMode}`);
-  console.log(`  - Counter config enabled: ${counterConfig?.enabled}`);
-  console.log(`  - Contribution map size: ${counterConfig?.contributionMap?.size || 0}`);
+  if (counterConfig?.debug) {
+    console.log(`📊 Progress Bar Debug:`);
+    console.log(`  - Total cells passed: ${cells.length}`);
+    console.log(`  - Cells with animation (t !== null): ${sortedCells.length}`);
+    console.log(`  - Progress bar mode: ${progressBarMode}`);
+    console.log(`  - Counter config enabled: ${counterConfig?.enabled}`);
+    console.log(`  - Contribution map size: ${counterConfig?.contributionMap?.size || 0}`);
+  }
 
   if (sortedCells.length === 0) {
     console.warn(`⚠️  No cells to animate in progress bar!`);
@@ -993,7 +1016,7 @@ export const createProgressStack = async (
               // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
               count = 0;
               repeatedCellCount++;
-              if (index < 10) {
+              if (counterConfig.debug && index < 10) {
                 console.log(`  Cell ${index} at ${key}: already eaten (2nd+ pass) → count=0`);
               }
             } else {
@@ -1003,13 +1026,13 @@ export const createProgressStack = async (
               // Record the time this cell is first eaten
               firstEatenTime.set(key, cell.t!);
 
-              if (index < 10) {
+              if (counterConfig.debug && index < 10) {
                 console.log(`  Cell ${index} at ${key}: first time → count=${count}`);
               }
             }
 
             // Debug: log cells with no contribution data
-            if (!counterConfig.contributionMap.has(key) && index < 20) {
+            if (counterConfig.debug && !counterConfig.contributionMap.has(key) && index < 20) {
               console.log(`⚠️  Cell ${index} at (${cell.x}, ${cell.y}) has no contribution data in map`);
             }
           }
@@ -1042,10 +1065,12 @@ export const createProgressStack = async (
           });
         });
 
-        if (repeatedCellCount > 0) {
-          console.log(`🔄 Snake re-visited ${repeatedCellCount} cells (these will use L0 animation)`);
-        } else {
-          console.log(`📍 Snake visited each cell only once (L0 only used for contribution=0 cells)`);
+        if (counterConfig.debug) {
+          if (repeatedCellCount > 0) {
+            console.log(`🔄 Snake re-visited ${repeatedCellCount} cells (these will use L0 animation)`);
+          } else {
+            console.log(`📍 Snake visited each cell only once (L0 only used for contribution=0 cells)`);
+          }
         }
 
         // Pre-load image data URIs and create SVG defs
@@ -1064,7 +1089,9 @@ export const createProgressStack = async (
         let maxContribution = 1;
         if (counterConfig.contributionMap) {
           maxContribution = Math.max(...Array.from(counterConfig.contributionMap.values()));
-          console.log(`🎨 Contribution levels: max=${maxContribution}, map size=${counterConfig.contributionMap.size}`);
+          if (counterConfig.debug) {
+            console.log(`🎨 Contribution levels: max=${maxContribution}, map size=${counterConfig.contributionMap.size}`);
+          }
         }
 
         if (display.images && display.images.length > 0) {
@@ -1101,7 +1128,9 @@ export const createProgressStack = async (
                   const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
                   const resolvedUrl = await resolveImageUrl(spriteUrl);
 
-                  console.log(`🖼️  Loading sprite sheet for level ${level}: ${spriteUrl} → ${resolvedUrl ? 'OK' : 'FAILED'}`);
+                  if (counterConfig.debug) {
+                    console.log(`🖼️  Loading sprite sheet for level ${level}: ${spriteUrl} → ${resolvedUrl ? 'OK' : 'FAILED'}`);
+                  }
 
                   if (resolvedUrl) {
                     const sprite = imageConfig.sprite!;
@@ -1145,7 +1174,9 @@ export const createProgressStack = async (
                       );
                     }
 
-                    console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
+                    if (counterConfig.debug) {
+                      console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
+                    }
                   }
                 } else {
                   // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
@@ -1380,7 +1411,7 @@ export const createProgressStack = async (
                       levelDistribution.set(currentLevel, (levelDistribution.get(currentLevel) || 0) + 1);
 
                       // Debug: log level distribution for first few frames and when contribution=0
-                      if (index < 10 || elem.currentContribution === 0) {
+                      if (counterConfig.debug && (index < 10 || elem.currentContribution === 0)) {
                         console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=${currentLevel}`);
                       }
 
@@ -1419,14 +1450,14 @@ export const createProgressStack = async (
                           state.prevLevel = currentLevel;
                           state.accumulatedFrames = 0;
 
-                          if (index < 20 || currentLevel === 0 || oldLevel === 0) {
+                          if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0)) {
                             console.log(`  → Frame ${index}: Cycle complete, switching from L${oldLevel} to L${level} (contribution=${elem.currentContribution}, frames=${prevLevelFrameCount})`);
                           }
                         } else {
                           // Mid-cycle - use previous level
                           level = state.prevLevel;
 
-                          if (currentLevel === 0 && level !== 0) {
+                          if (counterConfig.debug && currentLevel === 0 && level !== 0) {
                             console.log(`  ⚠️ Frame ${index}: currentLevel=L0 but still playing L${level} (mid-cycle, frames left: ${prevLevelFrameCount - (currentCycleFrame % prevLevelFrameCount)})`);
                           }
                         }
@@ -1472,7 +1503,7 @@ export const createProgressStack = async (
                     const defId = frameMap?.get(frameIndex);
 
                     // Debug: log symbol ID for first few frames
-                    if (index < 10 && isContributionLevel) {
+                    if (counterConfig.debug && index < 10 && isContributionLevel) {
                       console.log(`  → Using symbol: ${defId} (level=${level}, frameIndex=${frameIndex})`);
                     }
 
@@ -1524,7 +1555,7 @@ export const createProgressStack = async (
           }
 
           // Log level distribution for contribution-level mode
-          if (levelDistribution.size > 0) {
+          if (counterConfig.debug && levelDistribution.size > 0) {
             console.log(`📊 Level distribution across ${textElements.length} frames:`);
             for (let i = 0; i < 5; i++) {
               const count = levelDistribution.get(i) || 0;
