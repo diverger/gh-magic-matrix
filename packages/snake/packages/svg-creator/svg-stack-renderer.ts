@@ -486,6 +486,20 @@ export interface CounterImageConfig {
      */
     dynamicSpeed?: boolean;
     /**
+     * Animation speed multiplier (for sync mode with cycling animation)
+     * Controls how many animation frames advance per step
+     * When set, frame index = Math.floor((stepIndex * animationSpeed) % totalFrames)
+     * Combined with dynamicSpeed: speedFactor = animationSpeed * (contribution / maxContribution)
+     *
+     * Example with 8 frames walking cycle:
+     * - animationSpeed: 1 -> 8 steps complete one walk cycle
+     * - animationSpeed: 2 -> 4 steps complete one walk cycle (faster)
+     * - animationSpeed: 0.5 -> 16 steps complete one walk cycle (slower)
+     *
+     * Default: 1
+     */
+    animationSpeed?: number;
+    /**
      * Animation duration in milliseconds (for loop mode only)
      * Default: same as progress bar duration
      */
@@ -1147,13 +1161,25 @@ export const createProgressStack = async (
                         frameIndex = index % levelFrameCount;
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
-                      // Dynamic speed mode: select frame based on contribution value
-                      // Higher contribution = higher frame index (faster animation appearance)
-                      frameIndex = Math.floor((elem.currentContribution / maxContribution) * (totalFrames - 1));
-                      frameIndex = Math.max(0, Math.min(totalFrames - 1, frameIndex)); // Clamp to valid range
+                      // Dynamic speed mode: animation speed based on contribution level
+                      // Level 0: speed = 0 (no animation)
+                      // Level 1: speed = 1 (normal, 8 steps for 8 frames)
+                      // Level 2: speed = 2 (2x, 4 steps for 8 frames)
+                      // Level 3: speed = 4 (4x, 2 steps for 8 frames)
+                      // Level N: speed = 2^(N-1)
+                      const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
+                      const currentLevel = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
+
+                      if (currentLevel === 0) {
+                        frameIndex = 0; // No animation for level 0
+                      } else {
+                        const speedFactor = Math.pow(2, currentLevel - 1);
+                        frameIndex = Math.floor((index * speedFactor) % totalFrames);
+                      }
                     } else if (isMultiFrame && imageConfig.sprite?.mode === 'sync') {
-                      // Sequential sync mode: cycle through frames
-                      frameIndex = index % totalFrames;
+                      // Sequential sync mode: cycle through frames with fixed speed
+                      const animSpeed = imageConfig.sprite?.animationSpeed ?? 1;
+                      frameIndex = Math.floor((index * animSpeed) % totalFrames);
                     }
                     // For static images or loop mode, level=0, frameIndex=0
 
