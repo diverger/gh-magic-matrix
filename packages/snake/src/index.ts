@@ -23,11 +23,11 @@ const runAction = async (): Promise<void> => {
   try {
     // Parse GitHub Action inputs
     const userName = core.getInput("github_user_name");
+    const outputsInput = core.getMultilineInput("outputs");
     const outputs = parseOutputsOption(
-      core.getMultilineInput("outputs") ?? [
-        core.getInput("gif_out_path"),
-        core.getInput("svg_out_path"),
-      ],
+      outputsInput && outputsInput.length > 0
+        ? outputsInput
+        : [core.getInput("gif_out_path"), core.getInput("svg_out_path")].filter(Boolean),
     );
     const githubToken =
       core.getInput("github_token") || process.env.INPUT_GITHUB_TOKEN || process.env.GITHUB_TOKEN || "";
