@@ -431,12 +431,6 @@ export interface CounterImageConfig {
     framesPerLevel?: number | number[];
 
     /**
-     * LEGACY: Total number of frames (deprecated, use framesPerLevel instead)
-     * Kept for backward compatibility with existing configurations.
-     * If both frames and framesPerLevel are set, framesPerLevel takes precedence.
-     */
-    frames?: number;
-    /**
      * Frame width (only for sprite sheet mode)
      * If not provided, calculated as: image width / frames (horizontal) or image width (vertical)
      */
@@ -990,7 +984,8 @@ export const createProgressStack = async (
         sortedCells.forEach((cell, index) => {
           // Get contribution count for this cell using its coordinates
           let count = 0; // Default to 0 for empty cells (no contribution)
-          if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
+          if (counterConfig.contributionMap &&
+            typeof cell.x === 'number' && typeof cell.y === 'number') {
             const key = `${cell.x},${cell.y}`;
 
             // Check if this cell has been eaten before (snake passing through again)
@@ -1081,13 +1076,10 @@ export const createProgressStack = async (
             imageDataMap.set(imgIdx, levelMap);
 
             const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
-            // Support both 'frames' (legacy) and 'framesPerLevel' (unified)
-            // For non-contribution modes: use frames if specified, otherwise framesPerLevel
-            const legacyFrames = imageConfig.sprite?.frames;
             const framesPerLevel = imageConfig.sprite?.framesPerLevel;
             const effectiveFrameCount = isContributionLevel
               ? (typeof framesPerLevel === 'number' ? framesPerLevel : 1)
-              : (legacyFrames || (typeof framesPerLevel === 'number' ? framesPerLevel : 1));
+              : (typeof framesPerLevel === 'number' ? framesPerLevel : 1);
 
             const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
             const frameCount = effectiveFrameCount;
@@ -1376,29 +1368,27 @@ export const createProgressStack = async (
                     let frameIndex = 0;
 
                     const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
-                    // Use unified framesPerLevel, fallback to legacy frames
-                    const legacyFrames = imageConfig.sprite?.frames;
                     const framesPerLevelValue = imageConfig.sprite?.framesPerLevel;
-                    const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+                    const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
                     const isMultiFrame = imageConfig.sprite && totalFrames > 1;
                     const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
 
                     if (isContributionLevel) {
                       // Contribution-level mode: select level based on contribution value
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
-                      level = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
+                      const currentLevel = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
 
                       // Track level distribution
-                      levelDistribution.set(level, (levelDistribution.get(level) || 0) + 1);
+                      levelDistribution.set(currentLevel, (levelDistribution.get(currentLevel) || 0) + 1);
 
                       // Debug: log level distribution for first few frames
                       if (index < 10) {
-                        console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, level=${level}`);
+                        console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=${currentLevel}`);
                       }
 
                       // For animated levels, cycle through frames
                       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
-                      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+                      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[currentLevel] : framesPerLevel;
 
                       if (levelFrameCount > 1) {
                         // Complete animation cycles first, then sample new level
@@ -1409,11 +1399,31 @@ export const createProgressStack = async (
 
                         if (!state) {
                           // Initialize state: start with current level
-                          state = { prevLevel: level, accumulatedFrames: 0 };
+                          state = { prevLevel: currentLevel, accumulatedFrames: 0 };
                           animationStates.set(imageKey, state);
                         }
 
-                        // Increment frame counter
+                        // Decide which level to use for this frame
+                        // Mid-cycle: use the level from when this cycle started (ignore intermediate changes)
+                        // Cycle complete: sample current level for next cycle
+                        const currentCycleFrame = Math.floor(state.accumulatedFrames / 0.5); // 0.5 = globalFramesPerSpriteFrame
+                        const isCycleComplete = (currentCycleFrame % levelFrameCount === 0) && currentCycleFrame > 0;
+
+                        if (isCycleComplete) {
+                          // Cycle just completed - sample new level for next cycle
+                          level = currentLevel;
+                          state.prevLevel = currentLevel;
+                          state.accumulatedFrames = 0;
+
+                          if (index < 10) {
+                            console.log(`  → Cycle complete at frame ${index}, switching to level ${level}`);
+                          }
+                        } else {
+                          // Mid-cycle - use previous level
+                          level = state.prevLevel;
+                        }
+
+                        // Increment frame counter for next iteration
                         state.accumulatedFrames++;
 
                         // Global frames per sprite frame (consistent across all levels)
@@ -1422,23 +1432,11 @@ export const createProgressStack = async (
                         const globalFramesPerSpriteFrame = 0.5;
 
                         // Calculate current frame within the animation cycle
-                        const currentCycleFrame = Math.floor(state.accumulatedFrames / globalFramesPerSpriteFrame);
-                        frameIndex = currentCycleFrame % levelFrameCount;
-
-                        // Check if animation cycle completed
-                        if (frameIndex === 0 && currentCycleFrame > 0) {
-                          // Cycle completed! Now sample the current level for next cycle
-                          if (level !== state.prevLevel) {
-                            // Level changed - use new level for next cycle
-                            state.prevLevel = level;
-                          }
-                          // Reset frame counter to start new cycle
-                          state.accumulatedFrames = 0;
-                        } else {
-                          // Mid-cycle: use the level from when this cycle started
-                          // This ignores intermediate level changes
-                          level = state.prevLevel;
-                        }
+                        const cycleFrame = Math.floor((state.accumulatedFrames - 1) / globalFramesPerSpriteFrame); // -1 because we incremented
+                        frameIndex = cycleFrame % levelFrameCount;
+                      } else {
+                        // Static image (1 frame) - use current level directly
+                        level = currentLevel;
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
@@ -1626,29 +1624,33 @@ export const generateFrameUrls = (
 /**
  * Calculate contribution level (0-4) based on contribution value.
  * Maps contribution values to 5 sprite levels (L0-L4).
- * Since the snake only eats cells with contributions > 0, we map:
- * - L0: lowest contributions (1 to ~20% of max)
- * - L1: low contributions (~20% to ~40% of max)
- * - L2: medium contributions (~40% to ~60% of max)
- * - L3: high contributions (~60% to ~80% of max)
- * - L4: highest contributions (~80% to 100% of max)
+ *
+ * Level distribution:
+ * - L0: Empty cells only (contribution = 0)
+ * - L1: Lowest non-zero contributions (1 to ~25% of max)
+ * - L2: Low contributions (~25% to ~50% of max)
+ * - L3: Medium contributions (~50% to ~75% of max)
+ * - L4: High contributions (~75% to 100% of max)
+ *
+ * Note: Snake only eats cells with contributions ≥ 0. Cells with contribution=0
+ * (empty cells) are included in the animation path but use L0 sprite.
  *
  * @param contribution - Contribution count for a cell
  * @param maxContribution - Maximum contribution value in the dataset
  * @param levels - Number of levels (default: 5)
- * @returns Level index (0 = lowest, 4 = highest by default)
+ * @returns Level index (0 = empty, 1-4 = low to high contributions)
  */
 export const getContributionLevel = (
   contribution: number,
   maxContribution: number,
   levels: number = 5
 ): number => {
-  // Edge case: no contribution or no max
+  // Edge case: no contribution → L0 (empty cell sprite)
   if (contribution === 0 || maxContribution === 0) return 0;
 
-  // Map all positive contributions (1 to max) across all 5 levels (L0-L4)
-  // Use Math.ceil to ensure contribution=1 maps to L1, not L0
-  // This gives better distribution across levels
+  // Map all positive contributions (1 to max) to levels 1-4
+  // Use Math.ceil to ensure contribution=1 maps to L1 (not L0)
+  // This distributes non-zero contributions across L1-L4 evenly
   const normalizedValue = contribution / maxContribution;
   const level = Math.ceil(normalizedValue * (levels - 1));
 
@@ -1701,9 +1703,9 @@ export const validateImageConfig = (config: CounterImageConfig): boolean => {
     return false;
   }
 
-  // If urlFolder is used, sprite.frames or sprite.framesPerLevel must be set
-  if (config.urlFolder && (!config.sprite || (!config.sprite.frames && !config.sprite.framesPerLevel))) {
-    console.error('When using "urlFolder", sprite.frames or sprite.framesPerLevel must be specified');
+  // If urlFolder is used, sprite.framesPerLevel must be set
+  if (config.urlFolder && (!config.sprite || !config.sprite.framesPerLevel)) {
+    console.error('When using "urlFolder", sprite.framesPerLevel must be specified');
     return false;
   }
 
@@ -1728,10 +1730,8 @@ export const resolveImageMode = (config: CounterImageConfig): {
 
   // Multi-file mode: separate images in a folder
   if (config.urlFolder) {
-    // Use unified framesPerLevel, fallback to legacy frames
     const framesPerLevelValue = config.sprite?.framesPerLevel;
-    const legacyFrames = config.sprite?.frames;
-    const frameCount = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+    const frameCount = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
     const framePattern = config.framePattern || 'frame-{n}.png';
     const frameUrls = generateFrameUrls(config.urlFolder, framePattern, frameCount);
 
@@ -1743,8 +1743,7 @@ export const resolveImageMode = (config: CounterImageConfig): {
 
   // Sprite sheet or single image mode
   const framesPerLevelValue = config.sprite?.framesPerLevel;
-  const legacyFrames = config.sprite?.frames;
-  const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+  const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
 
   if (config.sprite && totalFrames > 1) {
     return {
@@ -1910,8 +1909,24 @@ export const loadImageAsDataUri = async (filePath: string): Promise<string | nul
     const fs = await import('fs');
     const path = await import('path');
 
+    // Get workspace root (GitHub Actions sets GITHUB_WORKSPACE, fallback to cwd)
+    const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
+    const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
+
     // Resolve absolute path
     const absolutePath = path.resolve(filePath);
+
+    // Security: Validate path is within workspace (prevent path traversal attacks)
+    // This prevents malicious configurations from reading files outside the workspace
+    // (e.g., "../../etc/passwd" or "../../.env")
+    if (!absolutePath.startsWith(resolvedWorkspaceRoot + path.sep) && absolutePath !== resolvedWorkspaceRoot) {
+      console.error(`⚠️  Security: Path traversal detected!`);
+      console.error(`   Requested: ${filePath}`);
+      console.error(`   Resolved:  ${absolutePath}`);
+      console.error(`   Workspace: ${resolvedWorkspaceRoot}`);
+      console.error(`   Access denied - path is outside workspace directory`);
+      return null;
+    }
 
     // Check if file exists
     if (!fs.existsSync(absolutePath)) {
