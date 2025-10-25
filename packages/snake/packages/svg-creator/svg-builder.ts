@@ -197,12 +197,14 @@ export const createSvg = async (
 
     ...debugComments,
 
+    // Defs must come before elements that use them
+    ...stackResult.svgElements.filter(e => e.startsWith('<defs>')),
+
     "<style>",
     optimizeCss(style),
     "</style>",
 
-    // Separate defs elements (gradients) from other stack elements
-    ...stackResult.svgElements.filter(e => e.startsWith('<defs>')),
+    // Grid cells and other elements
     ...gridResult.svgElements,
     ...stackResult.svgElements.filter(e => !e.startsWith('<defs>') && !e.startsWith('<!--')),
     ...snakeResult.elements,
