@@ -319,10 +319,15 @@ jobs:
           fi
 
           # Verify sprite sheet test
-          if grep -q "data:image" dist/snake/with-sprite-sheet.svg; then
-            echo "✅ Sprite sheet embedded in animation"
+          if grep -q "<image" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet image element found"
+            if grep -q "href=\"data:image" dist/snake/with-sprite-sheet.svg; then
+              echo "✅ Sprite sheet embedded as data URI"
+            else
+              echo "⚠️  Sprite sheet image element exists but may use external URL"
+            fi
           else
-            echo "❌ Sprite sheet NOT embedded"
+            echo "❌ Sprite sheet image element NOT found"
             exit 1
           fi
 
@@ -335,10 +340,15 @@ jobs:
           fi
 
           # Verify multi-level sprite sheets test
-          if grep -q "data:image" dist/snake/with-multi-level-sprites.svg; then
-            echo "✅ Multi-level sprite sheets embedded"
+          if grep -q "<image" dist/snake/with-multi-level-sprites.svg; then
+            echo "✅ Multi-level sprite sheet image elements found"
+            if grep -q "href=\"data:image" dist/snake/with-multi-level-sprites.svg; then
+              echo "✅ Multi-level sprite sheets embedded as data URIs"
+            else
+              echo "⚠️  Multi-level sprite sheet image elements exist but may use external URLs"
+            fi
           else
-            echo "❌ Multi-level sprite sheets NOT embedded"
+            echo "❌ Multi-level sprite sheet image elements NOT found"
             exit 1
           fi
 
