@@ -84,6 +84,8 @@ export interface AnimationOptions {
       };
     }>;
     contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
+    /** Progress bar growth mode - 'uniform' or 'contribution' */
+    progressBarMode?: 'uniform' | 'contribution';
   };
 }
 

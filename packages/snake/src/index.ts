@@ -66,6 +66,7 @@ const runAction = async (): Promise<void> => {
           output.animationOptions.contributionCounter = {
             enabled: true,
             displays: counterDisplays,
+            progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
           };
         }
       });
