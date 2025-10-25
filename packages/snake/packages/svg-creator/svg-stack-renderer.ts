@@ -1346,7 +1346,7 @@ export const createProgressStack = async (
 
         // Track animation state for smooth level transitions
         // For each image, track: previous level and accumulated frame count
-        const animationStates = new Map<number, { prevLevel: number }>();
+        const animationStates = new Map<number, { prevLevel: number; cycleStartIndex: number }>();
 
         // --- Pre-load Images and Create SVG Definitions ---
         // Calculate max contribution for level/speed calculations
@@ -1509,7 +1509,7 @@ export const createProgressStack = async (
 
                         if (!state) {
                           // Initialize state: start with current level and record start time
-                          state = { prevLevel: currentLevel };
+                          state = { prevLevel: currentLevel, cycleStartIndex: index };
                           animationStates.set(imageKey, state);
                         }
 
@@ -1518,16 +1518,16 @@ export const createProgressStack = async (
                           ? framesPerLevel[state.prevLevel]
                           : framesPerLevel;
 
-                        // Calculate elapsed frames since this image appeared
-                        // index - displayIndex = how many snake positions have passed
-                        const elapsedFrames = index - displayIndex;
+                        // Calculate elapsed frames since current animation cycle started
+                        // This resets when we switch levels (force switch or cycle complete)
+                        const elapsedFrames = index - state.cycleStartIndex;
 
                         // Check if current animation cycle is complete
                         const isCycleComplete = (elapsedFrames % prevLevelFrameCount === 0) && elapsedFrames > 0;
 
                         if (counterConfig.debug && index < 15) {
-                          console.log(`  Frame ${index}: elapsedFrames=${elapsedFrames}, prevLevelFrameCount=${prevLevelFrameCount}, isCycleComplete=${isCycleComplete}`);
-                          console.log(`    → Full cycle needs ${prevLevelFrameCount} snake positions (${prevLevelFrameCount} frames)`);
+                          console.log(`  Frame ${index}: cycleStartIndex=${state.cycleStartIndex}, elapsedFrames=${elapsedFrames}, prevLevelFrameCount=${prevLevelFrameCount}, isCycleComplete=${isCycleComplete}`);
+                          console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
                         }
 
                         // Special case: If switching to L0 (cleared/eaten cell), force immediate switch
@@ -1536,7 +1536,7 @@ export const createProgressStack = async (
                           const oldLevel = state.prevLevel;
                           level = 0;
                           state.prevLevel = 0;
-                          // No need to reset accumulatedFrames - we use elapsedFrames directly
+                          state.cycleStartIndex = index; // ⚡ Reset cycle start - start from f0!
 
                           if (counterConfig.debug) {
                             console.log(`  ⚡ Frame ${index}: Force switch to L0 (cleared cell, contribution=${elem.currentContribution}, was L${oldLevel})`);
@@ -1546,7 +1546,7 @@ export const createProgressStack = async (
                           const oldLevel = state.prevLevel;
                           level = currentLevel;
                           state.prevLevel = currentLevel;
-                          // No need to reset accumulatedFrames - we use elapsedFrames directly
+                          state.cycleStartIndex = index; // Reset cycle start for new level
 
                           if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0)) {
                             console.log(`  → Frame ${index}: Cycle complete, switching from L${oldLevel} to L${level} (contribution=${elem.currentContribution}, frames=${prevLevelFrameCount})`);
