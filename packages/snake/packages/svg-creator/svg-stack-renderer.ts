@@ -1350,9 +1350,29 @@ export const createProgressStack = async (
                       const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
 
                       if (levelFrameCount > 1) {
-                        // Use a combination of level and index to create variety across levels
-                        // This ensures different levels show different frames at the same timestamp
-                        frameIndex = (index + level * 2) % levelFrameCount;
+                        // Sprite animation speed is independent of snake movement speed
+                        // Use timestamp (elem.time) to drive animation instead of frame index
+                        // This ensures consistent visual playback regardless of frame duration
+
+                        // Define FPS for each level (frames per second)
+                        const levelFPS = [
+                          4,  // L0: 4 FPS (slow, 250ms per frame) - for low activity
+                          6,  // L1: 6 FPS (160ms per frame)
+                          8,  // L2: 8 FPS (125ms per frame)
+                          10, // L3: 10 FPS (100ms per frame)
+                          12  // L4: 12 FPS (fast, 83ms per frame) - for high activity
+                        ];
+
+                        const fps = levelFPS[Math.min(level, 4)] || 8;
+                        const frameOffset = level * 1; // Each level starts at different frame for variety
+
+                        // Calculate frame based on time: time is 0-1 normalized
+                        // Multiply by animation duration to get frame index
+                        // For a typical animation lasting 30 seconds and 8 frames at 8 FPS = 1 second per loop
+                        const timeInSeconds = elem.time * 30; // Assume 30 second total animation
+                        const frameFromTime = Math.floor(timeInSeconds * fps);
+
+                        frameIndex = (frameFromTime + frameOffset) % levelFrameCount;
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
