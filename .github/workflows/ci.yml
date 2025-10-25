@@ -284,6 +284,106 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate snake with multi-level sprites and empty cell animation (L0 test)
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-empty-cell-animation.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test L0 sprite for empty cells (contribution=0) that snake passes through
+          # Speed multipliers: L0=8.0x, L1=10.0x, L2=12.0x, L3=14.0x, L4=16.0x
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "urlFolder": ".github/assets",
+                    "framePattern": "Lx.png",
+                    "width": 64,
+                    "height": 86,
+                    "anchorY": 0.6875,
+                    "anchorX": 0.3,
+                    "textAnchorY": 1.0,
+                    "spacing": 8,
+                    "sprite": {
+                      "mode": "contribution-level",
+                      "contributionLevels": 5,
+                      "framesPerLevel": 8,
+                      "frameWidth": 48,
+                      "frameHeight": 64,
+                      "layout": "horizontal",
+                      "useSpriteSheetPerLevel": true
+                    }
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with hidden progress bar (text only)
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/hidden-progress-bar.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_HIDE_PROGRESS_BAR: "true"
+          # Progress bar is hidden (opacity: 0) but still in DOM for follow mode positioning
+          # Only the counter text is visible
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "text": "Total Contributions",
+                "fontSize": 16,
+                "fontWeight": "bold",
+                "color": "#1f883d"
+              },
+              {
+                "position": "follow",
+                "prefix": "🎯 ",
+                "suffix": " commits",
+                "showCount": true,
+                "fontSize": 14,
+                "color": "#bf3989"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with spacing control test
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-spacing-control.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test spacing parameter to control gap between image and text
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " contributions",
+                "fontSize": 14,
+                "color": "#0969da",
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 32,
+                    "height": 32,
+                    "anchorY": 0.875,
+                    "spacing": 16
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify all outputs exist
         run: |
           ls -la dist/
@@ -300,6 +400,9 @@ jobs:
           test -f dist/snake/with-image-all-positions.svg
           test -f dist/snake/with-sprite-sheet.svg
           test -f dist/snake/with-multi-level-sprites.svg
+          test -f dist/snake/with-empty-cell-animation.svg
+          test -f dist/snake/hidden-progress-bar.svg
+          test -f dist/snake/with-spacing-control.svg
           echo "✅ All output files generated successfully"
 
           # Verify static image is embedded as data URI
@@ -357,6 +460,46 @@ jobs:
             echo "✅ Multi-level sprite frames defined as symbols"
           else
             echo "❌ Multi-level sprite symbols NOT found"
+            exit 1
+          fi
+
+          # Verify empty cell animation test (L0 sprite for empty cells)
+          if grep -q "<image" dist/snake/with-empty-cell-animation.svg; then
+            echo "✅ Empty cell animation test has image elements"
+          else
+            echo "❌ Empty cell animation test image elements NOT found"
+            exit 1
+          fi
+
+          # Verify hidden progress bar test
+          if grep -q "opacity: 0" dist/snake/hidden-progress-bar.svg; then
+            echo "✅ Progress bar hidden with opacity: 0"
+          else
+            echo "❌ Progress bar NOT hidden in hidden-progress-bar.svg"
+            exit 1
+          fi
+
+          # Verify progress bar elements still exist in DOM (for follow mode)
+          if grep -q "class=\"u" dist/snake/hidden-progress-bar.svg; then
+            echo "✅ Progress bar elements exist in DOM (for follow mode positioning)"
+          else
+            echo "❌ Progress bar elements missing from DOM"
+            exit 1
+          fi
+
+          # Verify counter text is NOT hidden
+          if grep -q "contrib-counter" dist/snake/hidden-progress-bar.svg; then
+            echo "✅ Counter text elements found in hidden-progress-bar.svg"
+          else
+            echo "❌ Counter text elements NOT found"
+            exit 1
+          fi
+
+          # Verify spacing control test
+          if grep -q "data:image" dist/snake/with-spacing-control.svg; then
+            echo "✅ Spacing control test has embedded image"
+          else
+            echo "❌ Spacing control test image NOT embedded"
             exit 1
           fi
 
