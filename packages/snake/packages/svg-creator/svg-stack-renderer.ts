@@ -612,10 +612,16 @@ export const createProgressStack = async (
     return { svgElements, styles: styles.join('\n') };
   }
 
+  // Calculate total contributions for progress bar scaling
+  const totalContributions = counterConfig?.contributionMap
+    ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
+    : sortedCells.length;
+
   // Group consecutive cells of the same color into blocks
   interface ColorBlock {
     color: Color;
     times: number[];
+    contributions: number[]; // Track contribution for each cell in this block
   }
 
   const blocks: ColorBlock[] = [];
@@ -623,30 +629,43 @@ export const createProgressStack = async (
   for (const cell of sortedCells) {
     const latestBlock = blocks[blocks.length - 1];
 
+    // Get contribution for this cell
+    let contribution = 1;
+    if (counterConfig?.contributionMap) {
+      const key = `${cell.x},${cell.y}`;
+      contribution = counterConfig.contributionMap.get(key) || 1;
+    }
+
     if (latestBlock && latestBlock.color === cell.color) {
       // Same color as previous block - add to existing block
       latestBlock.times.push(cell.t!);
+      latestBlock.contributions.push(contribution);
     } else {
       // Different color - create new block
       blocks.push({
         color: cell.color as Color,
         times: [cell.t!],
+        contributions: [contribution],
       });
     }
   }
 
-  // Calculate width per cell
-  const cellWidth = width / sortedCells.length;
+  // No longer use fixed cellWidth - will calculate based on contributions
+  // const cellWidth = width / sortedCells.length;
 
   let blockIndex = 0;
   let currentX = 0;
+  let cumulativeContribution = 0;
 
   for (const block of blocks) {
+    // Calculate block's total contribution
+    const blockTotalContribution = block.contributions.reduce((sum, c) => sum + c, 0);
+    const blockWidth = (width * blockTotalContribution / totalContributions + 0.6).toFixed(1);
+
     // Generate unique ID for this block
     const blockId = "u" + blockIndex.toString(36);
     const animationName = blockId;
     const x = currentX.toFixed(1);
-    const blockWidth = (block.times.length * cellWidth + 0.6).toFixed(1);
 
     // Create SVG rect element for this block
     svgElements.push(
@@ -659,14 +678,25 @@ export const createProgressStack = async (
       }),
     );
 
-    // Create scale animation keyframes
-    const keyframes: AnimationKeyframe[] = block.times.flatMap((t, i, arr) => {
+    // Create scale animation keyframes based on contribution accumulation
+    const keyframes: AnimationKeyframe[] = [];
+    let blockCumulativeContribution = 0;
+
+    block.times.forEach((t, i) => {
+      const prevContribution = blockCumulativeContribution;
+      blockCumulativeContribution += block.contributions[i];
+
       const t1 = Math.max(0, t - 0.0001);
       const t2 = Math.min(1, t + 0.0001);
-      return [
-        { t: t1, style: `transform:scale(${(i / arr.length).toFixed(3)},1)` },
-        { t: t2, style: `transform:scale(${((i + 1) / arr.length).toFixed(3)},1)` },
-      ];
+
+      // Scale from previous cumulative to current cumulative (relative to total contributions)
+      const prevScale = (cumulativeContribution + prevContribution) / totalContributions;
+      const currScale = (cumulativeContribution + blockCumulativeContribution) / totalContributions;
+
+      keyframes.push(
+        { t: t1, style: `transform:scale(${prevScale.toFixed(3)},1)` },
+        { t: t2, style: `transform:scale(${currScale.toFixed(3)},1)` },
+      );
     });
 
     // Add final keyframe
@@ -685,7 +715,8 @@ export const createProgressStack = async (
       }`,
     );
 
-    currentX += block.times.length * cellWidth;
+    currentX += parseFloat(blockWidth);
+    cumulativeContribution += blockTotalContribution;
     blockIndex++;
   }
 
