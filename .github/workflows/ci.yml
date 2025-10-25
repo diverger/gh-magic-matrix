@@ -243,6 +243,47 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate snake with multi-level sprite sheets (contribution-level mode)
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test contribution-level mode with 5 separate sprite sheets (L0.png - L4.png)
+          # Each level has different animation based on contribution intensity
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "urlFolder": ".github/assets",
+                    "framePattern": "Lx.png",
+                    "width": 64,
+                    "height": 86,
+                    "anchorY": 0.6875,
+                    "anchorX": 0.3,
+                    "textAnchorY": 1.0,
+                    "spacing": 4,
+                    "sprite": {
+                      "mode": "contribution-level",
+                      "contributionLevels": 5,
+                      "framesPerLevel": 8,
+                      "frameWidth": 48,
+                      "frameHeight": 64,
+                      "layout": "horizontal",
+                      "useSpriteSheetPerLevel": true
+                    }
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify all outputs exist
         run: |
           ls -la dist/
@@ -258,6 +299,7 @@ jobs:
           test -f dist/snake/with-image.svg
           test -f dist/snake/with-image-all-positions.svg
           test -f dist/snake/with-sprite-sheet.svg
+          test -f dist/snake/with-multi-level-sprites.svg
           echo "✅ All output files generated successfully"
 
           # Verify static image is embedded as data URI
@@ -289,6 +331,22 @@ jobs:
             echo "✅ Sprite sheet frames defined as symbols"
           else
             echo "❌ Sprite sheet symbols NOT found"
+            exit 1
+          fi
+
+          # Verify multi-level sprite sheets test
+          if grep -q "data:image" dist/snake/with-multi-level-sprites.svg; then
+            echo "✅ Multi-level sprite sheets embedded"
+          else
+            echo "❌ Multi-level sprite sheets NOT embedded"
+            exit 1
+          fi
+
+          # Verify multi-level sprites have symbol definitions for all 5 levels
+          if grep -q "<symbol" dist/snake/with-multi-level-sprites.svg; then
+            echo "✅ Multi-level sprite frames defined as symbols"
+          else
+            echo "❌ Multi-level sprite symbols NOT found"
             exit 1
           fi
 
