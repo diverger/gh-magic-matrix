@@ -582,6 +582,347 @@ export interface ContributionCounterConfig {
 }
 
 /**
+ * Counter state at a specific point in time during the animation
+ */
+interface CounterState {
+  count: number;
+  percentage: string;
+  time: number;
+  x: number;
+  currentContribution: number;
+}
+
+/**
+ * Build counter states by tracking cumulative contributions over time.
+ * This generates keyframes showing count/percentage at each snake position.
+ *
+ * @param sortedCells - Cells sorted by animation time
+ * @param counterConfig - Counter configuration with contribution map
+ * @param totalContributions - Total contribution count
+ * @param width - Progress bar width (for position calculation)
+ * @param position - Counter position mode ('top-left', 'top-right', 'follow')
+ * @param textOffsetX - Horizontal offset for follow mode
+ * @returns Array of counter states and repeated cell count
+ */
+function buildCounterStates(
+  sortedCells: Array<{ x?: number; y?: number; t: number | null }>,
+  counterConfig: ContributionCounterConfig,
+  totalContributions: number,
+  width: number,
+  position: 'top-left' | 'top-right' | 'follow',
+  textOffsetX: number
+): { states: CounterState[]; repeatedCellCount: number } {
+  const states: CounterState[] = [];
+  let cumulativeCount = 0;
+  let cumulativeWidth = 0;
+
+  // Track when each cell is first eaten (by coordinates)
+  const firstEatenTime = new Map<string, number>();
+  let repeatedCellCount = 0;
+
+  // Initial state
+  states.push({
+    count: 0,
+    percentage: '0.0',
+    time: 0,
+    x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0),
+    currentContribution: 0
+  });
+
+  sortedCells.forEach((cell, index) => {
+    // Get contribution count for this cell using its coordinates
+    let count = 0; // Default to 0 for empty cells (no contribution)
+    if (counterConfig.contributionMap &&
+      typeof cell.x === 'number' && typeof cell.y === 'number') {
+      const key = `${cell.x},${cell.y}`;
+
+      // Check if this cell has been eaten before (snake passing through again)
+      if (firstEatenTime.has(key)) {
+        // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
+        count = 0;
+        repeatedCellCount++;
+        if (counterConfig.debug && index < 10) {
+          console.log(`  Cell ${index} at ${key}: already eaten (2nd+ pass) → count=0`);
+        }
+      } else {
+        // First time eating this cell - use its original contribution value
+        count = counterConfig.contributionMap.get(key) || 0;
+
+        // Record the time this cell is first eaten
+        firstEatenTime.set(key, cell.t!);
+
+        if (counterConfig.debug && index < 10) {
+          console.log(`  Cell ${index} at ${key}: first time → count=${count}`);
+        }
+      }
+
+      // Debug: log cells with no contribution data
+      if (counterConfig.debug && !counterConfig.contributionMap.has(key) && index < 20) {
+        console.log(`⚠️  Cell ${index} at (${cell.x}, ${cell.y}) has no contribution data in map`);
+      }
+    }
+
+    cumulativeCount += count;
+
+    // Calculate cumulative width based on total contribution progress
+    cumulativeWidth = width * (cumulativeCount / totalContributions);
+
+    const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
+
+    let x: number;
+    if (position === 'top-left') {
+      x = 0;
+    } else if (position === 'top-right') {
+      // Clamp x to width to prevent text overflow when using text-anchor="end"
+      x = Math.min(cumulativeWidth, width);
+    } else {
+      // follow mode
+      x = cumulativeWidth + textOffsetX;
+    }
+
+    states.push({
+      count: cumulativeCount,
+      percentage,
+      time: cell.t!,
+      x,
+      currentContribution: count // Store current cell's contribution for dynamic frame selection
+    });
+  });
+
+  if (counterConfig.debug) {
+    if (repeatedCellCount > 0) {
+      console.log(`🔄 Snake re-visited ${repeatedCellCount} cells (these will use L0 animation)`);
+    } else {
+      console.log(`📍 Snake visited each cell only once (L0 only used for contribution=0 cells)`);
+    }
+  }
+
+  return { states, repeatedCellCount };
+}
+
+/**
+ * Pre-load counter images and create SVG definitions.
+ * This optimizes file size by defining images once in <defs> and referencing them.
+ *
+ * @param display - Display configuration with image settings
+ * @param displayIndex - Index of this display (for unique IDs)
+ * @param counterConfig - Counter configuration (for debug logging)
+ * @param maxContribution - Maximum contribution value (for level calculation)
+ * @returns Map of image definitions (imageIndex -> level -> frameIndex -> defId) and SVG definition elements
+ */
+async function preloadCounterImages(
+  display: CounterDisplayConfig,
+  displayIndex: number,
+  counterConfig: ContributionCounterConfig,
+  maxContribution: number
+): Promise<{
+  imageDataMap: Map<number, Map<number, Map<number, string>>>;
+  imageDefsElements: string[];
+}> {
+  const imageDataMap = new Map<number, Map<number, Map<number, string>>>();
+  const imageDefsElements: string[] = [];
+
+  if (!display.images || display.images.length === 0) {
+    return { imageDataMap, imageDefsElements };
+  }
+
+  for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
+    const imageConfig = display.images[imgIdx];
+    if (!validateImageConfig(imageConfig)) continue;
+
+    const levelMap = new Map<number, Map<number, string>>();
+    imageDataMap.set(imgIdx, levelMap);
+
+    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+    const framesPerLevel = imageConfig.sprite?.framesPerLevel;
+    const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
+
+    const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
+    const frameCount = effectiveFrameCount;
+
+    if (isContributionLevel && imageConfig.urlFolder) {
+      // Contribution-level mode: Lx pattern with multiple levels
+      const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
+      const framePattern = imageConfig.framePattern || 'Lx.png';
+      const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
+      const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
+
+      for (let level = 0; level < contributionLevels; level++) {
+        const frameMap = new Map<number, string>();
+        levelMap.set(level, frameMap);
+
+        const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+
+        if (useSpriteSheetPerLevel) {
+          // Each level is a sprite sheet file: L0.png, L1.png, etc.
+          const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
+          const resolvedUrl = await resolveImageUrl(spriteUrl);
+
+          if (counterConfig.debug) {
+            console.log(`🖼️  Loading sprite sheet for level ${level}: ${spriteUrl} → ${resolvedUrl ? 'OK' : 'FAILED'}`);
+          }
+
+          if (resolvedUrl) {
+            const sprite = imageConfig.sprite!;
+            const layout = sprite.layout || 'horizontal';
+            const frameWidth = sprite.frameWidth || imageConfig.width;
+            const frameHeight = sprite.frameHeight || imageConfig.height;
+
+            // Define the full sprite sheet image for this level
+            const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}-L${level}`;
+            imageDefsElements.push(
+              createElement("image", {
+                id: spriteImageId,
+                href: resolvedUrl,
+              })
+            );
+
+            // Create a symbol for each frame in this level's sprite sheet
+            for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+              const symbolId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
+              frameMap.set(frameIdx, symbolId);
+
+              // Calculate the position of this frame in the sprite sheet
+              let viewBoxX = 0;
+              let viewBoxY = 0;
+
+              if (layout === 'horizontal') {
+                viewBoxX = frameIdx * frameWidth;
+                viewBoxY = 0;
+              } else {
+                // vertical layout
+                viewBoxX = 0;
+                viewBoxY = frameIdx * frameHeight;
+              }
+
+            // Create a symbol that crops to just this frame
+            const useElement = `<use href="#${spriteImageId}" />`;
+            const symbolElement = createElement("symbol", {
+              id: symbolId,
+              viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
+            }).replace("/>", `>${useElement}</symbol>`);
+
+            imageDefsElements.push(symbolElement);
+          }            if (counterConfig.debug) {
+              console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
+            }
+          }
+        } else {
+          // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
+          for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+            const frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
+            const resolvedUrl = await resolveImageUrl(frameUrl);
+
+            if (resolvedUrl) {
+              const defId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
+              frameMap.set(frameIdx, defId);
+
+              imageDefsElements.push(
+                createElement("image", {
+                  id: defId,
+                  href: resolvedUrl,
+                  width: imageConfig.width.toString(),
+                  height: imageConfig.height.toString(),
+                })
+              );
+            }
+          }
+        }
+      }
+    } else if (isMultiFrame && imageConfig.urlFolder) {
+      // Multi-file mode: load separate frame files (no Lx pattern)
+      const framePattern = imageConfig.framePattern || 'frame-{n}.png';
+      const frameUrls = generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
+
+      const frameMap = new Map<number, string>();
+      levelMap.set(0, frameMap); // Single level (level 0)
+
+      for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+        const resolvedUrl = await resolveImageUrl(frameUrls[frameIdx]);
+        if (resolvedUrl) {
+          const defId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
+          frameMap.set(frameIdx, defId);
+
+          imageDefsElements.push(
+            createElement("image", {
+              id: defId,
+              href: resolvedUrl,
+              width: imageConfig.width.toString(),
+              height: imageConfig.height.toString(),
+            })
+          );
+        }
+      }
+    } else if (isMultiFrame && imageConfig.url && imageConfig.sprite) {
+      // Single sprite sheet file with multiple frames
+      const resolvedUrl = await resolveImageUrl(imageConfig.url);
+      if (resolvedUrl) {
+        const sprite = imageConfig.sprite;
+        const layout = sprite.layout || 'horizontal';
+        const frameWidth = sprite.frameWidth || imageConfig.width;
+        const frameHeight = sprite.frameHeight || imageConfig.height;
+
+        // Define the sprite sheet image
+        const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}`;
+        imageDefsElements.push(
+          createElement("image", {
+            id: spriteImageId,
+            href: resolvedUrl,
+          })
+        );
+
+        // Create symbols for each frame
+        const frameMap = new Map<number, string>();
+        levelMap.set(0, frameMap);
+
+        for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+          const symbolId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
+        frameMap.set(frameIdx, symbolId);
+
+        let viewBoxX = 0;
+        let viewBoxY = 0;
+
+        if (layout === 'horizontal') {
+          viewBoxX = frameIdx * frameWidth;
+          viewBoxY = 0;
+        } else {
+          viewBoxX = 0;
+          viewBoxY = frameIdx * frameHeight;
+        }
+
+        const useElement = `<use href="#${spriteImageId}" />`;
+        const symbolElement = createElement("symbol", {
+          id: symbolId,
+          viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
+        }).replace("/>", `>${useElement}</symbol>`);
+
+        imageDefsElements.push(symbolElement);
+      }
+    }
+  } else if (imageConfig.url) {
+    // Static image (single frame, single level)
+    const resolvedUrl = await resolveImageUrl(imageConfig.url);      if (resolvedUrl) {
+        const defId = `contrib-img-${displayIndex}-${imgIdx}`;
+        const frameMap = new Map<number, string>();
+        levelMap.set(0, frameMap); // Single level (level 0)
+        frameMap.set(0, defId);
+
+        imageDefsElements.push(
+          createElement("image", {
+            id: defId,
+            href: resolvedUrl,
+            width: imageConfig.width.toString(),
+            height: imageConfig.height.toString(),
+          })
+        );
+      }
+    }
+  }
+
+  return { imageDataMap, imageDefsElements };
+}
+
+/**
  * Creates a horizontal progress bar showing cell consumption over time.
  * This matches SNK's createStack functionality - a timeline showing when cells are eaten.
  *
@@ -899,7 +1240,22 @@ export const createProgressStack = async (
     blockIndex++;
   }
 
-  // Add contribution counter if enabled
+  // ============================================================================
+  // CONTRIBUTION COUNTER RENDERING
+  // ============================================================================
+  // This section handles the rendering of contribution counters (text + images)
+  // that animate during the snake's movement.
+  //
+  // Main flow:
+  // 1. Calculate total contributions
+  // 2. For each display configuration:
+  //    a. Set up text styling and positioning
+  //    b. Build counter states (count/percentage at each time)
+  //    c. Pre-load and define image assets
+  //    d. Render text elements with image placeholders
+  //    e. Create opacity animations for each frame
+  // ============================================================================
+
   if (counterConfig?.enabled && counterConfig.displays) {
     // Calculate total contributions from map or fall back to cell count
     const totalContributions = counterConfig.contributionMap
@@ -966,126 +1322,34 @@ export const createProgressStack = async (
           }).replace("/>", `>${display.text}</text>`)
         );
       } else {
-        // Dynamic counter mode - show animated count/percentage
+        // -----------------------------------------------------------------------
+        // DYNAMIC COUNTER MODE - Animated count/percentage
+        // -----------------------------------------------------------------------
         const prefix = display.prefix || '';
         const suffix = display.suffix || '';
         const showCount = display.showCount !== false; // Default true
         const showPercentage = display.showPercentage !== false; // Default true
 
-        // Build counter states
-        let cumulativeCount = 0;
-        let cumulativeWidth = 0;
-        const textElements: Array<{
-          count: number;
-          percentage: string;
-          time: number;
-          x: number;
-          currentContribution: number; // Contribution value of the current cell (for dynamic image frames)
-        }> = [];
+        // --- Build Counter States ---
+        // Track cumulative progress and generate keyframes for each snake position
+        const { states: textElements, repeatedCellCount } = buildCounterStates(
+          sortedCells,
+          counterConfig,
+          totalContributions,
+          width,
+          position,
+          textOffsetX
+        );
 
         // Track level distribution for debugging (contribution-level mode)
         const levelDistribution = new Map<number, number>();
-
-        // Initial state
-        textElements.push({
-          count: 0,
-          percentage: '0.0',
-          time: 0,
-          x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0),
-          currentContribution: 0
-        });
-
-        // Track when each cell is first eaten (by coordinates)
-        // This is used to determine if a cell has already been consumed when the snake passes through it again
-        const firstEatenTime = new Map<string, number>();
-        let repeatedCellCount = 0;
 
         // Track animation state for smooth level transitions
         // For each image, track: previous level and accumulated frame count
         const animationStates = new Map<number, { prevLevel: number; accumulatedFrames: number }>();
 
-        sortedCells.forEach((cell, index) => {
-          // Get contribution count for this cell using its coordinates
-          let count = 0; // Default to 0 for empty cells (no contribution)
-          if (counterConfig.contributionMap &&
-            typeof cell.x === 'number' && typeof cell.y === 'number') {
-            const key = `${cell.x},${cell.y}`;
-
-            // Check if this cell has been eaten before (snake passing through again)
-            if (firstEatenTime.has(key)) {
-              // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
-              count = 0;
-              repeatedCellCount++;
-              if (counterConfig.debug && index < 10) {
-                console.log(`  Cell ${index} at ${key}: already eaten (2nd+ pass) → count=0`);
-              }
-            } else {
-              // First time eating this cell - use its original contribution value
-              count = counterConfig.contributionMap.get(key) || 0;
-
-              // Record the time this cell is first eaten
-              firstEatenTime.set(key, cell.t!);
-
-              if (counterConfig.debug && index < 10) {
-                console.log(`  Cell ${index} at ${key}: first time → count=${count}`);
-              }
-            }
-
-            // Debug: log cells with no contribution data
-            if (counterConfig.debug && !counterConfig.contributionMap.has(key) && index < 20) {
-              console.log(`⚠️  Cell ${index} at (${cell.x}, ${cell.y}) has no contribution data in map`);
-            }
-          }
-
-          cumulativeCount += count;
-
-          // Calculate cumulative width based on total contribution progress
-          // cumulativeWidth = total progress bar width × (eaten contributions / total contributions)
-          cumulativeWidth = width * (cumulativeCount / totalContributions);
-
-          const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
-
-          let x: number;
-          if (position === 'top-left') {
-            x = 0;
-          } else if (position === 'top-right') {
-            // Clamp x to width to prevent text overflow when using text-anchor="end"
-            x = Math.min(cumulativeWidth, width);
-          } else {
-            // follow mode
-            x = cumulativeWidth + textOffsetX;
-          }
-
-          textElements.push({
-            count: cumulativeCount,
-            percentage,
-            time: cell.t!,
-            x,
-            currentContribution: count // Store current cell's contribution for dynamic frame selection
-          });
-        });
-
-        if (counterConfig.debug) {
-          if (repeatedCellCount > 0) {
-            console.log(`🔄 Snake re-visited ${repeatedCellCount} cells (these will use L0 animation)`);
-          } else {
-            console.log(`📍 Snake visited each cell only once (L0 only used for contribution=0 cells)`);
-          }
-        }
-
-        // Pre-load image data URIs and create SVG defs
-        // IMPORTANT: Without this optimization, each animation frame would embed
-        // a full copy of the image data URI, causing SVG files to balloon to
-        // hundreds of MB (e.g., 365 frames × 50KB image = 18MB+ just for one image).
-        // By defining images in <defs> once and using <use> references, we keep file sizes manageable.
-
-        // Map structure:
-        // - For contribution-level mode: imageIndex -> level -> frameIndex -> defId
-        // - For other modes: imageIndex -> level(0) -> frameIndex -> defId
-        const imageDataMap = new Map<number, Map<number, Map<number, string>>>();
-        const imageDefsElements: string[] = [];
-
-        // Track max contribution value for level/dynamic speed calculation
+        // --- Pre-load Images and Create SVG Definitions ---
+        // Calculate max contribution for level/speed calculations
         let maxContribution = 1;
         if (counterConfig.contributionMap) {
           maxContribution = Math.max(...Array.from(counterConfig.contributionMap.values()));
@@ -1094,211 +1358,20 @@ export const createProgressStack = async (
           }
         }
 
-        if (display.images && display.images.length > 0) {
-          for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
-            const imageConfig = display.images[imgIdx];
-            if (!validateImageConfig(imageConfig)) continue;
-
-            const levelMap = new Map<number, Map<number, string>>();
-            imageDataMap.set(imgIdx, levelMap);
-
-            const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
-            const framesPerLevel = imageConfig.sprite?.framesPerLevel;
-            const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
-
-            const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
-            const frameCount = effectiveFrameCount;
-            const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
-
-            if (isContributionLevel && imageConfig.urlFolder) {
-              // Contribution-level mode: Lx pattern with multiple levels
-              const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
-              const framePattern = imageConfig.framePattern || 'Lx.png';
-              const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
-              const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
-
-              for (let level = 0; level < contributionLevels; level++) {
-                const frameMap = new Map<number, string>();
-                levelMap.set(level, frameMap);
-
-                const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
-
-                if (useSpriteSheetPerLevel) {
-                  // Each level is a sprite sheet file: L0.png, L1.png, etc.
-                  const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
-                  const resolvedUrl = await resolveImageUrl(spriteUrl);
-
-                  if (counterConfig.debug) {
-                    console.log(`🖼️  Loading sprite sheet for level ${level}: ${spriteUrl} → ${resolvedUrl ? 'OK' : 'FAILED'}`);
-                  }
-
-                  if (resolvedUrl) {
-                    const sprite = imageConfig.sprite!;
-                    const layout = sprite.layout || 'horizontal';
-                    const frameWidth = sprite.frameWidth || imageConfig.width;
-                    const frameHeight = sprite.frameHeight || imageConfig.height;
-
-                    // Define the full sprite sheet image for this level
-                    const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}-L${level}`;
-                    imageDefsElements.push(
-                      createElement("image", {
-                        id: spriteImageId,
-                        href: resolvedUrl,
-                      })
-                    );
-
-                    // Create a symbol for each frame in this level's sprite sheet
-                    for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
-                      const symbolId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
-                      frameMap.set(frameIdx, symbolId);
-
-                      // Calculate the position of this frame in the sprite sheet
-                      let viewBoxX = 0;
-                      let viewBoxY = 0;
-
-                      if (layout === 'horizontal') {
-                        viewBoxX = frameIdx * frameWidth;
-                        viewBoxY = 0;
-                      } else {
-                        // vertical layout
-                        viewBoxX = 0;
-                        viewBoxY = frameIdx * frameHeight;
-                      }
-
-                      // Create a symbol that crops to just this frame
-                      // Symbol should maintain the frame's aspect ratio (frameWidth × frameHeight)
-                      // The actual display size will be controlled by the <use> element
-                      // Combine into single string so svg-builder filter catches entire element
-                      imageDefsElements.push(
-                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}">  <use href="#${spriteImageId}" /></symbol>`
-                      );
-                    }
-
-                    if (counterConfig.debug) {
-                      console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
-                    }
-                  }
-                } else {
-                  // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
-                  for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
-                    const frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
-                    const resolvedUrl = await resolveImageUrl(frameUrl);
-
-                    if (resolvedUrl) {
-                      const defId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
-                      frameMap.set(frameIdx, defId);
-
-                      imageDefsElements.push(
-                        createElement("image", {
-                          id: defId,
-                          href: resolvedUrl,
-                          width: imageConfig.width.toString(),
-                          height: imageConfig.height.toString(),
-                        })
-                      );
-                    }
-                  }
-                }
-              }
-            } else if (isMultiFrame && imageConfig.urlFolder) {
-              // Multi-file mode: load separate frame files (no Lx pattern)
-              const framePattern = imageConfig.framePattern || 'frame-{n}.png';
-              const frameUrls = generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
-
-              const frameMap = new Map<number, string>();
-              levelMap.set(0, frameMap); // Single level (level 0)
-
-              for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-                const resolvedUrl = await resolveImageUrl(frameUrls[frameIdx]);
-                if (resolvedUrl) {
-                  const defId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
-                  frameMap.set(frameIdx, defId);
-
-                  imageDefsElements.push(
-                    createElement("image", {
-                      id: defId,
-                      href: resolvedUrl,
-                      width: imageConfig.width.toString(),
-                      height: imageConfig.height.toString(),
-                    })
-                  );
-                }
-              }
-            } else if (isMultiFrame && imageConfig.url && imageConfig.sprite) {
-              // Sprite sheet mode: single image with multiple frames
-              const resolvedUrl = await resolveImageUrl(imageConfig.url);
-              if (resolvedUrl) {
-                const sprite = imageConfig.sprite;
-                const layout = sprite.layout || 'horizontal';
-
-                const frameWidth = sprite.frameWidth || imageConfig.width;
-                const frameHeight = sprite.frameHeight || imageConfig.height;
-
-                // First, define the full sprite sheet image
-                const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}`;
-                imageDefsElements.push(
-                  createElement("image", {
-                    id: spriteImageId,
-                    href: resolvedUrl,
-                  })
-                );
-
-                const frameMap = new Map<number, string>();
-                levelMap.set(0, frameMap); // Single level (level 0)
-
-                // Create a symbol for each frame using viewBox to clip the sprite
-                for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-                  const symbolId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
-                  frameMap.set(frameIdx, symbolId);
-
-                  // Calculate the position of this frame in the sprite sheet
-                  let viewBoxX = 0;
-                  let viewBoxY = 0;
-
-                  if (layout === 'horizontal') {
-                    viewBoxX = frameIdx * frameWidth;
-                    viewBoxY = 0;
-                  } else {
-                    // vertical layout
-                    viewBoxX = 0;
-                    viewBoxY = frameIdx * frameHeight;
-                  }
-
-                  // Create a symbol that crops to just this frame
-                  // Combine into single string so svg-builder filter catches entire element
-                  imageDefsElements.push(
-                    `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">  <use href="#${spriteImageId}" /></symbol>`
-                  );
-                }
-              }
-            } else if (imageConfig.url) {
-              // Single static image
-              const resolvedUrl = await resolveImageUrl(imageConfig.url);
-              if (resolvedUrl) {
-                const defId = `contrib-img-${displayIndex}-${imgIdx}-f0`;
-
-                const frameMap = new Map<number, string>();
-                levelMap.set(0, frameMap); // Single level (level 0)
-                frameMap.set(0, defId);
-
-                imageDefsElements.push(
-                  createElement("image", {
-                    id: defId,
-                    href: resolvedUrl,
-                    width: imageConfig.width.toString(),
-                    height: imageConfig.height.toString(),
-                  })
-                );
-              }
-            }
-          }
-        }
+        // Pre-load all images and create SVG defs
+        const { imageDataMap, imageDefsElements } = await preloadCounterImages(
+          display,
+          displayIndex,
+          counterConfig,
+          maxContribution
+        );
 
         // Add image defs to svgElements (without <defs> wrapper - svg-builder will handle that)
         if (imageDefsElements.length > 0) {
           svgElements.push(...imageDefsElements);
         }
 
+        // --- Render Counter Frames ---
         // Create text elements with position and opacity animations
         for (let index = 0; index < textElements.length; index++) {
           const elem = textElements[index];
@@ -1877,6 +1950,53 @@ const parseTextWithPlaceholders = (text: string): TextSegment[] => {
 };
 
 /**
+ * Known monospace font families for accurate width estimation
+ */
+const MONOSPACE_FONTS = [
+  'courier',
+  'courier new',
+  'consolas',
+  'monospace',
+  'monaco',
+  'menlo',
+  'source code pro',
+  'lucida console',
+  'andale mono',
+  'bitstream vera sans mono',
+  'dejavu sans mono',
+  'liberation mono',
+  'inconsolata',
+  'fira code',
+  'fira mono',
+  'roboto mono',
+  'ubuntu mono',
+  'jetbrains mono',
+  'cascadia code',
+  'cascadia mono',
+  'sf mono',
+  'ibm plex mono'
+];
+
+/**
+ * Check if a font family string contains monospace fonts
+ *
+ * @param fontFamily - Font family string (may contain multiple fonts separated by commas)
+ * @returns true if any font in the family is monospace
+ */
+const isMonospaceFont = (fontFamily: string): boolean => {
+  // Normalize the font family string
+  const normalized = fontFamily.toLowerCase().trim();
+
+  // Split by comma to handle fallback fonts
+  const fonts = normalized.split(',').map(f => f.trim().replace(/['"]/g, ''));
+
+  // Check if any font matches our known monospace list
+  return fonts.some(font =>
+    MONOSPACE_FONTS.some(mono => font.includes(mono) || mono.includes(font))
+  );
+};
+
+/**
  * Estimate text width based on character count and font size
  * This is a rough estimation for layout purposes
  *
@@ -1887,9 +2007,7 @@ const parseTextWithPlaceholders = (text: string): TextSegment[] => {
  */
 const estimateTextWidth = (text: string, fontSize: number, fontFamily: string): number => {
   // Check if monospace font is being used
-  const isMonospace = fontFamily.toLowerCase().includes('courier') ||
-                      fontFamily.toLowerCase().includes('consolas') ||
-                      fontFamily.toLowerCase().includes('monospace');
+  const isMonospace = isMonospaceFont(fontFamily);
 
   // Monospace fonts: ~0.6x fontSize per character (accurate)
   // Proportional fonts: ~0.5x fontSize average (less accurate)
