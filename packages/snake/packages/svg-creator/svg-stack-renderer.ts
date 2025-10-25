@@ -954,6 +954,9 @@ export const createProgressStack = async (
           currentContribution: number; // Contribution value of the current cell (for dynamic image frames)
         }> = [];
 
+        // Track level distribution for debugging (contribution-level mode)
+        const levelDistribution = new Map<number, number>();
+
         // Initial state
         textElements.push({
           count: 0,
@@ -1057,6 +1060,8 @@ export const createProgressStack = async (
                   const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
                   const resolvedUrl = await resolveImageUrl(spriteUrl);
 
+                  console.log(`🖼️  Loading sprite sheet for level ${level}: ${spriteUrl} → ${resolvedUrl ? 'OK' : 'FAILED'}`);
+
                   if (resolvedUrl) {
                     const sprite = imageConfig.sprite!;
                     const layout = sprite.layout || 'horizontal';
@@ -1098,6 +1103,8 @@ export const createProgressStack = async (
                         `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}">  <use href="#${spriteImageId}" /></symbol>`
                       );
                     }
+
+                    console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
                   }
                 } else {
                   // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
@@ -1330,6 +1337,9 @@ export const createProgressStack = async (
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
                       level = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
 
+                      // Track level distribution
+                      levelDistribution.set(level, (levelDistribution.get(level) || 0) + 1);
+
                       // Debug: log level distribution for first few frames
                       if (index < 10) {
                         console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, level=${level}`);
@@ -1369,6 +1379,11 @@ export const createProgressStack = async (
 
                     const frameMap = levelMap.get(level);
                     const defId = frameMap?.get(frameIndex);
+
+                    // Debug: log symbol ID for first few frames
+                    if (index < 10 && isContributionLevel) {
+                      console.log(`  → Using symbol: ${defId} (level=${level}, frameIndex=${frameIndex})`);
+                    }
 
                     if (defId) {
                       // Calculate image position based on anchor
@@ -1415,6 +1430,16 @@ export const createProgressStack = async (
             groupElements.forEach(elem => {
               svgElements.push(elem);
             });
+          }
+
+          // Log level distribution for contribution-level mode
+          if (levelDistribution.size > 0) {
+            console.log(`📊 Level distribution across ${textElements.length} frames:`);
+            for (let i = 0; i < 5; i++) {
+              const count = levelDistribution.get(i) || 0;
+              const percentage = ((count / textElements.length) * 100).toFixed(1);
+              console.log(`  Level ${i}: ${count} frames (${percentage}%)`);
+            }
           }
 
       // Create opacity animation keyframes
