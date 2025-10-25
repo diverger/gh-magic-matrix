@@ -100,16 +100,15 @@ export const createSvg = async (
     ? Math.ceil((maxCounterFontSize * 1.5) / drawOptions.sizeCell) // 1.5x for padding above and below text
     : 0;
 
-  // Check if progress bar is hidden
+  // Check if progress bar is hidden (only affects visibility, not layout)
   const hideProgressBar = animationOptions.contributionCounter?.hideProgressBar ?? false;
 
   // Gap between grid and progress bar: max of 2 cells (original) or text space requirement
-  // If progress bar is hidden, use minimal gap (1 cell)
-  const gapCells = hideProgressBar ? 1 : Math.max(2, textSpaceInCells);
+  const gapCells = Math.max(2, textSpaceInCells);
 
   // Total extra space after grid: gap + progress bar (1) + bottom margin (2)
-  // If progress bar is hidden, don't include its height (subtract 1)
-  const extraCells = hideProgressBar ? gapCells + 2 : gapCells + 3;
+  // Note: hideProgressBar only sets opacity:0, doesn't change layout
+  const extraCells = gapCells + 3;
 
   const width = (grid.width + 2) * drawOptions.sizeCell;
   const height = (grid.height + extraCells) * drawOptions.sizeCell;
