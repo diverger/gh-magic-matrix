@@ -689,9 +689,17 @@ export const createProgressStack = async (
       const t1 = Math.max(0, t - 0.0001);
       const t2 = Math.min(1, t + 0.0001);
 
-      // Scale from previous cumulative to current cumulative (relative to total contributions)
-      const prevScale = (cumulativeContribution + prevContribution) / totalContributions;
-      const currScale = (cumulativeContribution + blockCumulativeContribution) / totalContributions;
+      // Calculate scale relative to the entire progress bar (from x=0)
+      // When this block should be fully visible
+      const blockEndContribution = cumulativeContribution + blockTotalContribution;
+      const fullScale = blockEndContribution / totalContributions;
+
+      // Current scale based on how much of total contribution has been accumulated
+      const currentTotalContribution = cumulativeContribution + blockCumulativeContribution;
+      const currScale = Math.min(fullScale, currentTotalContribution / totalContributions);
+
+      const prevTotalContribution = cumulativeContribution + prevContribution;
+      const prevScale = Math.min(fullScale, prevTotalContribution / totalContributions);
 
       keyframes.push(
         { t: t1, style: `transform:scale(${prevScale.toFixed(3)},1)` },
@@ -699,19 +707,22 @@ export const createProgressStack = async (
       );
     });
 
-    // Add final keyframe
+    // Add final keyframe - this block stays at its final scale
+    const blockEndContribution = cumulativeContribution + blockTotalContribution;
+    const finalScale = blockEndContribution / totalContributions;
     keyframes.push({
       t: 1,
-      style: `transform:scale(1.000,1)`,
+      style: `transform:scale(${finalScale.toFixed(3)},1)`,
     });
 
     // Generate CSS animation and styles
+    // CRITICAL: transform-origin must be 0 for all blocks to grow from left
     styles.push(
       createKeyframeAnimation(animationName, keyframes),
       `.u.${blockId} {
         fill: var(--c${block.color});
         animation-name: ${animationName};
-        transform-origin: ${x}px 0;
+        transform-origin: 0px 0;
       }`,
     );
 
