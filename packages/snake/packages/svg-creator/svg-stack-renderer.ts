@@ -305,6 +305,14 @@ export interface CounterImageConfig {
   url?: string;
 
   /**
+   * Horizontal spacing between image and adjacent text (in pixels)
+   * - Positive value: adds space after the image (pushes text to the right)
+   * - Negative value: reduces space (pulls text closer)
+   * Default: 0 (no extra spacing)
+   */
+  spacing?: number;
+
+  /**
    * Folder path containing numbered images for animation frames
    * Images should be named according to framePattern.
    * This path will be resolved relative to the workspace in GitHub Actions.
@@ -1386,7 +1394,9 @@ export const createProgressStack = async (
                         })
                       );
 
-                      currentX += imageConfig.width;
+                      // Add image width plus optional spacing to currentX
+                      const spacing = imageConfig.spacing ?? 0;
+                      currentX += imageConfig.width + spacing;
                     }
                   }
                 }
