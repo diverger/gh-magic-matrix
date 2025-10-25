@@ -968,10 +968,10 @@ export const createProgressStack = async (
 
         sortedCells.forEach((cell, index) => {
           // Get contribution count for this cell using its coordinates
-          let count = 1; // Default to 1 if no map or coordinates
+          let count = 0; // Default to 0 for empty cells (no contribution)
           if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
             const key = `${cell.x},${cell.y}`;
-            count = counterConfig.contributionMap.get(key) || 1;
+            count = counterConfig.contributionMap.get(key) || 0;
           }
 
           cumulativeCount += count;
