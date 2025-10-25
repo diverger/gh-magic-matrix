@@ -1564,9 +1564,9 @@ export const validateImageConfig = (config: CounterImageConfig): boolean => {
     return false;
   }
 
-  // If urlFolder is used, sprite.frames must be set
-  if (config.urlFolder && (!config.sprite || !config.sprite.frames)) {
-    console.error('When using "urlFolder", sprite.frames must be specified');
+  // If urlFolder is used, sprite.frames or sprite.framesPerLevel must be set
+  if (config.urlFolder && (!config.sprite || (!config.sprite.frames && !config.sprite.framesPerLevel))) {
+    console.error('When using "urlFolder", sprite.frames or sprite.framesPerLevel must be specified');
     return false;
   }
 
