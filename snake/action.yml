@@ -147,6 +147,9 @@ inputs:
         - anchorX, anchorY: Custom anchor point (0-1 normalized, overrides anchor)
           - anchorX: 0=left, 0.5=center, 1=right
           - anchorY: 0=top, 0.5=center, 1=bottom
+        - spacing: Horizontal spacing after the image in pixels (optional, default: 0)
+          - Adds extra gap between image and adjacent text
+          - Example: spacing: 8 adds 8 pixels gap after the image
         - sprite: Animation configuration (for modes 2 and 3)
           - frames: Number of animation frames (required)
           - frameWidth, frameHeight: Frame dimensions (sprite sheet mode only, auto-calculated if not provided)
