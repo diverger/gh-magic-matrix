@@ -35,6 +35,7 @@ const runAction = async (): Promise<void> => {
     // Parse contribution counter configuration
     const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
     const hideProgressBar = process.env.INPUT_HIDE_PROGRESS_BAR === "true";
+    const counterDebug = process.env.INPUT_COUNTER_DEBUG === "true";
 
     // Parse multiple displays configuration
     let counterDisplays: any[] | undefined;
@@ -61,6 +62,9 @@ const runAction = async (): Promise<void> => {
     if (showContributionCounter) {
       if (counterDisplays && counterDisplays.length > 0) {
         console.log(`📊 Contribution counter enabled with ${counterDisplays.length} display(s)`);
+        if (counterDebug) {
+          console.log(`🐛 Debug mode enabled for contribution counter`);
+        }
 
         // Note: contributionMap will be built in generate-contribution-snake.ts
         outputs.forEach(output => {
@@ -70,6 +74,7 @@ const runAction = async (): Promise<void> => {
               displays: counterDisplays,
               progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
               hideProgressBar, // Apply hide setting
+              debug: counterDebug, // Enable debug logging
             };
           }
         });
@@ -83,6 +88,7 @@ const runAction = async (): Promise<void> => {
               enabled: true,
               progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
               hideProgressBar, // Apply hide setting
+              debug: counterDebug, // Enable debug logging
             };
           }
         });

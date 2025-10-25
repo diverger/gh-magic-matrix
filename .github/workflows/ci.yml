@@ -250,6 +250,7 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
           INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DEBUG: "true"  # Enable debug logging
           # Test contribution-level mode with 5 separate sprite sheets (L0.png - L4.png)
           # Each level has different animation based on contribution intensity
           INPUT_COUNTER_DISPLAYS: |
