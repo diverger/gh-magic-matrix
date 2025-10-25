@@ -1401,27 +1401,20 @@ export const createProgressStack = async (
                       const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
 
                       if (levelFrameCount > 1) {
-                        // Ensure complete animation cycles - never stop mid-action
-                        // Track animation progress per image to handle level changes smoothly
+                        // Complete animation cycles first, then sample new level
+                        // This prevents frequent level switches and ensures smooth playback
 
                         const imageKey = displayIndex * 1000 + imageIndex; // Unique key per image
                         let state = animationStates.get(imageKey);
 
                         if (!state) {
-                          // Initialize state for this image
+                          // Initialize state: start with current level
                           state = { prevLevel: level, accumulatedFrames: 0 };
                           animationStates.set(imageKey, state);
                         }
 
-                        // Check if level changed
-                        if (level !== state.prevLevel) {
-                          // Level changed - reset to start of new animation cycle
-                          state.prevLevel = level;
-                          state.accumulatedFrames = 0;
-                        } else {
-                          // Same level - continue animation
-                          state.accumulatedFrames++;
-                        }
+                        // Increment frame counter
+                        state.accumulatedFrames++;
 
                         // Global frames per sprite frame (consistent across all levels)
                         // 0.5 means: 2 sprite frames per 1 global frame = 50ms per sprite frame
@@ -1431,6 +1424,21 @@ export const createProgressStack = async (
                         // Calculate current frame within the animation cycle
                         const currentCycleFrame = Math.floor(state.accumulatedFrames / globalFramesPerSpriteFrame);
                         frameIndex = currentCycleFrame % levelFrameCount;
+
+                        // Check if animation cycle completed
+                        if (frameIndex === 0 && currentCycleFrame > 0) {
+                          // Cycle completed! Now sample the current level for next cycle
+                          if (level !== state.prevLevel) {
+                            // Level changed - use new level for next cycle
+                            state.prevLevel = level;
+                          }
+                          // Reset frame counter to start new cycle
+                          state.accumulatedFrames = 0;
+                        } else {
+                          // Mid-cycle: use the level from when this cycle started
+                          // This ignores intermediate level changes
+                          level = state.prevLevel;
+                        }
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
