@@ -99,6 +99,14 @@ jobs:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
           INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Multiple displays example: fixed text + dynamic count + percentage with font styles
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
+              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
+              {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake contribution (dark theme)
@@ -107,6 +115,131 @@ jobs:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
           INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Single counter following progress bar
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#7ee787"}
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with static image (tree.png test)
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-image.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test image placeholder syntax: {img:0} embeds image inline with text
+          # Note: width/height are display sizes (how it appears in SVG), not original image dimensions
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "prefix": "{img:0} ",
+                "suffix": " contributions",
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 32,
+                    "height": 32,
+                    "anchorY": 0.875
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with images in all positions
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-image-all-positions.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test images in all three positions: top-left, top-right, follow
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "prefix": "{img:0} ",
+                "suffix": "",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 24,
+                    "height": 24,
+                    "anchorY": 0.8
+                  }
+                ]
+              },
+              {
+                "position": "top-right",
+                "prefix": "",
+                "suffix": " {img:0}",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 24,
+                    "height": 24,
+                    "anchorY": 0.8
+                  }
+                ]
+              },
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 12,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 20,
+                    "height": 20,
+                    "anchorY": 0.75
+                  }
+                ]
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with sprite sheet animation
+        run: bun dist/snake/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUTS: "dist/snake/with-sprite-sheet.svg?palette=github-light"
+          INPUT_FRAME_DURATION: "100"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          # Test sprite sheet with dynamic speed (contribution-driven animation)
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/sprite.png",
+                    "width": 64,
+                    "height": 86,
+                    "anchorY": 0.6875,
+                    "textAnchorY": 1.0,
+                    "spacing": 0,
+                    "sprite": {
+                      "framesPerLevel": 8,
+                      "frameWidth": 48,
+                      "frameHeight": 64,
+                      "layout": "horizontal",
+                      "mode": "sync",
+                      "dynamicSpeed": true
+                    }
+                  }
+                ]
+              }
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify all outputs exist
@@ -121,7 +254,42 @@ jobs:
           test -f dist/blinking-contrib/dark.svg
           test -f dist/snake/light.svg
           test -f dist/snake/dark.svg
+          test -f dist/snake/with-image.svg
+          test -f dist/snake/with-image-all-positions.svg
+          test -f dist/snake/with-sprite-sheet.svg
           echo "✅ All output files generated successfully"
+
+          # Verify static image is embedded as data URI
+          if grep -q "data:image" dist/snake/with-image.svg; then
+            echo "✅ Static image embedded as data URI in with-image.svg"
+          else
+            echo "❌ Static image NOT embedded in with-image.svg"
+            exit 1
+          fi
+
+          # Verify all positions test
+          if grep -q "data:image" dist/snake/with-image-all-positions.svg; then
+            echo "✅ Images embedded in all-positions test"
+          else
+            echo "❌ Images NOT embedded in all-positions test"
+            exit 1
+          fi
+
+          # Verify sprite sheet test
+          if grep -q "data:image" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet embedded in animation"
+          else
+            echo "❌ Sprite sheet NOT embedded"
+            exit 1
+          fi
+
+          # Verify sprite sheet has symbol definitions (for frame clipping)
+          if grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet frames defined as symbols"
+          else
+            echo "❌ Sprite sheet symbols NOT found"
+            exit 1
+          fi
 
       - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true

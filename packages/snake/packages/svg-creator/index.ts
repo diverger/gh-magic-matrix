@@ -36,6 +36,19 @@ export type {
   SvgStackConfig,
   SvgStackResult,
   StackData,
+  CounterImageConfig,
+  CounterDisplayConfig,
+  ContributionCounterConfig,
+  CounterPosition,
+} from "./svg-stack-renderer";
+
+export {
+  generateFrameUrls,
+  validateImageConfig,
+  resolveImageMode,
+  isExternalUrl,
+  loadImageAsDataUri,
+  resolveImageUrl,
 } from "./svg-stack-renderer";
 
 export type {

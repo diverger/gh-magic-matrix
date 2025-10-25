@@ -45,6 +45,50 @@ export interface AnimationOptions {
   step: number;
   /** Duration per frame in milliseconds */
   frameDuration: number;
+  /** Optional contribution counter configuration */
+  contributionCounter?: {
+    enabled: boolean;
+    /** Array of counter displays (for showing multiple counters) */
+    displays?: Array<{
+      position: 'top-left' | 'top-right' | 'follow';
+      text?: string; // Fixed text mode (if set, only this text is shown)
+      prefix?: string;
+      suffix?: string;
+      showCount?: boolean;
+      showPercentage?: boolean;
+      fontSize?: number;
+      fontFamily?: string;
+      color?: string;
+      fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
+      fontStyle?: 'normal' | 'italic';
+      image?: {
+        url: string;
+        width: number;
+        height: number;
+        offsetY?: number;
+        anchor?: 'top-left' | 'top-center' | 'top-right'
+               | 'center-left' | 'center' | 'center-right'
+               | 'bottom-left' | 'bottom-center' | 'bottom-right';
+        anchorX?: number;
+        anchorY?: number;
+        sprite?: {
+          frames: number;
+          frameWidth?: number;
+          frameHeight?: number;
+          frameDuration?: number;
+          layout?: 'horizontal' | 'vertical';
+          mode?: 'sync' | 'loop';
+          duration?: number;
+          fps?: number;
+        };
+      };
+    }>;
+    contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
+    /** Progress bar growth mode - 'uniform' or 'contribution' */
+    progressBarMode?: 'uniform' | 'contribution';
+    /** Color map for gradient (level -> hex color) */
+    colorDots?: Record<number, string>;
+  };
 }
 
 /**

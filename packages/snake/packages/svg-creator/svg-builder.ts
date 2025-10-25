@@ -12,7 +12,7 @@ import { Point } from "../types/point";
 import { Snake } from "../types/snake";
 import { renderAnimatedSvgGrid, createAnimatedGridCells } from "./svg-grid-renderer";
 import { renderAnimatedSvgSnake } from "./svg-snake-renderer";
-import { createProgressStack } from "./svg-stack-renderer";
+import { createProgressStack, ContributionCounterConfig } from "./svg-stack-renderer";
 import { createElement } from "./svg-utils";
 
 /**
@@ -48,6 +48,8 @@ export interface SvgRenderOptions {
 export interface AnimationOptions {
   /** Duration per frame in milliseconds */
   frameDuration: number;
+  /** Optional contribution counter configuration */
+  contributionCounter?: ContributionCounterConfig;
 }
 
 /**
@@ -60,19 +62,63 @@ export interface AnimationOptions {
  * @param animationOptions - Animation timing options.
  * @returns Complete SVG string.
  */
-export const createSvg = (
+export const createSvg = async (
   grid: Grid,
   cells: Point[] | null,
   chain: Snake[],
   drawOptions: SvgRenderOptions,
-  animationOptions: Pick<AnimationOptions, "frameDuration">,
-): string => {
+  animationOptions: AnimationOptions,
+): Promise<string> => {
+  // Calculate required space for counter text
+  // Find the maximum font size from all displays (top-left/top-right need space above progress bar)
+  let maxCounterFontSize = 0;
+  if (animationOptions.contributionCounter?.enabled && animationOptions.contributionCounter.displays) {
+    for (const display of animationOptions.contributionCounter.displays) {
+      if (display.position !== 'follow') { // follow mode doesn't need extra space
+        const fontSize = display.fontSize || drawOptions.sizeDot;
+        maxCounterFontSize = Math.max(maxCounterFontSize, fontSize);
+      }
+    }
+  }
+
+  // Layout breakdown:
+  // - viewBox y offset: -2 cells (top margin)
+  // - Grid: grid.height cells
+  // - Gap between grid and progress bar: need to fit counter text
+  // - Progress bar: 1 cell (dotSize)
+  // - Bottom margin: at least 1 cell
+  //
+  // Original layout: grid.height + 5 cells total
+  //   = grid.height + 2 (gap) + 1 (progress bar) + 2 (bottom margin, adjusted for viewBox)
+  //
+  // For counter text above progress bar:
+  // textY = progressBarY - fontSize * 0.5
+  // Text extends from (progressBarY - fontSize) to progressBarY
+  // Need: gridBottom to progressBarY distance >= fontSize + small padding
+
+  const textSpaceInCells = maxCounterFontSize > 0
+    ? Math.ceil((maxCounterFontSize * 1.5) / drawOptions.sizeCell) // 1.5x for padding above and below text
+    : 0;
+
+  // Gap between grid and progress bar: max of 2 cells (original) or text space requirement
+  const gapCells = Math.max(2, textSpaceInCells);
+
+  // Total extra space after grid: gap + progress bar (1) + bottom margin (2)
+  const extraCells = gapCells + 3;
+
   const width = (grid.width + 2) * drawOptions.sizeCell;
-  const height = (grid.height + 5) * drawOptions.sizeCell;
+  const height = (grid.height + extraCells) * drawOptions.sizeCell;
   const duration = animationOptions.frameDuration * chain.length;
 
   // Create animated grid cells
   const animatedCells = createAnimatedGridCells(grid, chain, cells);
+
+  console.log(`📊 SVG Builder Debug:`);
+  console.log(`  - Grid: ${grid.width}x${grid.height} cells`);
+  console.log(`  - Total animated cells: ${animatedCells.length}`);
+  console.log(`  - Cells with animation: ${animatedCells.filter(c => c.animationTime !== null).length}`);
+  console.log(`  - Cells with color: ${animatedCells.filter(c => c.color > 0).length}`);
+  console.log(`  - Snake chain length: ${chain.length}`);
 
   // Render the animated grid
   const gridResult = renderAnimatedSvgGrid(animatedCells, {
@@ -94,17 +140,28 @@ export const createSvg = (
     animationDuration: duration, // Keep in milliseconds
   }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
 
+  // Calculate progress bar Y position (leaving space for counter text above if needed)
+  const progressBarY = (grid.height + gapCells) * drawOptions.sizeCell;
+
   // Create progress stack (timeline bar showing cell consumption)
   // Convert AnimatedGridCell to the format expected by createProgressStack
-  const stackResult = createProgressStack(
+  const stackResult = await createProgressStack(
     animatedCells.map(cell => ({
       t: cell.animationTime,
       color: cell.color,
+      x: cell.x,
+      y: cell.y,
     })),
     drawOptions.sizeDot,
     grid.width * drawOptions.sizeCell,
-    (grid.height + 2) * drawOptions.sizeCell,
+    progressBarY,
     duration,
+    animationOptions.contributionCounter
+      ? {
+          ...animationOptions.contributionCounter,
+          colorDots: drawOptions.colorDots, // Pass color map for gradients
+        }
+      : undefined,
   );
 
   // Create viewBox
@@ -135,12 +192,27 @@ export const createSvg = (
     "Generated with https://github.com/diverger/gh-magic-matrix",
     "</desc>",
 
+    // Combine all defs and style into a single <defs> block
+    "<defs>",
+    // Include gradient definitions (linearGradient elements) and symbol/image definitions
+    ...stackResult.svgElements.filter(e =>
+      e.startsWith('<linearGradient') ||
+      e.startsWith('<image') ||
+      e.startsWith('<symbol')
+    ),
     "<style>",
     optimizeCss(style),
     "</style>",
+    "</defs>",
 
+    // Grid cells and other elements (everything else)
     ...gridResult.svgElements,
-    ...stackResult.svgElements,
+    ...stackResult.svgElements.filter(e =>
+      !e.startsWith('<linearGradient') &&
+      !e.startsWith('<image') &&
+      !e.startsWith('<symbol') &&
+      !e.startsWith('<!--')
+    ),
     ...snakeResult.elements,
 
     "</svg>",

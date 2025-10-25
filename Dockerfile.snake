@@ -7,16 +7,14 @@ LABEL description="Snake GitHub contribution graph animation using advanced path
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY packages/snake/package.json ./
-
-# Copy source code
+# Copy source and packages
 COPY packages/snake/src ./src/
 COPY packages/snake/packages ./packages/
+COPY packages/snake/package.json ./
+COPY packages/snake/tsconfig.json ./
 
 # Install dependencies and build
-RUN bun install
-RUN bun build src/index.ts --outdir dist --target node
+RUN bun install && bun run build
 
 # Set entry point
 ENTRYPOINT ["bun", "dist/index.js"]

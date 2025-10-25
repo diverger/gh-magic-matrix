@@ -35,25 +35,10 @@
       "name": "@snake/action",
       "version": "1.0.0",
       "dependencies": {
-        "@types/node": "^20.0.0",
-      },
-      "devDependencies": {
-        "typescript": "^5.0.0",
-      },
-    },
-    "packages/snake/packages/action": {
-      "name": "@gh-magic-matrix/snake",
-      "version": "1.0.0",
-      "dependencies": {
         "@actions/core": "^1.11.1",
-        "@snake/solver": "1.0.0",
-        "@snake/svg-creator": "1.0.0",
-        "@snake/types": "1.0.0",
-        "@snake/user-contribution-fetcher": "1.0.0",
+        "@types/node": "^20.0.0",
       },
       "devDependencies": {
-        "@types/node": "^20.0.0",
-        "@vercel/ncc": "^0.38.3",
         "typescript": "^5.0.0",
       },
     },
@@ -98,8 +83,6 @@
     "@gh-magic-matrix/blinking-contrib": ["@gh-magic-matrix/blinking-contrib@workspace:packages/blinking-contrib"],
 
     "@gh-magic-matrix/breathing-contrib": ["@gh-magic-matrix/breathing-contrib@workspace:packages/breathing-contrib"],
-
-    "@gh-magic-matrix/snake": ["@gh-magic-matrix/snake@workspace:packages/snake/packages/action"],
 
     "@snake/action": ["@snake/action@workspace:packages/snake"],
 

@@ -47,47 +47,49 @@ for (let i = 0; i < 20; i++) {
 }
 
 // Test our SVG generation
-const svg = createSvg(
-  grid,
-  null,
-  snakeStates,
-  {
-    colorDots: {
-      0: "#161b22",
-      1: "#01311f",
-      2: "#034525",
-      3: "#0f6d31",
-      4: "#00c647"
+(async () => {
+  const svg = await createSvg(
+    grid,
+    null,
+    snakeStates,
+    {
+      colorDots: {
+        0: "#161b22",
+        1: "#01311f",
+        2: "#034525",
+        3: "#0f6d31",
+        4: "#00c647"
+      },
+      colorEmpty: "#161b22",
+      colorDotBorder: "#1b1f230a",
+      colorSnake: "purple",
+      sizeCell: 16,
+      sizeDot: 12,
+      sizeDotBorderRadius: 2,
     },
-    colorEmpty: "#161b22",
-    colorDotBorder: "#1b1f230a",
-    colorSnake: "purple",
-    sizeCell: 16,
-    sizeDot: 12,
-    sizeDotBorderRadius: 2,
-  },
-  {
-    frameDuration: 200
+    {
+      frameDuration: 200
+    }
+  );
+
+  const outputDir = './test-outputs';
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
-);
 
-const outputDir = './test-outputs';
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
-}
+  const outputFile = path.join(outputDir, 'test-direct-snake.svg');
+  fs.writeFileSync(outputFile, svg);
 
-const outputFile = path.join(outputDir, 'test-direct-snake.svg');
-fs.writeFileSync(outputFile, svg);
+  console.log("✅ SVG generated successfully!");
+  console.log("📁 Saved to:", outputFile);
+  console.log("📏 SVG length:", svg.length);
+  console.log("🐍 Contains snake elements:", svg.includes("snake"));
+  console.log("🎬 Contains animation:", svg.includes("@keyframes"));
 
-console.log("✅ SVG generated successfully!");
-console.log("📁 Saved to:", outputFile);
-console.log("📏 SVG length:", svg.length);
-console.log("🐍 Contains snake elements:", svg.includes("snake"));
-console.log("🎬 Contains animation:", svg.includes("@keyframes"));
-
-// Show first few lines
-const lines = svg.split('\n');
-console.log("\n📋 First 10 lines:");
-for (let i = 0; i < Math.min(10, lines.length); i++) {
-  console.log(`${i + 1}: ${lines[i]}`);
-}
+  // Show first few lines
+  const lines = svg.split('\n');
+  console.log("\n📋 First 10 lines:");
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    console.log(`${i + 1}: ${lines[i]}`);
+  }
+})();

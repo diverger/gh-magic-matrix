@@ -7,9 +7,9 @@
  * @module user-contribution-to-grid
  */
 
-import { Grid, EMPTY } from "../types/grid";
-import type { ContributionCell } from "../user-contribution-fetcher";
-import type { Color } from "../types/grid";
+import { Grid, EMPTY } from "../packages/types/grid";
+import type { ContributionCell } from "../packages/user-contribution-fetcher";
+import type { Color } from "../packages/types/grid";
 
 /**
  * Converts user contribution data into a grid suitable for snake pathfinding.

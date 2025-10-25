@@ -7,12 +7,12 @@
  * @module generate-contribution-snake
  */
 
-import { fetchUserContributions } from "../user-contribution-fetcher";
+import { fetchUserContributions } from "../packages/user-contribution-fetcher";
 import { userContributionToGrid } from "./user-contribution-to-grid";
-import { SnakeSolver } from "../solver/snake-solver";
-import { Snake } from "../types/snake";
+import { SnakeSolver } from "../packages/solver/snake-solver";
+import { Snake } from "../packages/types/snake";
 import type { OutputConfig } from "./outputs-options";
-import { createSvg } from "../svg-creator";
+import { createSvg } from "../packages/svg-creator";
 
 /**
  * Options for snake generation process.
@@ -116,8 +116,36 @@ export const generateContributionSnake = async (
           case "svg": {
             console.log(`🖌️ Creating SVG (output ${index})`);
 
+            // Build contribution count map if counter is enabled
+            if (animationOptions.contributionCounter?.enabled) {
+              // Create map with cell coordinates as keys: "x,y" -> count
+              const contributionMap = new Map<string, number>();
+              let totalCount = 0;
+
+              // Store each cell's contribution count by its coordinates
+              for (const contrib of contributionData) {
+                if (contrib.level > 0) {
+                  const key = `${contrib.x},${contrib.y}`;
+                  contributionMap.set(key, contrib.count);
+                  totalCount += contrib.count;
+                }
+              }
+
+              console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);
+              animationOptions.contributionCounter.contributionMap = contributionMap;
+
+              // Pass colorDots to counter config for gradient generation
+              const colorDotsRecord = drawOptions.colorDots.reduce((acc, color, level) => {
+                if (color) acc[level] = color;
+                return acc;
+              }, {} as Record<number, string>);
+              animationOptions.contributionCounter.colorDots = colorDotsRecord;
+
+              console.log(`🎨 Color dots for gradient:`, JSON.stringify(colorDotsRecord));
+            }
+
             // Create complete SVG using the comprehensive createSvg function
-            const svgContent = createSvg(
+            const svgContent = await createSvg(
               grid,
               null, // Use all cells
               route,
@@ -143,7 +171,10 @@ export const generateContributionSnake = async (
                   colorSnake: drawOptions.dark.colorSnake,
                 } : undefined,
               },
-              { frameDuration: animationOptions.frameDuration }
+              {
+                frameDuration: animationOptions.frameDuration,
+                contributionCounter: animationOptions.contributionCounter
+              }
             );
 
             return svgContent;
