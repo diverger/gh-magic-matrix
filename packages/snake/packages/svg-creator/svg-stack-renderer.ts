@@ -605,7 +605,6 @@ export const createProgressStack = async (
   const styles: string[] = [
     `.u{
       transform-origin: 0 0;
-      transform: scale(0,1);
       animation: none linear ${duration}ms infinite;
     }`,
   ];
