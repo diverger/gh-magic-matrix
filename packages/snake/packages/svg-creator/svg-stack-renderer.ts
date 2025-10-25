@@ -1645,6 +1645,9 @@ export const createProgressStack = async (
                       const imgX = currentX - (imageConfig.width * anchorX);
                       const imgY = textReferenceY - (imageConfig.height * anchorY);
 
+                      // Calculate image's actual right edge
+                      const imgRightEdge = imgX + imageConfig.width;
+
                       // Use <use> element to reference the image definition
                       // This avoids duplicating the large data URI in every frame
                       // width/height control the final display size (may differ from sprite frame size)
@@ -1659,9 +1662,10 @@ export const createProgressStack = async (
                         })
                       );
 
-                      // Add image width plus optional spacing to currentX
+                      // Update currentX to image's right edge plus spacing
+                      // This makes spacing represent the actual visual gap between image and next element
                       const spacing = imageConfig.spacing ?? 0;
-                      currentX += imageConfig.width + spacing;
+                      currentX = imgRightEdge + spacing;
                     }
                   }
                 }
