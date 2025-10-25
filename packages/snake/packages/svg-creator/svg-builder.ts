@@ -192,12 +192,16 @@ export const createSvg = async (
     "Generated with https://github.com/diverger/gh-magic-matrix",
     "</desc>",
 
-    // Defs must come before elements that use them
-    ...stackResult.svgElements.filter(e => e.startsWith('<defs>')),
-
+    // Combine all defs and style into a single <defs> block
+    "<defs>",
+    // Extract gradient definitions from stack result (remove <defs> wrapper)
+    ...stackResult.svgElements
+      .filter(e => e.startsWith('<defs>'))
+      .map(e => e.replace(/^<defs>|<\/defs>$/g, '')),
     "<style>",
     optimizeCss(style),
     "</style>",
+    "</defs>",
 
     // Grid cells and other elements
     ...gridResult.svgElements,
