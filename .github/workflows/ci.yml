@@ -269,7 +269,7 @@ jobs:
                     "anchorY": 0.6875,
                     "anchorX": 0.3,
                     "textAnchorY": 1.0,
-                    "spacing": -12,
+                    "spacing": 0,
                     "sprite": {
                       "mode": "contribution-level",
                       "contributionLevels": 5,
