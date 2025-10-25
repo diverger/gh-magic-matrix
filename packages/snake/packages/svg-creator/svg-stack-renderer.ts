@@ -573,6 +573,12 @@ export interface ContributionCounterConfig {
   progressBarMode?: 'uniform' | 'contribution';
   /** Color map for gradient (level -> hex color) */
   colorDots?: Record<number, string>;
+  /**
+   * Hide the progress bar completely
+   * When true, no progress bar will be rendered (useful for minimal layouts)
+   * Default: false
+   */
+  hideProgressBar?: boolean;
 }
 
 /**
@@ -612,12 +618,19 @@ export const createProgressStack = async (
   counterConfig?: ContributionCounterConfig,
 ): Promise<ProgressStackResult> => {
   const svgElements: string[] = [];
+  const isHidden = counterConfig?.hideProgressBar ?? false;
+
   const styles: string[] = [
     `.u{
       transform-origin: 0 0;
       animation: none linear ${duration}ms infinite;
+      ${isHidden ? 'opacity: 0;' : ''}
     }`,
   ];
+
+  if (isHidden) {
+    console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
+  }
 
   // Filter and sort cells by animation time
   const sortedCells = cells
