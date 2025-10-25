@@ -177,7 +177,7 @@ export const createSvg = async (
     `  gridResult.svgElements: ${gridResult.svgElements.length}`,
     `  stackResult.svgElements: ${stackResult.svgElements.length}`,
     `  snakeResult.elements: ${snakeResult.elements.length}`,
-    `  First stackResult element: ${stackResult.svgElements[0] || 'NONE'}`,
+    `  First stackResult element type: ${stackResult.svgElements[0] ? stackResult.svgElements[0].substring(0, 20) + '...' : 'NONE'}`,
     `-->`,
   ];
 
