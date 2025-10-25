@@ -226,6 +226,7 @@ jobs:
                     "width": 64,
                     "height": 86,
                     "anchorY": 0.6875,
+                    "anchorX": 0.3,
                     "textAnchorY": 1.0,
                     "spacing": 0,
                     "sprite": {
