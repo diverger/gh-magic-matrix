@@ -792,11 +792,9 @@ export const createProgressStack = async (
 
           cumulativeCount += count;
 
-          // Calculate cell width based on contribution ratio
-          // Each cell's width is proportional to its contribution value
-          const contributionRatio = count / totalContributions;
-          const currentCellWidth = width * contributionRatio;
-          cumulativeWidth += currentCellWidth;
+          // Calculate cumulative width based on total contribution progress
+          // cumulativeWidth = total progress bar width × (eaten contributions / total contributions)
+          cumulativeWidth = width * (cumulativeCount / totalContributions);
 
           const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
 
