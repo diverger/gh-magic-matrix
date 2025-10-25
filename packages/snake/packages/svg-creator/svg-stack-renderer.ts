@@ -563,6 +563,8 @@ export interface ContributionCounterConfig {
    * Default: 'contribution'
    */
   progressBarMode?: 'uniform' | 'contribution';
+  /** Color map for gradient (level -> hex color) */
+  colorDots?: Record<number, string>;
 }
 
 /**
@@ -732,11 +734,14 @@ export const createProgressStack = async (
         const cumulativeProgress = accumulatedContribution / blockTotalContribution;
         const colorLevel = Math.max(1, Math.min(4, Math.ceil(cumulativeProgress * 4))) as Color;
 
+        // Get actual hex color from config (fallback to CSS variable)
+        const hexColor = counterConfig?.colorDots?.[colorLevel] || `var(--c${colorLevel})`;
+
         // Create gradient stops for smooth transition
         if (i === 0) {
-          stops.push(`<stop offset="${startOffset}%" stop-color="var(--c${colorLevel})"/>`);
+          stops.push(`<stop offset="${startOffset}%" stop-color="${hexColor}"/>`);
         }
-        stops.push(`<stop offset="${endOffset}%" stop-color="var(--c${colorLevel})"/>`);
+        stops.push(`<stop offset="${endOffset}%" stop-color="${hexColor}"/>`);
       });
 
       // Create linearGradient definition

@@ -149,7 +149,12 @@ export const createSvg = async (
     grid.width * drawOptions.sizeCell,
     progressBarY,
     duration,
-    animationOptions.contributionCounter, // Pass counter config
+    animationOptions.contributionCounter
+      ? {
+          ...animationOptions.contributionCounter,
+          colorDots: drawOptions.colorDots, // Pass color map for gradients
+        }
+      : undefined,
   );
 
   // Create viewBox
