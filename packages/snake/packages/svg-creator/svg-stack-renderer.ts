@@ -1398,23 +1398,19 @@ export const createProgressStack = async (
 
                       if (levelFrameCount > 1) {
                         // Sprite animation syncs with snake eating progress
-                        // L0: Complete animation cycle (8 frames) within one grid cell
-                        // Higher levels: Progressively faster to show increased activity
+                        // All levels play at the SAME speed - the animation content itself
+                        // (L0 calm, L4 intense) conveys the contribution intensity
 
-                        // Animation speed multiplier per level
-                        const speedMultipliers = [
-                          8.0,   // L0: 8 sprite frames per global frame (one complete cycle per cell)
-                          10.0,  // L1: 10 sprite frames per global frame (faster)
-                          12.0,  // L2: 12 sprite frames per global frame
-                          14.0,  // L3: 14 sprite frames per global frame
-                          16.0   // L4: 16 sprite frames per global frame (fastest)
-                        ];
+                        // Global frames per sprite frame (consistent across all levels)
+                        // 0.5 means: 2 sprite frames per 1 global frame
+                        // With 8 sprite frames and 100ms per global frame:
+                        // - Complete cycle = 8 frames ÷ 2 = 4 global frames = 400ms (0.4s)
+                        // This gives a natural running/action speed
+                        const globalFramesPerSpriteFrame = 0.5;
+                        const frameOffset = level * 2; // Each level starts at different frame for variety
 
-                        const speedMult = speedMultipliers[Math.min(level, 4)] || 8.0;
-                        const frameOffset = level * 1; // Each level starts at different frame for variety
-
-                        // Calculate sprite frame based on global frame index and speed multiplier
-                        frameIndex = (Math.floor(index * speedMult) + frameOffset) % levelFrameCount;
+                        // Calculate sprite frame: divide global frame by speed to get smooth progression
+                        frameIndex = (Math.floor(index / globalFramesPerSpriteFrame) + frameOffset) % levelFrameCount;
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
