@@ -1452,9 +1452,9 @@ export const createProgressStack = async (
   } // End if (counterConfig?.enabled)
 
   // Prepend gradient definitions if in contribution mode
+  // Note: Don't wrap in <defs> here - svg-builder.ts will handle that
   if (progressBarMode === 'contribution' && gradientDefs.length > 0) {
-    // Create as single string to avoid splitting in builder
-    svgElements.unshift(`<defs>${gradientDefs.join('\n')}</defs>`);
+    svgElements.unshift(...gradientDefs);
   }
 
   return { svgElements, styles: styles.join('\n') };

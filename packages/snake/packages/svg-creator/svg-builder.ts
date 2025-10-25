@@ -194,18 +194,25 @@ export const createSvg = async (
 
     // Combine all defs and style into a single <defs> block
     "<defs>",
-    // Extract gradient definitions from stack result (remove <defs> wrapper)
-    ...stackResult.svgElements
-      .filter(e => e.startsWith('<defs>'))
-      .map(e => e.replace(/^<defs>|<\/defs>$/g, '')),
+    // Include gradient definitions (linearGradient elements) and symbol/image definitions
+    ...stackResult.svgElements.filter(e =>
+      e.startsWith('<linearGradient') ||
+      e.startsWith('<image') ||
+      e.startsWith('<symbol')
+    ),
     "<style>",
     optimizeCss(style),
     "</style>",
     "</defs>",
 
-    // Grid cells and other elements
+    // Grid cells and other elements (everything else)
     ...gridResult.svgElements,
-    ...stackResult.svgElements.filter(e => !e.startsWith('<defs>') && !e.startsWith('<!--')),
+    ...stackResult.svgElements.filter(e =>
+      !e.startsWith('<linearGradient') &&
+      !e.startsWith('<image') &&
+      !e.startsWith('<symbol') &&
+      !e.startsWith('<!--')
+    ),
     ...snakeResult.elements,
 
     "</svg>",
