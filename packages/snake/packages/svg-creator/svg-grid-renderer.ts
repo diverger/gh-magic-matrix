@@ -184,6 +184,24 @@ export const createAnimatedGridCells = (
         // Only set animationTime on first visit (for return path, don't re-trigger animation)
         cell.animationTime = i / snakeChain.length;
       }
+    } else {
+      // Snake is outside the grid - add this position as an empty cell (L0 animation)
+      // Check if this outside position already exists in animatedCells
+      const existingCell = animatedCells.find(c => c.x === head.x && c.y === head.y);
+
+      if (!existingCell) {
+        // Create new cell for this outside position
+        const outsideCell: AnimatedGridCell = {
+          x: head.x,
+          y: head.y,
+          animationTime: i / snakeChain.length,
+          color: EMPTY, // Empty cell (no contribution)
+        };
+        animatedCells.push(outsideCell);
+      } else if (existingCell.animationTime === null) {
+        // Position exists but hasn't been animated yet
+        existingCell.animationTime = i / snakeChain.length;
+      }
     }
   }
 

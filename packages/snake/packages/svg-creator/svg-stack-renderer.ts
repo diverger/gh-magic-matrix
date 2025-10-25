@@ -1077,9 +1077,7 @@ export const createProgressStack = async (
 
             const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
             const framesPerLevel = imageConfig.sprite?.framesPerLevel;
-            const effectiveFrameCount = isContributionLevel
-              ? (typeof framesPerLevel === 'number' ? framesPerLevel : 1)
-              : (typeof framesPerLevel === 'number' ? framesPerLevel : 1);
+            const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
 
             const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
             const frameCount = effectiveFrameCount;
