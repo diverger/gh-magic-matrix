@@ -1015,6 +1015,7 @@ export const createProgressStack = async (
         let maxContribution = 1;
         if (counterConfig.contributionMap) {
           maxContribution = Math.max(...Array.from(counterConfig.contributionMap.values()));
+          console.log(`🎨 Contribution levels: max=${maxContribution}, map size=${counterConfig.contributionMap.size}`);
         }
 
         if (display.images && display.images.length > 0) {
@@ -1329,12 +1330,19 @@ export const createProgressStack = async (
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
                       level = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
 
+                      // Debug: log level distribution for first few frames
+                      if (index < 10) {
+                        console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, level=${level}`);
+                      }
+
                       // For animated levels, cycle through frames
                       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
                       const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
 
                       if (levelFrameCount > 1) {
-                        frameIndex = index % levelFrameCount;
+                        // Use a combination of level and index to create variety across levels
+                        // This ensures different levels show different frames at the same timestamp
+                        frameIndex = (index + level * 2) % levelFrameCount;
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
