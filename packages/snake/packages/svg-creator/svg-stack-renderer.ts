@@ -1084,10 +1084,9 @@ export const createProgressStack = async (
                       // Create a symbol that crops to just this frame
                       // Symbol should maintain the frame's aspect ratio (frameWidth × frameHeight)
                       // The actual display size will be controlled by the <use> element
+                      // Combine into single string so svg-builder filter catches entire element
                       imageDefsElements.push(
-                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}">`,
-                        `  <use href="#${spriteImageId}" />`,
-                        `</symbol>`
+                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}">  <use href="#${spriteImageId}" /></symbol>`
                       );
                     }
                   }
@@ -1178,10 +1177,9 @@ export const createProgressStack = async (
                   }
 
                   // Create a symbol that crops to just this frame
+                  // Combine into single string so svg-builder filter catches entire element
                   imageDefsElements.push(
-                    `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">`,
-                    `  <use href="#${spriteImageId}" />`,
-                    `</symbol>`
+                    `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">  <use href="#${spriteImageId}" /></symbol>`
                   );
                 }
               }
