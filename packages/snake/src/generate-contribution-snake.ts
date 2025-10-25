@@ -133,12 +133,15 @@ export const generateContributionSnake = async (
 
               console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);
               animationOptions.contributionCounter.contributionMap = contributionMap;
-              
+
               // Pass colorDots to counter config for gradient generation
-              animationOptions.contributionCounter.colorDots = drawOptions.colorDots.reduce((acc, color, level) => {
+              const colorDotsRecord = drawOptions.colorDots.reduce((acc, color, level) => {
                 if (color) acc[level] = color;
                 return acc;
               }, {} as Record<number, string>);
+              animationOptions.contributionCounter.colorDots = colorDotsRecord;
+
+              console.log(`🎨 Color dots for gradient:`, JSON.stringify(colorDotsRecord));
             }
 
             // Create complete SVG using the comprehensive createSvg function

@@ -616,12 +616,20 @@ export const createProgressStack = async (
     .filter((cell) => cell.t !== null)
     .sort((a, b) => a.t! - b.t!);
 
-  if (sortedCells.length === 0) {
-    return { svgElements, styles: styles.join('\n') };
-  }
-
   // Determine progress bar mode (default to 'contribution')
   const progressBarMode = counterConfig?.progressBarMode ?? 'contribution';
+
+  console.log(`📊 Progress Bar Debug:`);
+  console.log(`  - Total cells passed: ${cells.length}`);
+  console.log(`  - Cells with animation (t !== null): ${sortedCells.length}`);
+  console.log(`  - Progress bar mode: ${progressBarMode}`);
+  console.log(`  - Counter config enabled: ${counterConfig?.enabled}`);
+  console.log(`  - Contribution map size: ${counterConfig?.contributionMap?.size || 0}`);
+
+  if (sortedCells.length === 0) {
+    console.warn(`⚠️  No cells to animate in progress bar!`);
+    return { svgElements, styles: styles.join('\n') };
+  }
 
   // Calculate total contributions for progress bar scaling
   const totalContributions = counterConfig?.contributionMap

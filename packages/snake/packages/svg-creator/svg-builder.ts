@@ -112,6 +112,13 @@ export const createSvg = async (
 
   // Create animated grid cells
   const animatedCells = createAnimatedGridCells(grid, chain, cells);
+  
+  console.log(`📊 SVG Builder Debug:`);
+  console.log(`  - Grid: ${grid.width}x${grid.height} cells`);
+  console.log(`  - Total animated cells: ${animatedCells.length}`);
+  console.log(`  - Cells with animation: ${animatedCells.filter(c => c.animationTime !== null).length}`);
+  console.log(`  - Cells with color: ${animatedCells.filter(c => c.color > 0).length}`);
+  console.log(`  - Snake chain length: ${chain.length}`);
 
   // Render the animated grid
   const gridResult = renderAnimatedSvgGrid(animatedCells, {
