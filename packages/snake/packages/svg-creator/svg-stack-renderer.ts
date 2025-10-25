@@ -641,8 +641,8 @@ function buildCounterStates(
         // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
         count = 0;
         repeatedCellCount++;
-        if (counterConfig.debug && index < 10) {
-          console.log(`  Cell ${index} at ${key}: already eaten (2nd+ pass) → count=0`);
+        if (counterConfig.debug) {
+          console.log(`  ⚠️ Cell ${index} at ${key}: REPEATED (2nd+ pass) → count=0, will store currentContribution=0`);
         }
       } else {
         // First time eating this cell - use its original contribution value
@@ -1485,16 +1485,27 @@ export const createProgressStack = async (
 
                       // Debug: log level distribution for first few frames and when contribution=0
                       if (counterConfig.debug && (index < 10 || elem.currentContribution === 0)) {
-                        console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=${currentLevel}`);
+                        console.log(`Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=${currentLevel}, time=${elem.time}`);
+                        if (elem.currentContribution === 0 && index > 0) {
+                          console.log(`  → This is a L0 cell at frame ${index}, should use L0 sprite`);
+                        }
                       }
 
                       // For animated levels, cycle through frames
                       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
                       const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[currentLevel] : framesPerLevel;
 
+                      if (counterConfig.debug && elem.currentContribution === 0 && index < 50) {
+                        console.log(`  🔍 Frame ${index}: L0 cell detected - levelFrameCount=${levelFrameCount}, framesPerLevel=${JSON.stringify(framesPerLevel)}`);
+                      }
+
                       if (levelFrameCount > 1) {
                         // Complete animation cycles first, then sample new level
                         // This prevents frequent level switches and ensures smooth playback
+                        // Animation cycle calculation:
+                        // - globalFramesPerSpriteFrame = 0.5 means each sprite frame lasts 0.5 snake cells
+                        // - If prevLevelFrameCount = 8, full cycle = 8 frames × 0.5 = 4 cells
+                        // - If prevLevelFrameCount = 6, full cycle = 6 frames × 0.5 = 3 cells
 
                         const imageKey = displayIndex * 1000 + imageIndex; // Unique key per image
                         let state = animationStates.get(imageKey);
@@ -1511,12 +1522,27 @@ export const createProgressStack = async (
                           : framesPerLevel;
 
                         // Decide which level to use for this frame
-                        // Check if previous level's cycle is complete
                         const globalFramesPerSpriteFrame = 0.5;
                         const currentCycleFrame = Math.floor(state.accumulatedFrames / globalFramesPerSpriteFrame);
                         const isCycleComplete = (currentCycleFrame % prevLevelFrameCount === 0) && currentCycleFrame > 0;
 
-                        if (isCycleComplete) {
+                        if (counterConfig.debug && index < 15) {
+                          console.log(`  Frame ${index}: accumulatedFrames=${state.accumulatedFrames}, cycleFrame=${currentCycleFrame}, prevLevelFrameCount=${prevLevelFrameCount}, isCycleComplete=${isCycleComplete}`);
+                          console.log(`    → Full cycle needs ${prevLevelFrameCount * globalFramesPerSpriteFrame} cells (${prevLevelFrameCount} frames × ${globalFramesPerSpriteFrame})`);
+                        }
+
+                        // Special case: If switching to L0 (cleared/eaten cell), force immediate switch
+                        // This ensures visual feedback is instant when snake revisits eaten cells
+                        if (currentLevel === 0 && state.prevLevel !== 0) {
+                          const oldLevel = state.prevLevel;
+                          level = 0;
+                          state.prevLevel = 0;
+                          state.accumulatedFrames = 0;
+
+                          if (counterConfig.debug) {
+                            console.log(`  ⚡ Frame ${index}: Force switch to L0 (cleared cell, contribution=${elem.currentContribution}, was L${oldLevel})`);
+                          }
+                        } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
                           const oldLevel = state.prevLevel;
                           level = currentLevel;
