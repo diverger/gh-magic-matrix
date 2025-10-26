@@ -593,6 +593,7 @@ interface CounterState {
   time: number;
   x: number;
   currentContribution: number;
+  isRepeatedCell?: boolean; // True if snake is re-visiting a cell (should keep previous level)
 }
 
 /**
@@ -635,6 +636,7 @@ function buildCounterStates(
   sortedCells.forEach((cell, index) => {
     // Get contribution count for this cell using its coordinates
     let count = 0; // Default to 0 for empty cells (no contribution)
+    let isRepeatedCell = false; // Track if this is a repeated cell visit
     if (counterConfig.contributionMap &&
       typeof cell.x === 'number' && typeof cell.y === 'number') {
       const key = `${cell.x},${cell.y}`;
@@ -644,8 +646,9 @@ function buildCounterStates(
         // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
         count = 0;
         repeatedCellCount++;
+        isRepeatedCell = true; // Mark as repeated cell
         if (counterConfig.debug) {
-          console.log(`  ⚠️ Cell ${index} at ${key}: REPEATED (2nd+ pass) → count=0, will store currentContribution=0`);
+          console.log(`  ⚠️ Cell ${index} at ${key}: REPEATED (2nd+ pass) → count=0, will store currentContribution=0, isRepeatedCell=true`);
         }
       } else {
         // First time eating this cell - use its original contribution value
@@ -688,7 +691,8 @@ function buildCounterStates(
       percentage,
       time: cell.t!,
       x,
-      currentContribution: count // Store current cell's contribution for dynamic frame selection
+      currentContribution: count, // Store current cell's contribution for dynamic frame selection
+      isRepeatedCell // Mark repeated cells so animation logic can handle them correctly
     });
   });
 
@@ -1501,7 +1505,14 @@ export const createProgressStack = async (
                     if (isContributionLevel) {
                       // Contribution-level mode: select level based on contribution value
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
+
+                      // Calculate current level from contribution (includes repeated cells with contribution=0 → L0)
                       const currentLevel = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
+
+                      // DEBUG: Check Frame 100-110 to see why Frame 102 gets L0
+                      if (counterConfig.debug && index >= 100 && index <= 110) {
+                        console.log(`🔍 Frame ${index}: elem.currentContribution=${elem.currentContribution}, maxContribution=${maxContribution}, calculated currentLevel=L${currentLevel}`);
+                      }
 
                       // Track level distribution
                       levelDistribution.set(currentLevel, (levelDistribution.get(currentLevel) || 0) + 1);
@@ -1564,8 +1575,8 @@ export const createProgressStack = async (
 
                         // Calculate elapsed SPRITE frames based on actual time difference
                         // This ensures each sprite frame plays for exactly 100ms regardless of counter frame intervals
-                        const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
-                        const elapsedFrames = Math.floor(elapsedTime / spriteFrameDuration);
+                        let elapsedTime = absoluteTime - (state.cycleStartTime || 0);
+                        let elapsedFrames = Math.floor(elapsedTime / spriteFrameDuration);
 
                         // Check if current animation cycle is complete by detecting cycle number change
                         // This handles frame skipping: if we jump from frame 7 to frame 9, we still detect completion
@@ -1573,8 +1584,9 @@ export const createProgressStack = async (
                         const lastCycleNumber = state.lastCycleNumber ?? -1; // Use -1 as default for first frame
                         const isCycleComplete = currentCycleNumber > lastCycleNumber;
 
-                        if (counterConfig.debug && index < 15) {
-                          console.log(`  Frame ${index}: elapsedFrames=${elapsedFrames}, cycleNum=${currentCycleNumber}, lastCycleNum=${lastCycleNumber}, isCycleComplete=${isCycleComplete}`);
+                        if (counterConfig.debug && (index < 15 || (index >= 60 && index <= 62))) {
+                          console.log(`  Frame ${index}: time=${elem.time.toFixed(6)}, absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${(state.cycleStartTime || 0).toFixed(2)}ms`);
+                          console.log(`    elapsedTime=${elapsedTime.toFixed(2)}ms, elapsedFrames=${elapsedFrames}, cycleNum=${currentCycleNumber}, lastCycleNum=${lastCycleNumber}, isCycleComplete=${isCycleComplete}`);
                           console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
                         }
 
@@ -1583,10 +1595,16 @@ export const createProgressStack = async (
                         // - Other level transitions (L1-L4): wait for cycle complete for smooth animation
                         // - Handles frame skipping: detects cycle completion even if frames are skipped
 
-                        // CRITICAL FIX: Only trigger immediate L0 switch if currentContribution is actually 0
-                        // (repeated cells or empty cells). Don't trigger just because currentLevel === 0,
-                        // since currentLevel can be wrong if calculated from stale currentContribution!
-                        if (currentLevel === 0 && state.prevLevel !== 0 && elem.currentContribution === 0) {
+                        // Hybrid switching logic:
+                        // - Immediate switch TO L0 for empty cells (quick feedback)
+                        // - Wait for cycle completion for other level changes (smooth transitions)
+
+                        // DEBUG: Log state before switching logic for Frame 46-52
+                        if (counterConfig.debug && index >= 46 && index <= 52) {
+                          console.log(`  🔍 Frame ${index} PRE-SWITCH: currentLevel=${currentLevel}, state.prevLevel=${state.prevLevel}, absoluteTime=${absoluteTime.toFixed(2)}ms`);
+                        }
+
+                        if (currentLevel === 0 && state.prevLevel !== 0) {
                           // Immediate switch TO L0 (empty/repeated cell - needs quick feedback)
                           const oldLevel = state.prevLevel;
                           level = 0;
@@ -1595,22 +1613,68 @@ export const createProgressStack = async (
                           state.cycleStartTime = absoluteTime;
                           state.lastCycleNumber = -1; // Reset to -1 to allow next cycle detection
 
-                          if (counterConfig.debug && index < 100) {
-                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (currentContribution=${elem.currentContribution}=0 → repeated cell)`);
+                          // CRITICAL FIX: Recalculate elapsedFrames with NEW cycleStartTime
+                          // This ensures frame rendering starts from f0 immediately
+                          elapsedTime = 0;
+                          elapsedFrames = 0;
+
+                          if (counterConfig.debug && index < 220) {
+                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (empty/repeated cell, cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, elapsedFrames RESET to 0)`);
+                          }
+                        } else if (currentLevel === 0 && state.prevLevel === 0 && isCycleComplete) {
+                          // L0 cycle completed - reset for next L0 cycle
+                          // This ensures repeated cells after moving on grid start fresh animation
+                          level = 0;
+                          state.cycleStartIndex = index;
+                          state.cycleStartTime = absoluteTime;
+                          state.lastCycleNumber = 0; // Reset to 0 for fresh cycle
+
+                          // CRITICAL FIX: Recalculate elapsedFrames with NEW cycleStartTime
+                          // This ensures animation restarts from f0 for next L0 sequence
+                          elapsedTime = 0;
+                          elapsedFrames = 0;
+
+                          if (counterConfig.debug && ((index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
+                            console.log(`  🔄 Frame ${index}: L0 cycle complete, resetting (cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, elapsedFrames RESET to 0)`);
+                          }
+                        } else if (currentLevel === 0 && state.prevLevel === 0) {
+                          // Continuing L0 animation mid-cycle
+                          level = 0;
+
+                          if (counterConfig.debug && ((index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
+                            const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
+                            const elapsedFramesCalc = Math.floor(elapsedTime / spriteFrameDuration);
+                            console.log(`  🎬 Frame ${index}: Continuing L0 mid-cycle (absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${state.cycleStartTime?.toFixed(2)}ms, elapsed=${elapsedTime.toFixed(2)}ms, frames=${elapsedFramesCalc})`);
                           }
                         } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
                           const oldLevel = state.prevLevel;
                           level = currentLevel;
                           state.prevLevel = currentLevel;
-                          state.cycleStartIndex = index; // Reset cycle start for new level
-                          state.cycleStartTime = absoluteTime;
-                          state.lastCycleNumber = 0; // Reset to 0 for new level's first cycle
+
+                          // CRITICAL: Only reset cycleStartTime on LEVEL CHANGE
+                          // Same level should continue animation without restart!
+                          if (oldLevel !== currentLevel) {
+                            // Level changed - reset cycle start time and index
+                            state.cycleStartIndex = index;
+                            state.cycleStartTime = absoluteTime;
+                            state.lastCycleNumber = 0; // Reset to 0 for new level's first cycle
+
+                            // CRITICAL FIX: Reset elapsedFrames for new level
+                            // This ensures animation starts from f0 when switching levels
+                            elapsedTime = 0;
+                            elapsedFrames = 0;
+                          } else {
+                            // Same level - just update cycle number, keep cycleStartTime!
+                            state.lastCycleNumber = currentCycleNumber;
+                          }
 
                           if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel)) {
-                            console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedSpriteFrames=${elapsedFrames})`);
+                            console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedFrames=${elapsedFrames})`);
                             if (oldLevel !== currentLevel) {
-                              console.log(`     → Level changed! cycleStartTime=${absoluteTime.toFixed(0)}ms`);
+                              console.log(`     → Level changed! cycleStartTime=${absoluteTime.toFixed(0)}ms, elapsedFrames RESET to 0`);
+                            } else {
+                              console.log(`     → Same level continuing! cycleStartTime kept at ${state.cycleStartTime?.toFixed(0)}ms`);
                             }
                           }
                         } else {
@@ -1618,7 +1682,7 @@ export const createProgressStack = async (
                           level = state.prevLevel;
 
                           if (counterConfig.debug && ((currentLevel === 0 || state.prevLevel === 0) && index < 50)) {
-                            console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsed=${elapsedFrames}/${safePrevLevelFrameCount})`);
+                            console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsedFrames=${elapsedFrames}/${safePrevLevelFrameCount})`);
                           }
                         }
 
@@ -1637,11 +1701,12 @@ export const createProgressStack = async (
                           }
                         } else {
                           // Simply use elapsed time to determine frame
+                          // ceil ensures consecutive frames always advance (even if < 100ms apart)
                           frameIndex = elapsedFrames % selectedLevelFrameCount;
                         }
 
                         if (counterConfig.debug && (elapsedFrames === 0 || (currentLevel === 0 && index < 50))) {
-                          console.log(`    ✅ Frame ${index}: level=L${level}, elapsedSpriteFrames=${elapsedFrames}, frameIndex=${frameIndex}, contribution=${elem.currentContribution}`);
+                          console.log(`    ✅ Frame ${index}: level=L${level}, elapsedFrames=${elapsedFrames}, frameIndex=${frameIndex}, contribution=${elem.currentContribution}`);
                         }
                       } else {
                         // Static image (1 frame) - use current level directly
