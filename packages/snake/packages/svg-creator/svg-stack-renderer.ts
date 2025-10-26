@@ -1567,21 +1567,31 @@ export const createProgressStack = async (
                           console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
                         }
 
-                        // Level selection logic (unified approach):
-                        // ALL level changes wait for cycle complete (smooth, unified behavior)
-                        // - Prevents mid-cycle interruption
-                        // - Each sprite animation (800ms for 8-frame cycles) completes before switching
-                        // - Applies to ALL transitions: L0↔L1, L1↔L2, etc.
+                        // Level selection logic (hybrid approach):
+                        // - Transitions TO L0 (empty/repeated cells): immediate switch for quick feedback
+                        // - Other level transitions (L1-L4): wait for cycle complete for smooth animation
                         // - Handles frame skipping: detects cycle completion even if frames are skipped
 
-                        if (isCycleComplete) {
+                        if (currentLevel === 0 && state.prevLevel !== 0) {
+                          // Immediate switch TO L0 (empty/repeated cell - needs quick feedback)
+                          const oldLevel = state.prevLevel;
+                          level = 0;
+                          state.prevLevel = 0;
+                          state.cycleStartIndex = index;
+                          state.cycleStartTime = absoluteTime;
+                          state.lastCycleNumber = -1; // Reset to -1 to allow next cycle detection
+
+                          if (counterConfig.debug && index < 100) {
+                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (contribution=${elem.currentContribution})`);
+                          }
+                        } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
                           const oldLevel = state.prevLevel;
                           level = currentLevel;
                           state.prevLevel = currentLevel;
                           state.cycleStartIndex = index; // Reset cycle start for new level
                           state.cycleStartTime = absoluteTime;
-                          state.lastCycleNumber = currentCycleNumber; // Update cycle number
+                          state.lastCycleNumber = 0; // Reset to 0 for new level's first cycle
 
                           if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel)) {
                             console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedSpriteFrames=${elapsedFrames})`);
