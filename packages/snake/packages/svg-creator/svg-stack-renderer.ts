@@ -1583,7 +1583,10 @@ export const createProgressStack = async (
                         // - Other level transitions (L1-L4): wait for cycle complete for smooth animation
                         // - Handles frame skipping: detects cycle completion even if frames are skipped
 
-                        if (currentLevel === 0 && state.prevLevel !== 0) {
+                        // CRITICAL FIX: Only trigger immediate L0 switch if currentContribution is actually 0
+                        // (repeated cells or empty cells). Don't trigger just because currentLevel === 0,
+                        // since currentLevel can be wrong if calculated from stale currentContribution!
+                        if (currentLevel === 0 && state.prevLevel !== 0 && elem.currentContribution === 0) {
                           // Immediate switch TO L0 (empty/repeated cell - needs quick feedback)
                           const oldLevel = state.prevLevel;
                           level = 0;
@@ -1593,7 +1596,7 @@ export const createProgressStack = async (
                           state.lastCycleNumber = -1; // Reset to -1 to allow next cycle detection
 
                           if (counterConfig.debug && index < 100) {
-                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (contribution=${elem.currentContribution})`);
+                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (currentContribution=${elem.currentContribution}=0 → repeated cell)`);
                           }
                         } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
