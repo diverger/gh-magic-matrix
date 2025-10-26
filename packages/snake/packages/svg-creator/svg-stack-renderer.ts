@@ -1532,11 +1532,12 @@ export const createProgressStack = async (
                         if (!state) {
                           // Initialize state: start animation cycle at current position
                           // Store the absolute time when animation started
+                          // lastCycleNumber set to -1 so first frame (cycle 0) triggers immediate switch
                           state = {
                             prevLevel: currentLevel,
                             cycleStartIndex: index,
                             cycleStartTime: absoluteTime,
-                            lastCycleNumber: 0  // Start at cycle 0
+                            lastCycleNumber: -1  // -1 allows first frame to switch immediately
                           };
                           animationStates.set(imageKey, state);
 
@@ -1558,7 +1559,7 @@ export const createProgressStack = async (
                         // Check if current animation cycle is complete by detecting cycle number change
                         // This handles frame skipping: if we jump from frame 7 to frame 9, we still detect completion
                         const currentCycleNumber = Math.floor(elapsedFrames / prevLevelFrameCount);
-                        const lastCycleNumber = state.lastCycleNumber || 0;
+                        const lastCycleNumber = state.lastCycleNumber ?? -1; // Use -1 as default for first frame
                         const isCycleComplete = currentCycleNumber > lastCycleNumber;
 
                         if (counterConfig.debug && index < 15) {
