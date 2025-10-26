@@ -1575,7 +1575,8 @@ export const createProgressStack = async (
 
                         // Calculate elapsed SPRITE frames based on actual time difference
                         // This ensures each sprite frame plays for exactly 100ms regardless of counter frame intervals
-                        let elapsedTime = absoluteTime - (state.cycleStartTime || 0);
+                        // Round to avoid floating point precision issues (e.g., 99.9999 vs 100)
+                        let elapsedTime = Math.round(absoluteTime - (state.cycleStartTime || 0));
                         let elapsedFrames = Math.floor(elapsedTime / spriteFrameDuration);
 
                         // Check if current animation cycle is complete by detecting cycle number change
@@ -1634,17 +1635,17 @@ export const createProgressStack = async (
                           elapsedTime = 0;
                           elapsedFrames = 0;
 
-                          if (counterConfig.debug && ((index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
+                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
                             console.log(`  🔄 Frame ${index}: L0 cycle complete, resetting (cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, elapsedFrames RESET to 0)`);
                           }
                         } else if (currentLevel === 0 && state.prevLevel === 0) {
                           // Continuing L0 animation mid-cycle
                           level = 0;
 
-                          if (counterConfig.debug && ((index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
+                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
                             const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
                             const elapsedFramesCalc = Math.floor(elapsedTime / spriteFrameDuration);
-                            console.log(`  🎬 Frame ${index}: Continuing L0 mid-cycle (absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${state.cycleStartTime?.toFixed(2)}ms, elapsed=${elapsedTime.toFixed(2)}ms, frames=${elapsedFramesCalc})`);
+                            console.log(`  🎬 Frame ${index}: Continuing L0 mid-cycle (absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${state.cycleStartTime?.toFixed(2)}ms, elapsed=${elapsedTime.toFixed(2)}ms, spriteDur=${spriteFrameDuration}, frames=${elapsedFramesCalc}, calc=${elapsedTime}/${spriteFrameDuration}=${elapsedTime/spriteFrameDuration})`);
                           }
                         } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
