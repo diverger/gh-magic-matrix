@@ -1359,8 +1359,14 @@ export const createProgressStack = async (
         const levelDistribution = new Map<number, number>();
 
         // Track animation state for smooth level transitions
-        // For each image, track: previous level, cycle start index, and absolute start time
-        const animationStates = new Map<number, { prevLevel: number; cycleStartIndex: number; cycleStartTime?: number }>();
+        // For each image, track: previous level, cycle start index, absolute start time, and last cycle number
+        // lastCycleNumber helps detect cycle completion even when frames are skipped
+        const animationStates = new Map<number, {
+          prevLevel: number;
+          cycleStartIndex: number;
+          cycleStartTime?: number;
+          lastCycleNumber?: number;
+        }>();
 
         // --- Pre-load Images and Create SVG Definitions ---
         // Calculate max contribution for level/speed calculations
@@ -1526,7 +1532,12 @@ export const createProgressStack = async (
                         if (!state) {
                           // Initialize state: start animation cycle at current position
                           // Store the absolute time when animation started
-                          state = { prevLevel: currentLevel, cycleStartIndex: index, cycleStartTime: absoluteTime };
+                          state = {
+                            prevLevel: currentLevel,
+                            cycleStartIndex: index,
+                            cycleStartTime: absoluteTime,
+                            lastCycleNumber: 0  // Start at cycle 0
+                          };
                           animationStates.set(imageKey, state);
 
                           if (counterConfig.debug && index < 20) {
@@ -1544,11 +1555,14 @@ export const createProgressStack = async (
                         const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
                         const elapsedFrames = Math.floor(elapsedTime / spriteFrameDuration);
 
-                        // Check if current animation cycle is complete
-                        const isCycleComplete = (elapsedFrames % prevLevelFrameCount === 0) && elapsedFrames > 0;
+                        // Check if current animation cycle is complete by detecting cycle number change
+                        // This handles frame skipping: if we jump from frame 7 to frame 9, we still detect completion
+                        const currentCycleNumber = Math.floor(elapsedFrames / prevLevelFrameCount);
+                        const lastCycleNumber = state.lastCycleNumber || 0;
+                        const isCycleComplete = currentCycleNumber > lastCycleNumber;
 
                         if (counterConfig.debug && index < 15) {
-                          console.log(`  Frame ${index}: cycleStartIndex=${state.cycleStartIndex}, elapsedFrames=${elapsedFrames}, prevLevelFrameCount=${prevLevelFrameCount}, isCycleComplete=${isCycleComplete}`);
+                          console.log(`  Frame ${index}: elapsedFrames=${elapsedFrames}, cycleNum=${currentCycleNumber}, lastCycleNum=${lastCycleNumber}, isCycleComplete=${isCycleComplete}`);
                           console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
                         }
 
@@ -1557,6 +1571,7 @@ export const createProgressStack = async (
                         // - Prevents mid-cycle interruption
                         // - Each sprite animation (800ms for 8-frame cycles) completes before switching
                         // - Applies to ALL transitions: L0↔L1, L1↔L2, etc.
+                        // - Handles frame skipping: detects cycle completion even if frames are skipped
 
                         if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
@@ -1565,9 +1580,10 @@ export const createProgressStack = async (
                           state.prevLevel = currentLevel;
                           state.cycleStartIndex = index; // Reset cycle start for new level
                           state.cycleStartTime = absoluteTime;
+                          state.lastCycleNumber = currentCycleNumber; // Update cycle number
 
                           if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel)) {
-                            console.log(`  ⚡ Frame ${index}: Cycle complete, ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedSpriteFrames=${elapsedFrames})`);
+                            console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedSpriteFrames=${elapsedFrames})`);
                             if (oldLevel !== currentLevel) {
                               console.log(`     → Level changed! cycleStartTime=${absoluteTime.toFixed(0)}ms`);
                             }
