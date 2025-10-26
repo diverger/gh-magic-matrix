@@ -1762,10 +1762,15 @@ export const createProgressStack = async (
           }
 
           const animName = `contrib-anim-${displayIndex}-${index}`;
+
+          // Calculate total number of discrete steps for step-based animation
+          // This prevents CSS from interpolating opacity between keyframes
+          const totalSteps = textElements.length;
+
           styles.push(
             createKeyframeAnimation(animName, keyframes),
             `.${textId} {
-              animation: ${animName} linear ${duration}ms infinite;
+              animation: ${animName} steps(${totalSteps}, jump-none) ${duration}ms infinite;
               opacity: 0;
             }`
           );
