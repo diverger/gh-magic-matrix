@@ -1554,6 +1554,14 @@ export const createProgressStack = async (
                           ? framesPerLevel[state.prevLevel]
                           : framesPerLevel;
 
+                        // Defensive: ensure prevLevelFrameCount is a positive finite number
+                        const safePrevLevelFrameCount = Number.isFinite(prevLevelFrameCount) && prevLevelFrameCount > 0
+                          ? prevLevelFrameCount
+                          : 1;
+                        if (safePrevLevelFrameCount !== prevLevelFrameCount && counterConfig?.debug) {
+                          console.warn(`⚠️ Frame ${index}: invalid prevLevelFrameCount=${prevLevelFrameCount} for prevLevel=${state.prevLevel}, falling back to ${safePrevLevelFrameCount}`);
+                        }
+
                         // Calculate elapsed SPRITE frames based on actual time difference
                         // This ensures each sprite frame plays for exactly 100ms regardless of counter frame intervals
                         const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
@@ -1561,7 +1569,7 @@ export const createProgressStack = async (
 
                         // Check if current animation cycle is complete by detecting cycle number change
                         // This handles frame skipping: if we jump from frame 7 to frame 9, we still detect completion
-                        const currentCycleNumber = Math.floor(elapsedFrames / prevLevelFrameCount);
+                        const currentCycleNumber = Math.floor(elapsedFrames / safePrevLevelFrameCount);
                         const lastCycleNumber = state.lastCycleNumber ?? -1; // Use -1 as default for first frame
                         const isCycleComplete = currentCycleNumber > lastCycleNumber;
 
@@ -1607,7 +1615,7 @@ export const createProgressStack = async (
                           level = state.prevLevel;
 
                           if (counterConfig.debug && ((currentLevel === 0 || state.prevLevel === 0) && index < 50)) {
-                            console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsed=${elapsedFrames}/${prevLevelFrameCount})`);
+                            console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsed=${elapsedFrames}/${safePrevLevelFrameCount})`);
                           }
                         }
 
@@ -1635,6 +1643,7 @@ export const createProgressStack = async (
                       } else {
                         // Static image (1 frame) - use current level directly
                         level = currentLevel;
+                        frameIndex = 0; // Static image always uses frame 0
                       }
                     } else if (isDynamicSpeed && elem.currentContribution > 0) {
                       // Dynamic speed mode: animation speed based on contribution level
@@ -1660,7 +1669,15 @@ export const createProgressStack = async (
                     // For static images or loop mode, level=0, frameIndex=0
 
                     const frameMap = levelMap.get(level);
-                    const defId = frameMap?.get(frameIndex);
+                    let defId = frameMap?.get(frameIndex);
+
+                    // Fallback: if frameIndex doesn't exist for this level, try frame 0
+                    if (!defId && frameIndex !== 0) {
+                      defId = frameMap?.get(0);
+                      if (counterConfig.debug && defId) {
+                        console.warn(`⚠️ Frame ${index}: frameIndex=${frameIndex} not found for level=${level}, falling back to frame 0`);
+                      }
+                    }
 
                     // Debug: log symbol ID for first few frames
                     if (counterConfig.debug && index < 10 && isContributionLevel) {
@@ -1706,6 +1723,11 @@ export const createProgressStack = async (
                       // This makes spacing represent the actual visual gap between image and next element
                       const spacing = imageConfig.spacing ?? 0;
                       currentX = imgRightEdge + spacing;
+                    } else {
+                      // Symbol not found - log error to help debug missing sprite frames
+                      if (counterConfig.debug) {
+                        console.error(`❌ Frame ${index}: Symbol not found for level=${level}, frameIndex=${frameIndex}. Check if L${level} frames are properly loaded.`);
+                      }
                     }
                   }
                 }
