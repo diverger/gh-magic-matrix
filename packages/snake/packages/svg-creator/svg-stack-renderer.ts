@@ -178,11 +178,14 @@ export const renderAnimatedSvgStacks = (
       const animationId = `stack-${stack.position.x}-${stack.position.y}`;
       const startTime = stack.animationTime * config.animationDuration;
 
+      // Helper to clamp normalized time to [0, 1] range
+      const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
       const keyframes: AnimationKeyframe[] = [
         { t: 0, style: "opacity: 0; transform: scale(0) translateY(10px);" },
-        { t: startTime / config.animationDuration, style: "opacity: 0; transform: scale(0) translateY(10px);" },
-        { t: (startTime + 300) / config.animationDuration, style: "opacity: 0.7; transform: scale(0.8) translateY(5px);" },
-        { t: (startTime + 600) / config.animationDuration, style: "opacity: 1; transform: scale(1) translateY(0);" },
+        { t: clamp01(startTime / config.animationDuration), style: "opacity: 0; transform: scale(0) translateY(10px);" },
+        { t: clamp01((startTime + 300) / config.animationDuration), style: "opacity: 0.7; transform: scale(0.8) translateY(5px);" },
+        { t: clamp01((startTime + 600) / config.animationDuration), style: "opacity: 1; transform: scale(1) translateY(0);" },
         { t: 1, style: "opacity: 1; transform: scale(1) translateY(0);" },
       ];
 
@@ -1033,7 +1036,7 @@ export const createProgressStack = async (
     let contribution = 1;
     if (counterConfig?.contributionMap) {
       const key = `${cell.x},${cell.y}`;
-      contribution = counterConfig.contributionMap.get(key) || 1;
+      contribution = counterConfig.contributionMap.get(key) ?? 0;
     }
     return {
       time: cell.t!,
@@ -1613,8 +1616,18 @@ export const createProgressStack = async (
                         const selectedLevelFrameCount = Array.isArray(framesPerLevel)
                           ? framesPerLevel[level]
                           : framesPerLevel;
-                        // Simply use elapsed time to determine frame
-                        frameIndex = elapsedFrames % selectedLevelFrameCount;
+
+                        // Defensive check: ensure selectedLevelFrameCount is a valid positive integer
+                        if (!Number.isFinite(selectedLevelFrameCount) || selectedLevelFrameCount <= 0) {
+                          // Invalid frame count - default to frame 0 and warn
+                          frameIndex = 0;
+                          if (counterConfig.debug) {
+                            console.warn(`⚠️ Frame ${index}: Invalid selectedLevelFrameCount=${selectedLevelFrameCount} for level=${level}, defaulting to frameIndex=0`);
+                          }
+                        } else {
+                          // Simply use elapsed time to determine frame
+                          frameIndex = elapsedFrames % selectedLevelFrameCount;
+                        }
 
                         if (counterConfig.debug && (elapsedFrames === 0 || (currentLevel === 0 && index < 50))) {
                           console.log(`    ✅ Frame ${index}: level=L${level}, elapsedSpriteFrames=${elapsedFrames}, frameIndex=${frameIndex}, contribution=${elem.currentContribution}`);
