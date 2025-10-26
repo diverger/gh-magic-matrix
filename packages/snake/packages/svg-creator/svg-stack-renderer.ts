@@ -1601,8 +1601,8 @@ export const createProgressStack = async (
                         // - Wait for cycle completion for other level changes (smooth transitions)
 
                         // DEBUG: Log state before switching logic for Frame 46-52
-                        if (counterConfig.debug && index >= 46 && index <= 52) {
-                          console.log(`  🔍 Frame ${index} PRE-SWITCH: currentLevel=${currentLevel}, state.prevLevel=${state.prevLevel}, absoluteTime=${absoluteTime.toFixed(2)}ms`);
+                        if (counterConfig.debug && ((index >= 46 && index <= 52) || (index >= 127 && index <= 132))) {
+                          console.log(`  🔍 Frame ${index} PRE-SWITCH: currentLevel=${currentLevel}, state.prevLevel=${state.prevLevel}, isCycleComplete=${isCycleComplete}, absoluteTime=${absoluteTime.toFixed(2)}ms, cycleStartTime=${state.cycleStartTime?.toFixed(2)}ms`);
                         }
 
                         if (currentLevel === 0 && state.prevLevel !== 0) {
@@ -1612,7 +1612,7 @@ export const createProgressStack = async (
                           state.prevLevel = 0;
                           state.cycleStartIndex = index;
                           state.cycleStartTime = absoluteTime;
-                          state.lastCycleNumber = -1; // Reset to -1 to allow next cycle detection
+                          state.lastCycleNumber = 0; // Set to 0 (current cycle) to prevent immediate cycle completion
 
                           // CRITICAL FIX: Recalculate elapsedFrames with NEW cycleStartTime
                           // This ensures frame rendering starts from f0 immediately
@@ -1620,7 +1620,7 @@ export const createProgressStack = async (
                           elapsedFrames = 0;
 
                           if (counterConfig.debug && index < 220) {
-                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (empty/repeated cell, cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, elapsedFrames RESET to 0)`);
+                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (empty/repeated cell, cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, lastCycleNumber=0, elapsedFrames RESET to 0)`);
                           }
                         } else if (currentLevel === 0 && state.prevLevel === 0 && isCycleComplete) {
                           // L0 cycle completed - reset for next L0 cycle
@@ -1635,14 +1635,14 @@ export const createProgressStack = async (
                           elapsedTime = 0;
                           elapsedFrames = 0;
 
-                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
+                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 127 && index <= 132) || (index >= 190 && index <= 220))) {
                             console.log(`  🔄 Frame ${index}: L0 cycle complete, resetting (cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, elapsedFrames RESET to 0)`);
                           }
                         } else if (currentLevel === 0 && state.prevLevel === 0) {
                           // Continuing L0 animation mid-cycle
                           level = 0;
 
-                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 190 && index <= 220))) {
+                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 127 && index <= 132) || (index >= 190 && index <= 220))) {
                             const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
                             const elapsedFramesCalc = Math.floor(elapsedTime / spriteFrameDuration);
                             console.log(`  🎬 Frame ${index}: Continuing L0 mid-cycle (absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${state.cycleStartTime?.toFixed(2)}ms, elapsed=${elapsedTime.toFixed(2)}ms, spriteDur=${spriteFrameDuration}, frames=${elapsedFramesCalc}, calc=${elapsedTime}/${spriteFrameDuration}=${elapsedTime/spriteFrameDuration})`);
@@ -1670,7 +1670,7 @@ export const createProgressStack = async (
                             state.lastCycleNumber = currentCycleNumber;
                           }
 
-                          if (counterConfig.debug && (index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel)) {
+                          if (counterConfig.debug && ((index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel) || (index >= 127 && index <= 132))) {
                             console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedFrames=${elapsedFrames})`);
                             if (oldLevel !== currentLevel) {
                               console.log(`     → Level changed! cycleStartTime=${absoluteTime.toFixed(0)}ms, elapsedFrames RESET to 0`);
@@ -1682,7 +1682,7 @@ export const createProgressStack = async (
                           // Mid-cycle - use previous level (don't interrupt animation)
                           level = state.prevLevel;
 
-                          if (counterConfig.debug && ((currentLevel === 0 || state.prevLevel === 0) && index < 50)) {
+                          if (counterConfig.debug && (((currentLevel === 0 || state.prevLevel === 0) && index < 50) || (index >= 127 && index <= 132))) {
                             console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsedFrames=${elapsedFrames}/${safePrevLevelFrameCount})`);
                           }
                         }
