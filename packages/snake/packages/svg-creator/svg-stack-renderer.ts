@@ -1645,9 +1645,9 @@ export const createProgressStack = async (
                         level = currentLevel;
                         frameIndex = 0; // Static image always uses frame 0
                       }
-                    } else if (isDynamicSpeed && elem.currentContribution > 0) {
+                    } else if (isDynamicSpeed) {
                       // Dynamic speed mode: animation speed based on contribution level
-                      // Level 0: speed = 0 (no animation)
+                      // Level 0: speed = 1 (normal animation, same as L1)
                       // Level 1: speed = 1 (normal, 8 steps for 8 frames)
                       // Level 2: speed = 2 (2x, 4 steps for 8 frames)
                       // Level 3: speed = 4 (4x, 2 steps for 8 frames)
@@ -1655,12 +1655,9 @@ export const createProgressStack = async (
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
                       const currentLevel = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
 
-                      if (currentLevel === 0) {
-                        frameIndex = 0; // No animation for level 0
-                      } else {
-                        const speedFactor = Math.pow(2, currentLevel - 1);
-                        frameIndex = Math.floor((index * speedFactor) % totalFrames);
-                      }
+                      // L0 also animates! Use speed factor based on level
+                      const speedFactor = currentLevel === 0 ? 1 : Math.pow(2, currentLevel - 1);
+                      frameIndex = Math.floor((index * speedFactor) % totalFrames);
                     } else if (isMultiFrame && imageConfig.sprite?.mode === 'sync') {
                       // Sequential sync mode: cycle through frames with fixed speed
                       const animSpeed = imageConfig.sprite?.animationSpeed ?? 1;
