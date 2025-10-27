@@ -75,7 +75,7 @@ Generate an animated SVG showing a snake eating GitHub contributions using advan
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/dark.svg"
+    srcset="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/with-multi-level-sprites.svg"
   />
   <source
     media="(prefers-color-scheme: light)"
