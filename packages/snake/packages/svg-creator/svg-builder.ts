@@ -7,7 +7,7 @@
  * @module create-svg
  */
 
-import { Grid } from "../types/grid";
+import { Grid, Color, Empty } from "../types/grid";
 import { Point } from "../types/point";
 import { Snake } from "../types/snake";
 import { renderAnimatedSvgGrid, createAnimatedGridCells } from "./svg-grid-renderer";
@@ -124,6 +124,13 @@ export const createSvg = async (
   console.log(`  - Cells with color: ${animatedCells.filter(c => c.color > 0).length}`);
   console.log(`  - Snake chain length: ${chain.length}`);
 
+  // Determine if empty cells should be shown in grid
+  // - contribution mode: show all cells including L0 (empty)
+  // - uniform mode (default): only show colored cells (L1-L4)
+  const progressBarMode = animationOptions.contributionCounter?.progressBarMode ?? 'uniform';
+  const showEmptyCells = progressBarMode === 'contribution';
+  console.log(`  - Grid render mode: ${progressBarMode} (showEmptyCells: ${showEmptyCells})`);
+
   // Render the animated grid
   const gridResult = renderAnimatedSvgGrid(animatedCells, {
     colorDots: drawOptions.colorDots,
@@ -134,6 +141,7 @@ export const createSvg = async (
     dotBorderRadius: drawOptions.sizeDotBorderRadius,
     gridWidth: grid.width,
     gridHeight: grid.height,
+    showEmptyCells, // Pass the flag to control L0 rendering
   }, duration);
 
   // Render the animated snake
@@ -150,14 +158,40 @@ export const createSvg = async (
   const progressBarY = (grid.height + gapCells) * drawOptions.sizeCell;
 
   // Create progress stack (timeline bar showing cell consumption)
-  // Convert AnimatedGridCell to the format expected by createProgressStack
-  const stackResult = await createProgressStack(
-    animatedCells.map(cell => ({
+  // IMPORTANT: Different sources based on mode
+  // - Uniform mode (SNK): Use animatedCells (unique grid cells, no L0, no repeats)
+  // - Contribution mode: Use chain (all steps including L0 and repeated cells)
+  let progressBarCells;
+
+  if (progressBarMode === 'contribution') {
+    // Contribution mode: show ALL steps snake takes (including L0 and repeated cells)
+    progressBarCells = chain.map((snake, index) => {
+      const headPos = snake.getHead();
+      let cellColor: Color | Empty;
+      if (headPos.x < 0 || headPos.y < 0 || headPos.x >= grid.width || headPos.y >= grid.height) {
+        cellColor = 0 as Empty; // Outside grid = empty
+      } else {
+        cellColor = grid.getColor(headPos.x, headPos.y);
+      }
+      return {
+        t: index / chain.length, // Normalized time (0-1)
+        color: cellColor,
+        x: headPos.x,
+        y: headPos.y,
+      };
+    });
+  } else {
+    // Uniform mode (SNK): use animatedCells (unique cells, L0 already filtered by grid renderer)
+    progressBarCells = animatedCells.map(cell => ({
       t: cell.animationTime,
       color: cell.color,
       x: cell.x,
       y: cell.y,
-    })),
+    }));
+  }
+
+  const stackResult = await createProgressStack(
+    progressBarCells,
     drawOptions.sizeDot,
     grid.width * drawOptions.sizeCell,
     progressBarY,
@@ -239,8 +273,8 @@ const generateColorVar = (drawOptions: SvgRenderOptions): string => {
       --cs: ${drawOptions.colorSnake};
       --ce: ${drawOptions.colorEmpty};
       ${Object.entries(drawOptions.colorDots)
-        .map(([i, color]) => `--c${i}:${color};`)
-        .join("")}
+        .map(([i, color]) => `--c${i}: ${color};`)
+        .join(" ")}
     }
   `;
 
@@ -252,8 +286,8 @@ const generateColorVar = (drawOptions: SvgRenderOptions): string => {
         --cs: ${drawOptions.dark.colorSnake || drawOptions.colorSnake};
         --ce: ${drawOptions.dark.colorEmpty};
         ${Object.entries(drawOptions.dark.colorDots)
-          .map(([i, color]) => `--c${i}:${color};`)
-          .join("")}
+          .map(([i, color]) => `--c${i}: ${color};`)
+          .join(" ")}
       }
     }
     `;

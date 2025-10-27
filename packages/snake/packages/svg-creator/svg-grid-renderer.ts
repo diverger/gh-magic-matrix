@@ -29,6 +29,7 @@ export interface SvgGridRenderOptions {
   dotBorderRadius: number;
   gridWidth?: number; // Optional: grid width for filtering outside cells
   gridHeight?: number; // Optional: grid height for filtering outside cells
+  showEmptyCells?: boolean; // Optional: whether to render L0 empty cells (default false for SNK style)
 }
 
 /**
@@ -90,10 +91,11 @@ export const renderAnimatedSvgGrid = (
   for (const cell of cells) {
     const { x, y, color, animationTime } = cell;
 
-    // Skip cells outside the grid boundaries (used for L0 animation only, no grid rendering)
+    // Grid should NEVER render cells outside the grid boundaries
+    // Only progress bar should show outside cells
     if (options.gridWidth !== undefined && options.gridHeight !== undefined) {
       if (x < 0 || y < 0 || x >= options.gridWidth || y >= options.gridHeight) {
-        continue; // Outside cell - don't render grid rectangle, only progress bar will show L0 animation
+        continue; // Outside cell - don't render in grid
       }
     }
 
@@ -102,8 +104,12 @@ export const renderAnimatedSvgGrid = (
     // Calculate position within cell
     const margin = (options.cellSize - options.dotSize) / 2;
 
-    // Handle animated cells - only animate non-empty cells
-    if (animationTime !== null && color > 0) {
+    // Handle animated cells
+    // - If showEmptyCells is true (contribution mode): animate ALL cells including L0
+    // - If showEmptyCells is false (SNK/uniform mode): only animate colored cells (color > 0)
+    const shouldAnimate = animationTime !== null && (options.showEmptyCells || color > 0);
+
+    if (shouldAnimate) {
       const t = Math.max(0, Math.min(1, animationTime));
       const animationId = `cell-${(animationIndex++).toString(36)}`;
       classes.push(animationId);
@@ -133,6 +139,8 @@ export const renderAnimatedSvgGrid = (
       class: classes.join(" "),
       x: x * options.cellSize + margin,
       y: y * options.cellSize + margin,
+      width: options.dotSize,
+      height: options.dotSize,
       rx: options.dotBorderRadius,
       ry: options.dotBorderRadius,
     });

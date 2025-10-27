@@ -167,8 +167,12 @@ export const generateContributionSnake = async (
 
               console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);
               animationOptions.contributionCounter.contributionMap = contributionMap;
+              // Keep default 'uniform' mode - progress bar shows only colored cells (SNK style)
 
-              // Pass colorDots to counter config for gradient generation
+              // Pass colorDots to counter config with direct index mapping
+              // NOTE: drawOptions.colorDots array already includes L0 at index 0
+              // Array structure: [L0_color, L1_color, L2_color, L3_color, L4_color]
+              // This maps directly to CSS variables: --c0, --c1, --c2, --c3, --c4
               const colorDotsRecord = drawOptions.colorDots.reduce((acc, color, level) => {
                 if (color) acc[level] = color;
                 return acc;
@@ -184,6 +188,8 @@ export const generateContributionSnake = async (
               null, // Use all cells
               route,
               {
+                // Direct mapping: drawOptions.colorDots array already includes all levels
+                // Array structure: [L0, L1, L2, L3, L4] maps to CSS: [--c0, --c1, --c2, --c3, --c4]
                 colorDots: drawOptions.colorDots.reduce((acc, color, level) => {
                   if (color) acc[level] = color;
                   return acc;

@@ -614,7 +614,8 @@ function buildCounterStates(
   totalContributions: number,
   width: number,
   position: 'top-left' | 'top-right' | 'follow',
-  textOffsetX: number
+  textOffsetX: number,
+  progressBarMode: 'uniform' | 'contribution' = 'uniform'
 ): { states: CounterState[]; repeatedCellCount: number } {
   const states: CounterState[] = [];
   let cumulativeCount = 0;
@@ -670,8 +671,16 @@ function buildCounterStates(
 
     cumulativeCount += count;
 
-    // Calculate cumulative width based on total contribution progress
-    cumulativeWidth = width * (cumulativeCount / totalContributions);
+    // Calculate cumulative width based on progress bar mode
+    // - Uniform mode: width based on cell count (matching progress bar behavior)
+    // - Contribution mode: width based on contribution values
+    if (progressBarMode === 'uniform') {
+      // Uniform mode: each cell contributes equally to progress bar width
+      cumulativeWidth = width * ((index + 1) / sortedCells.length);
+    } else {
+      // Contribution mode: width proportional to contribution values
+      cumulativeWidth = width * (cumulativeCount / totalContributions);
+    }
 
     const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
 
@@ -985,16 +994,35 @@ export const createProgressStack = async (
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
   }
 
-  // Filter out cells outside the grid (used for L0 animation only, not for progress calculation)
+  // Determine progress bar mode BEFORE filtering
+  // Default to 'uniform' (SNK style: only show colored cells, no L0)
+  // 'contribution' mode (with counter): show all cells including L0 AND outside cells
+  const progressBarMode = counterConfig?.progressBarMode ?? 'uniform';
+
+  // Filter cells for progress bar based on mode
+  // In 'contribution' mode: keep ALL cells including outside grid and L0
+  // In 'uniform' mode (SNK): filter out outside cells AND L0 (empty cells)
   const filteredCells = cells.filter((cell) => {
     if (cell.t === null) return false;
 
-    // If grid dimensions provided, filter out outside cells
+    // In contribution mode, keep ALL cells (including outside grid and L0)
+    if (progressBarMode === 'contribution') {
+      return true;
+    }
+
+    // In uniform mode (SNK), apply two filters:
+    // 1. Filter out outside cells
     if (gridWidth !== undefined && gridHeight !== undefined &&
       cell.x !== undefined && cell.y !== undefined) {
       if (cell.x < 0 || cell.y < 0 || cell.x >= gridWidth || cell.y >= gridHeight) {
-        return false; // Outside cell - exclude from progress bar calculation
+        return false; // Outside cell - exclude from progress bar
       }
+    }
+
+    // 2. Filter out L0 (empty cells, color=0)
+    // In SNK uniform mode, progress bar should only scroll for colored cells (L1-L4)
+    if (cell.color === 0) {
+      return false; // Empty cell (L0) - exclude from progress bar
     }
 
     return true;
@@ -1005,24 +1033,26 @@ export const createProgressStack = async (
 
   // CRITICAL FIX: Calculate counter-specific duration
   // Global duration is based on full chain (including outside cells)
-  // Counter duration should be based on filtered cells only (inside grid)
+  // Counter duration should be based on filtered cells only (inside grid for uniform, all cells for contribution)
   // This ensures each counter frame displays for the correct duration (frameDuration)
   const frameDuration = cells.length > 0 ? duration / cells.length : 100;
   const counterDuration = sortedCells.length * frameDuration;
 
-  // Determine progress bar mode
-  // Default to 'uniform' (SNK style: only show colored cells, no L0)
-  // 'contribution' mode (with counter): show all cells including L0
-  const progressBarMode = counterConfig?.progressBarMode ?? 'uniform';
-
   if (counterConfig?.debug) {
+    const cellsWithTime = cells.filter(c => c.t !== null).length;
+    const outsideFiltered = cells.length - cellsWithTime;
+    const l0Filtered = progressBarMode === 'uniform'
+      ? cells.filter(c => c.t !== null && c.color === 0).length
+      : 0;
+
     console.log(`📊 Progress Bar Debug:`);
-    console.log(`  - Total cells passed: ${cells.length}`);
-    console.log(`  - Cells with animation (t !== null): ${sortedCells.length}`);
+    console.log(`  - Total cells in chain: ${cells.length}`);
+    console.log(`  - Progress bar mode: ${progressBarMode}`);
+    console.log(`  - Outside cells filtered: ${outsideFiltered}`);
+    console.log(`  - L0 (empty) cells filtered: ${l0Filtered}`);
+    console.log(`  - Cells shown in progress bar: ${sortedCells.length}`);
     console.log(`  - Global duration: ${duration}ms (${cells.length} frames × ${frameDuration.toFixed(1)}ms)`);
     console.log(`  - Counter duration: ${counterDuration}ms (${sortedCells.length} frames × ${frameDuration.toFixed(1)}ms)`);
-    console.log(`  - Outside cells filtered: ${cells.length - sortedCells.length}`);
-    console.log(`  - Progress bar mode: ${progressBarMode}`);
     console.log(`  - Counter config enabled: ${counterConfig?.enabled}`);
     console.log(`  - Contribution map size: ${counterConfig?.contributionMap?.size || 0}`);
   }
@@ -1044,6 +1074,7 @@ export const createProgressStack = async (
       const key = `${cell.x},${cell.y}`;
       contribution = counterConfig.contributionMap.get(key) ?? 0;
     }
+
     return {
       time: cell.t!,
       color: cell.color as Color,
@@ -1062,11 +1093,10 @@ export const createProgressStack = async (
 
   // REFACTOR (Goal 3): Group cells by color to show block colors (SNK-style)
   // CRITICAL DIFFERENCE between modes:
-  // - Uniform mode (SNK): Filter out L0 (color=0), only show colored cells
+  // - Uniform mode (SNK): L0 and outside cells already filtered out above
   // - Contribution mode: Show ALL cells including L0 (empty cells snake passes through)
-  const cellsToShow = progressBarMode === 'contribution'
-    ? cellsWithContributions  // Show all cells (including L0/color=0)
-    : cellsWithContributions.filter(cell => cell.color > 0);  // Only cells with actual color (L1-L4)
+  // Note: In uniform mode, cellsWithContributions already excludes L0, so no need to filter again
+  const cellsToShow = cellsWithContributions;
 
   for (const cell of cellsToShow) {
     const latestBlock = blocks[blocks.length - 1];
@@ -1314,7 +1344,8 @@ export const createProgressStack = async (
           totalContributions,
           width,
           position,
-          textOffsetX
+          textOffsetX,
+          progressBarMode  // Pass progress bar mode to sync follow positioning
         );
 
         // Track level distribution for debugging (contribution-level mode)
