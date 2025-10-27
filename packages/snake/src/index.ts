@@ -72,7 +72,7 @@ const runAction = async (): Promise<void> => {
             output.animationOptions.contributionCounter = {
               enabled: true,
               displays: counterDisplays,
-              progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
+              progressBarMode: 'contribution', // Contribution counter style: show all cells including L0
               hideProgressBar, // Apply hide setting
               debug: counterDebug, // Enable debug logging
             };
@@ -86,7 +86,7 @@ const runAction = async (): Promise<void> => {
           if (output) {
             output.animationOptions.contributionCounter = {
               enabled: true,
-              progressBarMode: 'contribution', // Use contribution-based progress bar with gradient
+              progressBarMode: 'contribution', // Contribution counter style: show all cells including L0
               hideProgressBar, // Apply hide setting
               debug: counterDebug, // Enable debug logging
             };

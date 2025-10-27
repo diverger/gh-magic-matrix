@@ -1010,8 +1010,10 @@ export const createProgressStack = async (
   const frameDuration = cells.length > 0 ? duration / cells.length : 100;
   const counterDuration = sortedCells.length * frameDuration;
 
-  // Determine progress bar mode (default to 'contribution')
-  const progressBarMode = counterConfig?.progressBarMode ?? 'contribution';
+  // Determine progress bar mode
+  // Default to 'uniform' (SNK style: only show colored cells, no L0)
+  // 'contribution' mode (with counter): show all cells including L0
+  const progressBarMode = counterConfig?.progressBarMode ?? 'uniform';
 
   if (counterConfig?.debug) {
     console.log(`📊 Progress Bar Debug:`);
@@ -1058,47 +1060,28 @@ export const createProgressStack = async (
 
   const blocks: ProgressBlock[] = [];
 
-  if (progressBarMode === 'contribution') {
-    // Contribution mode: Single block for entire progress bar
-    // Use the most common color or a default
-    const colorCounts = new Map<Color, number>();
-    cellsWithContributions.forEach(cell => {
-      colorCounts.set(cell.color, (colorCounts.get(cell.color) || 0) + 1);
-    });
+  // REFACTOR (Goal 3): Group cells by color to show block colors (SNK-style)
+  // CRITICAL DIFFERENCE between modes:
+  // - Uniform mode (SNK): Filter out L0 (color=0), only show colored cells
+  // - Contribution mode: Show ALL cells including L0 (empty cells snake passes through)
+  const cellsToShow = progressBarMode === 'contribution'
+    ? cellsWithContributions  // Show all cells (including L0/color=0)
+    : cellsWithContributions.filter(cell => cell.color > 0);  // Only cells with actual color (L1-L4)
 
-    // Find most frequent color
-    let mostFrequentColor: Color = 1 as Color;
-    let maxCount = 0;
-    colorCounts.forEach((count, color) => {
-      if (count > maxCount) {
-        maxCount = count;
-        mostFrequentColor = color;
-      }
-    });
+  for (const cell of cellsToShow) {
+    const latestBlock = blocks[blocks.length - 1];
 
-    // Create single block with all cells
-    blocks.push({
-      color: mostFrequentColor,
-      times: cellsWithContributions.map(c => c.time),
-      contributions: cellsWithContributions.map(c => c.contribution),
-    });
-  } else {
-    // Uniform mode: Group by color as before
-    for (const cell of cellsWithContributions) {
-      const latestBlock = blocks[blocks.length - 1];
-
-      if (latestBlock && latestBlock.color === cell.color) {
-        // Same color - add to existing block
-        latestBlock.times.push(cell.time);
-        latestBlock.contributions.push(cell.contribution);
-      } else {
-        // Different color - create new block
-        blocks.push({
-          color: cell.color,
-          times: [cell.time],
-          contributions: [cell.contribution],
-        });
-      }
+    if (latestBlock && latestBlock.color === cell.color) {
+      // Same color - add to existing block
+      latestBlock.times.push(cell.time);
+      latestBlock.contributions.push(cell.contribution);
+    } else {
+      // Different color - create new block
+      blocks.push({
+        color: cell.color,
+        times: [cell.time],
+        contributions: [cell.contribution],
+      });
     }
   }
 
@@ -1160,6 +1143,14 @@ export const createProgressStack = async (
     let blockCumulativeContribution = 0;
     let blockCumulativeCellCount = 0; // For uniform mode
 
+    // CRITICAL FIX: Add initial state - block starts completely hidden
+    // This prevents the progress bar from being visible before animation starts
+    const leftClip = (blockStartX * 100).toFixed(1);
+    keyframes.push({
+      t: 0,
+      style: `clip-path:inset(0 100% 0 ${leftClip}%)`,  // 100% from right = completely hidden
+    });
+
     block.times.forEach((t, i) => {
       const prevContribution = blockCumulativeContribution;
       blockCumulativeContribution += block.contributions[i];
@@ -1195,20 +1186,18 @@ export const createProgressStack = async (
       // left = startX * 100% (how much to cut from left)
       const prevRight = ((1 - Math.min(prevRightEdge, blockEndX)) * 100).toFixed(1);
       const currRight = ((1 - Math.min(currentRightEdge, blockEndX)) * 100).toFixed(1);
-      const left = (blockStartX * 100).toFixed(1);
 
       keyframes.push(
-        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${left}%)` },
-        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${left}%)` },
+        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${leftClip}%)` },
+        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${leftClip}%)` },
       );
     });
 
     // Add final keyframe - this block is fully visible within its range
     const finalRight = ((1 - blockEndX) * 100).toFixed(1);
-    const left = (blockStartX * 100).toFixed(1);
     keyframes.push({
       t: 1,
-      style: `clip-path:inset(0 ${finalRight}% 0 ${left}%)`,
+      style: `clip-path:inset(0 ${finalRight}% 0 ${leftClip}%)`,
     });
 
     // Generate CSS animation and styles

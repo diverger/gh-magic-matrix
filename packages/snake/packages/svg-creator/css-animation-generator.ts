@@ -1,12 +1,12 @@
 /**
  * CSS Animation Generator for GitHub README Compatible SVG
- * 
+ *
  * This module generates optimized CSS @keyframes animations using:
  * 1. **Shared keyframes** - All elements of same type share one @keyframes
  * 2. **animation-delay** - Control timing per element instead of unique keyframes
  * 3. **CSS variables** - Pass colors, positions dynamically via custom properties
  * 4. **Minimal CSS** - Drastically reduced code size vs per-element keyframes
- * 
+ *
  * Key optimizations over SNK approach:
  * - 1 keyframe for all grid cells (vs N keyframes for N cells)
  * - CSS variables for colors (--gc-color) instead of hardcoded fills
@@ -146,7 +146,7 @@ const generateGridCellAnimations = (
     // Set color variable and delay
     // animation-delay: negative value starts animation at specific point
     const delayMs = Math.round(cell.eatTime * options.duration);
-    
+
     styles.push(
       `.gc.${className} {
         --gc-color: var(--c${cell.colorLevel});
@@ -161,7 +161,7 @@ const generateGridCellAnimations = (
 
 /**
  * Generates OPTIMIZED CSS animation for snake body segments
- * 
+ *
  * Strategy: Each segment gets its own @keyframes (unavoidable for different paths),
  * but we optimize by:
  * 1. Removing interpolated positions (SNK optimization - keep this!)
@@ -175,7 +175,7 @@ const generateSnakeAnimations = (
   const styles: string[] = [];
   const classNames: string[] = [];
 
-  // Base style for all snake segments  
+  // Base style for all snake segments
   styles.push(
     `.sn {
       shape-rendering: geometricPrecision;
@@ -215,13 +215,13 @@ const generateSnakeAnimations = (
 
 /**
  * Generates OPTIMIZED CSS animation for progress bar blocks
- * 
+ *
  * Strategy: Use shared @keyframes for scale animation pattern,
  * customize per block with:
  * 1. CSS variable --pb-max-scale for final scale value
  * 2. animation-delay for timing offset
  * 3. transform-origin for growth anchor point
- * 
+ *
  * This reduces CSS from N keyframes to 1 shared keyframe!
  */
 const generateProgressBarAnimations = (
@@ -259,7 +259,7 @@ const generateProgressBarAnimations = (
     // Find first non-zero growth and final scale
     const firstGrowth = growKeyframes.find(kf => kf.scale > 0);
     const finalScale = growKeyframes[growKeyframes.length - 1].scale;
-    
+
     if (!firstGrowth) return;
 
     const delayMs = Math.round(firstGrowth.t * options.duration);
@@ -302,13 +302,13 @@ const removeInterpolatedPositions = <T extends { x: number; y: number }>(
 
 /**
  * Main function: Generate complete CSS animation system
- * 
+ *
  * @param gridCells - Grid cell animation data
  * @param snakeSegments - Snake body segment animation data
  * @param progressBlocks - Progress bar block animation data
  * @param options - Animation options
  * @returns Complete CSS animation result
- * 
+ *
  * @example
  * ```typescript
  * const result = generateCssAnimations(
@@ -329,7 +329,7 @@ const removeInterpolatedPositions = <T extends { x: number; y: number }>(
  *     }
  *   }
  * );
- * 
+ *
  * // Use in SVG:
  * // <style>${result.variables}${result.styles}</style>
  * // <rect class="gc ${result.cellClassNames.get('5,10')}" ... />
