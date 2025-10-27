@@ -185,7 +185,7 @@ For detailed configuration options and advanced usage, see each action's documen
 Testing optimized CSS animation features for GitHub README compatibility:
 
 ### Test 1: Basic CSS Features
-<img src="./test-outputs/github-css-features-test.svg" width="600" alt="CSS Features Test" />
+<img src="./github-css-features-test.svg" width="600" alt="CSS Features Test" />
 
 ### Test 2: Optimized Animation (Shared Keyframes)
 <svg viewBox="0 0 200 40" width="600" height="120" xmlns="http://www.w3.org/2000/svg">
