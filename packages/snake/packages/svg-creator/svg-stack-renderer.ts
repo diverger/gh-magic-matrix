@@ -600,12 +600,14 @@ interface CounterState {
  * Build counter states by tracking cumulative contributions over time.
  * This generates keyframes showing count/percentage at each snake position.
  *
- * @param sortedCells - Cells sorted by animation time
+ * @param sortedCells - Cells sorted by animation time (for sprite frames, includes L0)
  * @param counterConfig - Counter configuration with contribution map
  * @param totalContributions - Total contribution count
  * @param width - Progress bar width (for position calculation)
  * @param position - Counter position mode ('top-left', 'top-right', 'follow')
  * @param textOffsetX - Horizontal offset for follow mode
+ * @param progressBarMode - Progress bar mode (uniform or contribution)
+ * @param progressBarCells - Optional: cells used for progress bar (for X position calculation)
  * @returns Array of counter states and repeated cell count
  */
 function buildCounterStates(
@@ -615,7 +617,8 @@ function buildCounterStates(
   width: number,
   position: 'top-left' | 'top-right' | 'follow',
   textOffsetX: number,
-  progressBarMode: 'uniform' | 'contribution' = 'uniform'
+  progressBarMode: 'uniform' | 'contribution' = 'uniform',
+  progressBarCells?: Array<{ x?: number; y?: number; t: number | null }>
 ): { states: CounterState[]; repeatedCellCount: number } {
   const states: CounterState[] = [];
   let cumulativeCount = 0;
@@ -624,6 +627,18 @@ function buildCounterStates(
   // Track when each cell is first eaten (by coordinates)
   const firstEatenTime = new Map<string, number>();
   let repeatedCellCount = 0;
+
+  // Use progressBarCells for X position if provided, otherwise use sortedCells
+  // This allows sprite animation to use full chain (with L0) while X position follows progress bar
+  const cellsForXPosition = progressBarCells || sortedCells;
+
+  // Build a map of time -> index for quick lookup in cellsForXPosition
+  const timeToProgressIndex = new Map<number, number>();
+  cellsForXPosition.forEach((cell, index) => {
+    if (cell.t !== null) {
+      timeToProgressIndex.set(cell.t, index);
+    }
+  });
 
   // Initial state
   states.push({
@@ -672,11 +687,18 @@ function buildCounterStates(
     cumulativeCount += count;
 
     // Calculate cumulative width based on progress bar mode
-    // - Uniform mode: width based on cell count (matching progress bar behavior)
-    // - Contribution mode: width based on contribution values
+    // CRITICAL: Use cellsForXPosition (progress bar cells) for X calculation
+    // This ensures sprite X position matches progress bar position even when sprite uses full chain
+    const progressIndex = timeToProgressIndex.get(cell.t!) ?? -1;
+
     if (progressBarMode === 'uniform') {
-      // Uniform mode: each cell contributes equally to progress bar width
-      cumulativeWidth = width * ((index + 1) / sortedCells.length);
+      // Uniform mode: each cell in progress bar contributes equally to width
+      if (progressIndex >= 0) {
+        cumulativeWidth = width * ((progressIndex + 1) / cellsForXPosition.length);
+      } else {
+        // Cell not in progress bar (e.g., L0 in uniform mode) - use last known position
+        cumulativeWidth = cumulativeWidth; // Keep previous position
+      }
     } else {
       // Contribution mode: width proportional to contribution values
       cumulativeWidth = width * (cumulativeCount / totalContributions);
@@ -979,6 +1001,7 @@ export const createProgressStack = async (
   counterConfig?: ContributionCounterConfig,
   gridWidth?: number, // Optional: grid width for filtering outside cells
   gridHeight?: number, // Optional: grid height for filtering outside cells
+  spriteAnimationCells?: AnimatedCellData[], // Optional: separate data source for sprite animation (includes L0)
 ): Promise<ProgressStackResult> => {
   const svgElements: string[] = [];
   const isHidden = counterConfig?.hideProgressBar ?? false;
@@ -998,6 +1021,12 @@ export const createProgressStack = async (
   // Default to 'uniform' (SNK style: only show colored cells, no L0)
   // 'contribution' mode (with counter): show all cells including L0 AND outside cells
   const progressBarMode = counterConfig?.progressBarMode ?? 'uniform';
+
+  // CRITICAL: Separate data sources for progress bar and sprite animation
+  // - Progress bar: uses filtered cells (uniform mode excludes L0)
+  // - Sprite animation: should always include L0 to show animation when passing empty cells
+  // Use spriteAnimationCells if provided, otherwise fall back to cells
+  const spriteDataSource = spriteAnimationCells ?? cells;
 
   // Filter cells for progress bar based on mode
   // In 'contribution' mode: keep ALL cells including outside grid and L0
@@ -1338,14 +1367,21 @@ export const createProgressStack = async (
 
         // --- Build Counter States ---
         // Track cumulative progress and generate keyframes for each snake position
+        // CRITICAL: Use sprite data source (includes L0) for sprite animation
+        // This is separate from progress bar data (sortedCells) which excludes L0 in uniform mode
+        const spriteCells = spriteDataSource
+          .filter(cell => cell.t !== null)
+          .sort((a, b) => a.t! - b.t!);
+
         const { states: textElements, repeatedCellCount } = buildCounterStates(
-          sortedCells,
+          spriteCells,  // Use sprite data source (includes L0) for frame generation
           counterConfig,
           totalContributions,
           width,
           position,
           textOffsetX,
-          progressBarMode  // Pass progress bar mode to sync follow positioning
+          progressBarMode,  // Pass progress bar mode to sync follow positioning
+          sortedCells  // Pass progress bar cells for X position calculation
         );
 
         // Track level distribution for debugging (contribution-level mode)
@@ -1354,8 +1390,9 @@ export const createProgressStack = async (
         // Track animation state for smooth level transitions
         // For each image, track: previous level, cycle start index, absolute start time, and last cycle number
         // lastCycleNumber helps detect cycle completion even when frames are skipped
+        // prevLevel is undefined on first frame to trigger initialization
         const animationStates = new Map<number, {
-          prevLevel: number;
+          prevLevel: number | undefined;
           cycleStartIndex: number;
           cycleStartTime?: number;
           lastCycleNumber?: number;
@@ -1532,9 +1569,9 @@ export const createProgressStack = async (
                         if (!state) {
                           // Initialize state: start animation cycle at current position
                           // Store the absolute time when animation started
-                          // lastCycleNumber set to -1 so first frame (cycle 0) triggers immediate switch
+                          // prevLevel left undefined to trigger first frame initialization
                           state = {
-                            prevLevel: currentLevel,
+                            prevLevel: undefined,  // Will be set during first frame initialization
                             cycleStartIndex: index,
                             cycleStartTime: absoluteTime,
                             lastCycleNumber: -1  // -1 allows first frame to switch immediately
@@ -1547,8 +1584,9 @@ export const createProgressStack = async (
                         }
 
                         // Get the frame count for the PREVIOUS level (currently playing)
+                        // Use currentLevel as fallback if prevLevel is undefined (first frame)
                         const prevLevelFrameCount = Array.isArray(framesPerLevel)
-                          ? framesPerLevel[state.prevLevel]
+                          ? framesPerLevel[state.prevLevel ?? currentLevel]
                           : framesPerLevel;
 
                         // Defensive: ensure prevLevelFrameCount is a positive finite number
@@ -1577,62 +1615,33 @@ export const createProgressStack = async (
                           console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
                         }
 
-                        // Level selection logic (hybrid approach):
-                        // - Transitions TO L0 (empty/repeated cells): immediate switch for quick feedback
-                        // - Other level transitions (L1-L4): wait for cycle complete for smooth animation
-                        // - Handles frame skipping: detects cycle completion even if frames are skipped
+                        // Level selection logic:
+                        // ALL level transitions (L0↔L1↔L2↔L3↔L4): wait for cycle complete
+                        // No special cases - smooth animation for all level changes
 
-                        // Hybrid switching logic:
-                        // - Immediate switch TO L0 for empty cells (quick feedback)
-                        // - Wait for cycle completion for other level changes (smooth transitions)
-
-                        // DEBUG: Log state before switching logic for Frame 46-52
+                        // DEBUG: Log state before switching logic
                         if (counterConfig.debug && ((index >= 46 && index <= 52) || (index >= 127 && index <= 132))) {
                           console.log(`  🔍 Frame ${index} PRE-SWITCH: currentLevel=${currentLevel}, state.prevLevel=${state.prevLevel}, isCycleComplete=${isCycleComplete}, absoluteTime=${absoluteTime.toFixed(2)}ms, cycleStartTime=${state.cycleStartTime?.toFixed(2)}ms`);
                         }
 
-                        if (currentLevel === 0 && state.prevLevel !== 0) {
-                          // Immediate switch TO L0 (empty/repeated cell - needs quick feedback)
-                          const oldLevel = state.prevLevel;
-                          level = 0;
-                          state.prevLevel = 0;
+                        // Initialize state for first frame
+                        const isFirstFrame = state.prevLevel === undefined;
+
+                        if (isFirstFrame) {
+                          // First frame - initialize with current level
+                          // Start at cycle 0, animation will play through all 8 frames before switching
+                          state.prevLevel = currentLevel;
                           state.cycleStartIndex = index;
                           state.cycleStartTime = absoluteTime;
-                          state.lastCycleNumber = 0; // Set to 0 (current cycle) to prevent immediate cycle completion
-
-                          // CRITICAL FIX: Recalculate elapsedFrames with NEW cycleStartTime
-                          // This ensures frame rendering starts from f0 immediately
+                          state.lastCycleNumber = 0;  // Start at cycle 0, wait for full cycle before switching
+                          level = currentLevel;
                           elapsedTime = 0;
                           elapsedFrames = 0;
 
-                          if (counterConfig.debug && index < 220) {
-                            console.log(`  ⚡ Frame ${index}: Immediate switch TO L0 from L${oldLevel} (empty/repeated cell, cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, lastCycleNumber=0, elapsedFrames RESET to 0)`);
+                          if (counterConfig.debug && index < 20) {
+                            console.log(`  🎬 Frame ${index}: First frame initialization, level=L${level}, cycleStartTime=${absoluteTime.toFixed(2)}ms, lastCycleNum=0 (will play full cycle)`);
                           }
-                        } else if (currentLevel === 0 && state.prevLevel === 0 && isCycleComplete) {
-                          // L0 cycle completed - reset for next L0 cycle
-                          // This ensures repeated cells after moving on grid start fresh animation
-                          level = 0;
-                          state.cycleStartIndex = index;
-                          state.cycleStartTime = absoluteTime;
-                          state.lastCycleNumber = 0; // Reset to 0 for fresh cycle
-
-                          // CRITICAL FIX: Recalculate elapsedFrames with NEW cycleStartTime
-                          // This ensures animation restarts from f0 for next L0 sequence
-                          elapsedTime = 0;
-                          elapsedFrames = 0;
-
-                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 127 && index <= 132) || (index >= 190 && index <= 220))) {
-                            console.log(`  🔄 Frame ${index}: L0 cycle complete, resetting (cycleStartTime NOW=${absoluteTime.toFixed(2)}ms, elapsedFrames RESET to 0)`);
-                          }
-                        } else if (currentLevel === 0 && state.prevLevel === 0) {
-                          // Continuing L0 animation mid-cycle
-                          level = 0;
-
-                          if (counterConfig.debug && (index < 10 || (index >= 46 && index <= 55) || (index >= 127 && index <= 132) || (index >= 190 && index <= 220))) {
-                            const elapsedTime = absoluteTime - (state.cycleStartTime || 0);
-                            const elapsedFramesCalc = Math.floor(elapsedTime / spriteFrameDuration);
-                            console.log(`  🎬 Frame ${index}: Continuing L0 mid-cycle (absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${state.cycleStartTime?.toFixed(2)}ms, elapsed=${elapsedTime.toFixed(2)}ms, spriteDur=${spriteFrameDuration}, frames=${elapsedFramesCalc}, calc=${elapsedTime}/${spriteFrameDuration}=${elapsedTime/spriteFrameDuration})`);
-                          }
+                          // Don't check isCycleComplete on first frame - just initialize and continue
                         } else if (isCycleComplete) {
                           // Cycle just completed - sample new level for next cycle
                           const oldLevel = state.prevLevel;
@@ -1656,7 +1665,7 @@ export const createProgressStack = async (
                             state.lastCycleNumber = currentCycleNumber;
                           }
 
-                          if (counterConfig.debug && ((index < 20 || currentLevel === 0 || oldLevel === 0 || oldLevel !== currentLevel) || (index >= 127 && index <= 132))) {
+                          if (counterConfig.debug && ((index < 20 || oldLevel === 0 || currentLevel === 0 || oldLevel !== currentLevel) || (index >= 127 && index <= 132))) {
                             console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedFrames=${elapsedFrames})`);
                             if (oldLevel !== currentLevel) {
                               console.log(`     → Level changed! cycleStartTime=${absoluteTime.toFixed(0)}ms, elapsedFrames RESET to 0`);
@@ -1666,7 +1675,8 @@ export const createProgressStack = async (
                           }
                         } else {
                           // Mid-cycle - use previous level (don't interrupt animation)
-                          level = state.prevLevel;
+                          // Use currentLevel as fallback if prevLevel is undefined (shouldn't happen in mid-cycle)
+                          level = state.prevLevel ?? currentLevel;
 
                           if (counterConfig.debug && (((currentLevel === 0 || state.prevLevel === 0) && index < 50) || (index >= 127 && index <= 132))) {
                             console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsedFrames=${elapsedFrames}/${safePrevLevelFrameCount})`);

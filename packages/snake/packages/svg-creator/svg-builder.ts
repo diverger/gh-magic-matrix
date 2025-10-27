@@ -162,6 +162,7 @@ export const createSvg = async (
   // - Uniform mode (SNK): Use animatedCells (unique grid cells, no L0, no repeats)
   // - Contribution mode: Use chain (all steps including L0 and repeated cells)
   let progressBarCells;
+  let spriteAnimationCells; // Separate data source for sprite animation
 
   if (progressBarMode === 'contribution') {
     // Contribution mode: show ALL steps snake takes (including L0 and repeated cells)
@@ -180,14 +181,34 @@ export const createSvg = async (
         y: headPos.y,
       };
     });
+    // In contribution mode, sprite uses same data as progress bar
+    spriteAnimationCells = progressBarCells;
   } else {
-    // Uniform mode (SNK): use animatedCells (unique cells, L0 already filtered by grid renderer)
+    // Uniform mode (SNK): use animatedCells for progress bar (unique cells, L0 already filtered by grid renderer)
     progressBarCells = animatedCells.map(cell => ({
       t: cell.animationTime,
       color: cell.color,
       x: cell.x,
       y: cell.y,
     }));
+
+    // CRITICAL FIX: Sprite animation should use full chain (includes L0 for empty cells)
+    // This ensures sprite shows L0 animation when snake passes through empty cells
+    spriteAnimationCells = chain.map((snake, index) => {
+      const headPos = snake.getHead();
+      let cellColor: Color | Empty;
+      if (headPos.x < 0 || headPos.y < 0 || headPos.x >= grid.width || headPos.y >= grid.height) {
+        cellColor = 0 as Empty; // Outside grid = empty
+      } else {
+        cellColor = grid.getColor(headPos.x, headPos.y);
+      }
+      return {
+        t: index / chain.length, // Normalized time (0-1)
+        color: cellColor,
+        x: headPos.x,
+        y: headPos.y,
+      };
+    });
   }
 
   const stackResult = await createProgressStack(
@@ -204,6 +225,7 @@ export const createSvg = async (
       : undefined,
     grid.width, // Pass grid dimensions to filter outside cells
     grid.height,
+    spriteAnimationCells, // Pass separate data source for sprite animation (includes L0)
   );
 
   // Create viewBox
