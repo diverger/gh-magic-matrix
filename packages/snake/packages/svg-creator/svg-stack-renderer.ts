@@ -1125,6 +1125,7 @@ export const createProgressStack = async (
 
     // REFACTOR (Goal 3): Use solid block color instead of gradients
     // Each block uses its base color (var(--cX))
+    // Note: Progress bar only shows cells eaten by snake, so color is always 1-4 (never empty/0)
 
     // ALL blocks start at x=0 and have full width
     // They will be clipped/scaled to show only their portion
