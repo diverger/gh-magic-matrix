@@ -561,13 +561,6 @@ export interface ContributionCounterConfig {
   displays?: CounterDisplayConfig[];
   /** Map from "x,y" coordinates to contribution count */
   contributionMap?: Map<string, number>;
-  /**
-   * Progress bar growth mode
-   * - 'uniform': Each cell occupies equal width (original behavior)
-   * - 'contribution': Width allocated based on contribution value (new behavior)
-   * Default: 'contribution'
-   */
-  progressBarMode?: 'uniform' | 'contribution';
   /** Color map for gradient (level -> hex color) */
   colorDots?: Record<number, string>;
   /**
@@ -606,7 +599,6 @@ interface CounterState {
  * @param width - Progress bar width (for position calculation)
  * @param position - Counter position mode ('top-left', 'top-right', 'follow')
  * @param textOffsetX - Horizontal offset for follow mode
- * @param progressBarMode - Progress bar mode (uniform or contribution)
  * @param progressBarCells - Optional: cells used for progress bar (for X position calculation)
  * @returns Array of counter states and repeated cell count
  */
@@ -617,7 +609,6 @@ function buildCounterStates(
   width: number,
   position: 'top-left' | 'top-right' | 'follow',
   textOffsetX: number,
-  progressBarMode: 'uniform' | 'contribution' = 'uniform',
   progressBarCells?: Array<{ x?: number; y?: number; t: number | null }>
 ): { states: CounterState[]; repeatedCellCount: number } {
   const states: CounterState[] = [];
@@ -686,22 +677,17 @@ function buildCounterStates(
 
     cumulativeCount += count;
 
-    // Calculate cumulative width based on progress bar mode
+    // Calculate cumulative width using uniform mode (each cell contributes equally)
     // CRITICAL: Use cellsForXPosition (progress bar cells) for X calculation
     // This ensures sprite X position matches progress bar position even when sprite uses full chain
     const progressIndex = timeToProgressIndex.get(cell.t!) ?? -1;
 
-    if (progressBarMode === 'uniform') {
-      // Uniform mode: each cell in progress bar contributes equally to width
-      if (progressIndex >= 0) {
-        cumulativeWidth = width * ((progressIndex + 1) / cellsForXPosition.length);
-      } else {
-        // Cell not in progress bar (e.g., L0 in uniform mode) - use last known position
-        cumulativeWidth = cumulativeWidth; // Keep previous position
-      }
+    // Uniform mode: each cell in progress bar contributes equally to width
+    if (progressIndex >= 0) {
+      cumulativeWidth = width * ((progressIndex + 1) / cellsForXPosition.length);
     } else {
-      // Contribution mode: width proportional to contribution values
-      cumulativeWidth = width * (cumulativeCount / totalContributions);
+      // Cell not in progress bar (e.g., L0 in uniform mode) - use last known position
+      cumulativeWidth = cumulativeWidth; // Keep previous position
     }
 
     const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
@@ -1017,30 +1003,17 @@ export const createProgressStack = async (
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
   }
 
-  // Determine progress bar mode BEFORE filtering
-  // Default to 'uniform' (SNK style: only show colored cells, no L0)
-  // 'contribution' mode (with counter): show all cells including L0 AND outside cells
-  const progressBarMode = counterConfig?.progressBarMode ?? 'uniform';
-
   // CRITICAL: Separate data sources for progress bar and sprite animation
-  // - Progress bar: uses filtered cells (uniform mode excludes L0)
+  // - Progress bar: uses filtered cells (excludes L0 and outside cells)
   // - Sprite animation: should always include L0 to show animation when passing empty cells
   // Use spriteAnimationCells if provided, otherwise fall back to cells
   const spriteDataSource = spriteAnimationCells ?? cells;
 
-  // Filter cells for progress bar based on mode
-  // In 'contribution' mode: keep ALL cells including outside grid and L0
-  // In 'uniform' mode (SNK): filter out outside cells AND L0 (empty cells)
+  // Filter cells for progress bar (uniform mode: exclude L0 and outside cells)
   const filteredCells = cells.filter((cell) => {
     if (cell.t === null) return false;
 
-    // In contribution mode, keep ALL cells (including outside grid and L0)
-    if (progressBarMode === 'contribution') {
-      return true;
-    }
-
-    // In uniform mode (SNK), apply two filters:
-    // 1. Filter out outside cells
+    // Filter out outside cells
     if (gridWidth !== undefined && gridHeight !== undefined &&
       cell.x !== undefined && cell.y !== undefined) {
       if (cell.x < 0 || cell.y < 0 || cell.x >= gridWidth || cell.y >= gridHeight) {
@@ -1048,8 +1021,8 @@ export const createProgressStack = async (
       }
     }
 
-    // 2. Filter out L0 (empty cells, color=0)
-    // In SNK uniform mode, progress bar should only scroll for colored cells (L1-L4)
+    // Filter out L0 (empty cells, color=0)
+    // Progress bar should only scroll for colored cells (L1-L4)
     if (cell.color === 0) {
       return false; // Empty cell (L0) - exclude from progress bar
     }
@@ -1062,7 +1035,7 @@ export const createProgressStack = async (
 
   // CRITICAL FIX: Calculate counter-specific duration
   // Global duration is based on full chain (including outside cells)
-  // Counter duration should be based on filtered cells only (inside grid for uniform, all cells for contribution)
+  // Counter duration should be based on filtered cells only
   // This ensures each counter frame displays for the correct duration (frameDuration)
   const frameDuration = cells.length > 0 ? duration / cells.length : 100;
   const counterDuration = sortedCells.length * frameDuration;
@@ -1070,13 +1043,11 @@ export const createProgressStack = async (
   if (counterConfig?.debug) {
     const cellsWithTime = cells.filter(c => c.t !== null).length;
     const outsideFiltered = cells.length - cellsWithTime;
-    const l0Filtered = progressBarMode === 'uniform'
-      ? cells.filter(c => c.t !== null && c.color === 0).length
-      : 0;
+    const l0Filtered = cells.filter(c => c.t !== null && c.color === 0).length;
 
     console.log(`📊 Progress Bar Debug:`);
     console.log(`  - Total cells in chain: ${cells.length}`);
-    console.log(`  - Progress bar mode: ${progressBarMode}`);
+    console.log(`  - Progress bar mode: uniform (only colored cells)`);
     console.log(`  - Outside cells filtered: ${outsideFiltered}`);
     console.log(`  - L0 (empty) cells filtered: ${l0Filtered}`);
     console.log(`  - Cells shown in progress bar: ${sortedCells.length}`);
@@ -1144,20 +1115,13 @@ export const createProgressStack = async (
     }
   }
 
-  // No longer use fixed cellWidth in contribution mode
   // In uniform mode, each cell occupies equal width
-  const cellWidth = progressBarMode === 'uniform' ? width / sortedCells.length : 0;
-
-  // REFACTOR: Removed gradient approach, using block colors instead (Goal 3)
-  // const gradientDefs: string[] = [];
+  const cellWidth = width / sortedCells.length;
 
   let blockIndex = 0;
-  let cumulativeContribution = 0;
-  let cumulativeCellCount = 0; // For uniform mode
+  let cumulativeCellCount = 0;
 
   for (const block of blocks) {
-    // Calculate block's total contribution and cell count
-    const blockTotalContribution = block.contributions.reduce((sum, c) => sum + c, 0);
     const blockCellCount = block.times.length;
 
     // Generate unique ID for this block
@@ -1184,23 +1148,14 @@ export const createProgressStack = async (
       }),
     );
 
-    // Create animation keyframes based on progress bar mode
+    // Create animation keyframes for uniform mode
     // Each block is clipped to show only its range: [startX, endX]
-    let blockStartX: number, blockEndX: number;
-
-    if (progressBarMode === 'contribution') {
-      // Contribution mode: allocate space based on contribution value
-      blockStartX = cumulativeContribution / totalContributions;
-      blockEndX = (cumulativeContribution + blockTotalContribution) / totalContributions;
-    } else {
-      // Uniform mode: allocate equal space per cell
-      blockStartX = cumulativeCellCount / sortedCells.length;
-      blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
-    }
+    // Uniform mode: allocate equal space per cell
+    const blockStartX = cumulativeCellCount / sortedCells.length;
+    const blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
 
     const keyframes: AnimationKeyframe[] = [];
-    let blockCumulativeContribution = 0;
-    let blockCumulativeCellCount = 0; // For uniform mode
+    let blockCumulativeCellCount = 0;
 
     // CRITICAL FIX: Add initial state - block starts completely hidden
     // This prevents the progress bar from being visible before animation starts
@@ -1211,33 +1166,19 @@ export const createProgressStack = async (
     });
 
     block.times.forEach((t, i) => {
-      const prevContribution = blockCumulativeContribution;
-      blockCumulativeContribution += block.contributions[i];
-
       const prevCellCount = blockCumulativeCellCount;
       blockCumulativeCellCount += 1;
 
       const t1 = Math.max(0, t - 0.0001);
       const t2 = Math.min(1, t + 0.0001);
 
-      // Calculate current right edge of the visible progress based on mode
-      let currentRightEdge: number, prevRightEdge: number;
+      // Calculate current right edge of the visible progress (uniform mode)
+      // Uniform mode: position based on cell count
+      const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
+      const currentRightEdge = currentTotalCells / sortedCells.length;
 
-      if (progressBarMode === 'contribution') {
-        // Contribution mode: position based on accumulated contribution
-        const currentTotalContribution = cumulativeContribution + blockCumulativeContribution;
-        currentRightEdge = currentTotalContribution / totalContributions;
-
-        const prevTotalContribution = cumulativeContribution + prevContribution;
-        prevRightEdge = prevTotalContribution / totalContributions;
-      } else {
-        // Uniform mode: position based on cell count
-        const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
-        currentRightEdge = currentTotalCells / sortedCells.length;
-
-        const prevTotalCells = cumulativeCellCount + prevCellCount;
-        prevRightEdge = prevTotalCells / sortedCells.length;
-      }
+      const prevTotalCells = cumulativeCellCount + prevCellCount;
+      const prevRightEdge = prevTotalCells / sortedCells.length;
 
       // Clip path: left edge is where this block starts, right edge grows with progress
       // Format: inset(top right bottom left)
@@ -1261,16 +1202,14 @@ export const createProgressStack = async (
 
     // Generate CSS animation and styles
     // CRITICAL: transform-origin must be 0 for all blocks to grow from left
-    const cssStyle = progressBarMode === 'contribution'
-      ? `.u.${blockId} { animation-name: ${animationName}; }`  // fill already set on element
-      : `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
+    // In uniform mode, set fill color on each block
+    const cssStyle = `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
 
     styles.push(
       createKeyframeAnimation(animationName, keyframes),
       cssStyle,
     );
 
-    cumulativeContribution += blockTotalContribution;
     cumulativeCellCount += blockCellCount;
     blockIndex++;
   }
@@ -1380,7 +1319,6 @@ export const createProgressStack = async (
           width,
           position,
           textOffsetX,
-          progressBarMode,  // Pass progress bar mode to sync follow positioning
           sortedCells  // Pass progress bar cells for X position calculation
         );
 
@@ -1862,11 +1800,6 @@ export const createProgressStack = async (
       } // End if (display.text) else
     } // End displays loop
   } // End if (counterConfig?.enabled)
-
-  // REFACTOR: Removed gradient prepending - no longer needed (Goal 3)
-  // if (progressBarMode === 'contribution' && gradientDefs.length > 0) {
-  //   svgElements.unshift(...gradientDefs);
-  // }
 
   return { svgElements, styles: styles.join('\n') };
 };

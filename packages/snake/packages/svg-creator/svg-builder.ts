@@ -124,12 +124,9 @@ export const createSvg = async (
   console.log(`  - Cells with color: ${animatedCells.filter(c => c.color > 0).length}`);
   console.log(`  - Snake chain length: ${chain.length}`);
 
-  // Determine if empty cells should be shown in grid
-  // - contribution mode: show all cells including L0 (empty)
-  // - uniform mode (default): only show colored cells (L1-L4)
-  const progressBarMode = animationOptions.contributionCounter?.progressBarMode ?? 'uniform';
-  const showEmptyCells = progressBarMode === 'contribution';
-  console.log(`  - Grid render mode: ${progressBarMode} (showEmptyCells: ${showEmptyCells})`);
+  // Grid render mode: uniform (only show colored cells, L1-L4)
+  const showEmptyCells = false;
+  console.log(`  - Grid render mode: uniform (showEmptyCells: ${showEmptyCells})`);
 
   // Render the animated grid
   const gridResult = renderAnimatedSvgGrid(animatedCells, {
@@ -158,58 +155,36 @@ export const createSvg = async (
   const progressBarY = (grid.height + gapCells) * drawOptions.sizeCell;
 
   // Create progress stack (timeline bar showing cell consumption)
-  // IMPORTANT: Different sources based on mode
-  // - Uniform mode (SNK): Use animatedCells (unique grid cells, no L0, no repeats)
-  // - Contribution mode: Use chain (all steps including L0 and repeated cells)
+  // Uniform mode: Use animatedCells for progress bar (unique grid cells, no L0, no repeats)
+  // Sprite animation: Use chain (all steps including L0) for sprite frame generation
   let progressBarCells;
   let spriteAnimationCells; // Separate data source for sprite animation
 
-  if (progressBarMode === 'contribution') {
-    // Contribution mode: show ALL steps snake takes (including L0 and repeated cells)
-    progressBarCells = chain.map((snake, index) => {
-      const headPos = snake.getHead();
-      let cellColor: Color | Empty;
-      if (headPos.x < 0 || headPos.y < 0 || headPos.x >= grid.width || headPos.y >= grid.height) {
-        cellColor = 0 as Empty; // Outside grid = empty
-      } else {
-        cellColor = grid.getColor(headPos.x, headPos.y);
-      }
-      return {
-        t: index / chain.length, // Normalized time (0-1)
-        color: cellColor,
-        x: headPos.x,
-        y: headPos.y,
-      };
-    });
-    // In contribution mode, sprite uses same data as progress bar
-    spriteAnimationCells = progressBarCells;
-  } else {
-    // Uniform mode (SNK): use animatedCells for progress bar (unique cells, L0 already filtered by grid renderer)
-    progressBarCells = animatedCells.map(cell => ({
-      t: cell.animationTime,
-      color: cell.color,
-      x: cell.x,
-      y: cell.y,
-    }));
+  // Uniform mode: use animatedCells for progress bar (unique cells, L0 already filtered by grid renderer)
+  progressBarCells = animatedCells.map(cell => ({
+    t: cell.animationTime,
+    color: cell.color,
+    x: cell.x,
+    y: cell.y,
+  }));
 
-    // CRITICAL FIX: Sprite animation should use full chain (includes L0 for empty cells)
-    // This ensures sprite shows L0 animation when snake passes through empty cells
-    spriteAnimationCells = chain.map((snake, index) => {
-      const headPos = snake.getHead();
-      let cellColor: Color | Empty;
-      if (headPos.x < 0 || headPos.y < 0 || headPos.x >= grid.width || headPos.y >= grid.height) {
-        cellColor = 0 as Empty; // Outside grid = empty
-      } else {
-        cellColor = grid.getColor(headPos.x, headPos.y);
-      }
-      return {
-        t: index / chain.length, // Normalized time (0-1)
-        color: cellColor,
-        x: headPos.x,
-        y: headPos.y,
-      };
-    });
-  }
+  // CRITICAL FIX: Sprite animation should use full chain (includes L0 for empty cells)
+  // This ensures sprite shows L0 animation when snake passes through empty cells
+  spriteAnimationCells = chain.map((snake, index) => {
+    const headPos = snake.getHead();
+    let cellColor: Color | Empty;
+    if (headPos.x < 0 || headPos.y < 0 || headPos.x >= grid.width || headPos.y >= grid.height) {
+      cellColor = 0 as Empty; // Outside grid = empty
+    } else {
+      cellColor = grid.getColor(headPos.x, headPos.y);
+    }
+    return {
+      t: index / chain.length, // Normalized time (0-1)
+      color: cellColor,
+      x: headPos.x,
+      y: headPos.y,
+    };
+  });
 
   const stackResult = await createProgressStack(
     progressBarCells,

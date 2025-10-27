@@ -37,11 +37,6 @@ const runAction = async (): Promise<void> => {
     const hideProgressBar = process.env.INPUT_HIDE_PROGRESS_BAR === "true";
     const counterDebug = process.env.INPUT_COUNTER_DEBUG === "true";
 
-    // Parse progress bar mode (can be set independently of counter)
-    // - 'uniform': SNK style - only show colored cells (L1-L4), filter out L0
-    // - 'contribution': Show ALL cells including L0 (empty cells snake passes through)
-    const progressBarMode = (process.env.INPUT_PROGRESS_BAR_MODE as 'uniform' | 'contribution') || 'uniform';
-
     // Parse multiple displays configuration
     let counterDisplays: any[] | undefined;
     if (process.env.INPUT_COUNTER_DISPLAYS) {
@@ -77,7 +72,6 @@ const runAction = async (): Promise<void> => {
             output.animationOptions.contributionCounter = {
               enabled: true,
               displays: counterDisplays,
-              progressBarMode, // Use configured mode (uniform or contribution)
               hideProgressBar, // Apply hide setting
               debug: counterDebug, // Enable debug logging
             };
@@ -91,7 +85,6 @@ const runAction = async (): Promise<void> => {
           if (output) {
             output.animationOptions.contributionCounter = {
               enabled: true,
-              progressBarMode, // Use configured mode (uniform or contribution)
               hideProgressBar, // Apply hide setting
               debug: counterDebug, // Enable debug logging
             };
