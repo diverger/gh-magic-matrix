@@ -22,7 +22,7 @@ A collection of GitHub Actions for creating various animations and visualization
   with:
     github_user_name: ${{ github.repository_owner }}
     output_path: dist/snake/dark.svg
-```yaml
+```
 
 ## Actions
 
