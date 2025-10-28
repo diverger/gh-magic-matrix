@@ -124,7 +124,7 @@ export const renderAnimatedSvgGrid = (
       // Use 0.0001 offset for near-instant fade, preventing "sucking" effect
       const fadeOffset = 0.0001;
       const keyframes: AnimationKeyframe[] = [
-        { t: Math.max(0, t - fadeOffset), style: `fill:var(--c${color})` },
+        { t: Math.max(0, t - fadeOffset), style: color === 0 ? `fill:var(--ce)` : `fill:var(--c${color})` },
         { t: Math.min(1, t + fadeOffset), style: `fill:var(--ce)` },
         { t: 1, style: `fill:var(--ce)` },
       ];

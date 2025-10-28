@@ -27,7 +27,8 @@ export class OutsideGrid {
    *
    * @example
    * ```ts
-   * const outside = createOutside(baseGrid, EMPTY);
+   * const og = new OutsideGrid(baseGrid, EMPTY);
+   * const outside = og.getGrid();
    * ```
    */
   private createOutside(grid: Grid, color: Color | typeof EMPTY): Outside {
@@ -84,8 +85,9 @@ export class OutsideGrid {
     }
 
     // BFS propagation: mark and enqueue connected cells
-    while (queue.length > 0) {
-      const current = queue.shift()!;
+    let qi = 0;
+    while (qi < queue.length) {
+      const current = queue[qi++]!;
 
       for (const dir of neighbors4) {
         const nx = current.x + dir.x;

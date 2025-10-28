@@ -612,7 +612,7 @@ interface CounterState {
  * @returns Array of counter states and repeated cell count
  */
 function buildCounterStates(
-  sortedCells: Array<{ x?: number; y?: number; t: number | null }>,
+  sortedCells: Array<{ x?: number; y?: number; t: number }>,
   counterConfig: ContributionCounterConfig,
   totalContributions: number,
   width: number,
@@ -1320,8 +1320,8 @@ export const createProgressStack = async (
         // CRITICAL: Use sprite data source (includes L0) for sprite animation
         // This is separate from progress bar data (sortedCells) which excludes L0 in uniform mode
         const spriteCells = spriteDataSource
-          .filter(cell => cell.t !== null)
-          .sort((a, b) => a.t! - b.t!);
+          .filter((cell): cell is typeof cell & { t: number } => cell.t !== null)
+          .sort((a, b) => a.t - b.t);
 
         const { states: textElements, repeatedCellCount } = buildCounterStates(
           spriteCells,  // Use sprite data source (includes L0) for frame generation

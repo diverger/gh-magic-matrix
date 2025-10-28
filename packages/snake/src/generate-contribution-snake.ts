@@ -124,7 +124,7 @@ export const generateContributionSnake = async (
       visitedCells.add(key);
 
       const count = contributionLookup.get(key);
-      if (count === 0) {
+      if (count === 0 || count === undefined) {
         emptyCellsInRoute.push({ x: head.x, y: head.y });
       }
     }
@@ -156,6 +156,7 @@ export const generateContributionSnake = async (
             console.log(`🖌️ Creating SVG (output ${index})`);
 
             // Build contribution count map if counter is enabled
+            let counterConfig = animationOptions.contributionCounter;
             if (animationOptions.contributionCounter?.enabled) {
               // Create map with cell coordinates as keys: "x,y" -> count
               const contributionMap = new Map<string, number>();
@@ -170,8 +171,6 @@ export const generateContributionSnake = async (
               }
 
               console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);
-              animationOptions.contributionCounter.contributionMap = contributionMap;
-              // Keep default 'uniform' mode - progress bar shows only colored cells (SNK style)
 
               // Pass colorDots to counter config with direct index mapping
               // NOTE: drawOptions.colorDots array already includes L0 at index 0
@@ -181,7 +180,13 @@ export const generateContributionSnake = async (
                 if (color) acc[level] = color;
                 return acc;
               }, {} as Record<number, string>);
-              animationOptions.contributionCounter.colorDots = colorDotsRecord;
+
+              // Clone counter config to avoid mutating caller's options
+              counterConfig = {
+                ...animationOptions.contributionCounter,
+                contributionMap,
+                colorDots: colorDotsRecord,
+              };
 
               console.log(`🎨 Color dots for gradient:`, JSON.stringify(colorDotsRecord));
             }
@@ -217,7 +222,7 @@ export const generateContributionSnake = async (
               },
               {
                 frameDuration: animationOptions.frameDuration,
-                contributionCounter: animationOptions.contributionCounter
+                contributionCounter: counterConfig
               }
             );
 

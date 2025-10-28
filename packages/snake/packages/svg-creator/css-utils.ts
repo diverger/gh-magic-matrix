@@ -9,10 +9,11 @@
  * @returns A percentage string (e.g., "50%" for 0.5).
  */
 export const toPercentage = (value: number): string => {
-  if (value < 0 || value > 1) {
+  if (value < 0 - 1e-9 || value > 1 + 1e-9) {
     throw new RangeError(`Value must be between 0 and 1, got ${value}`);
   }
-  return parseFloat((value * 100).toFixed(2)).toString() + "%";
+  const v = Math.min(1, Math.max(0, value));
+  return parseFloat((v * 100).toFixed(2)).toString() + "%";
 };
 
 /**
@@ -66,7 +67,10 @@ export const createKeyframeAnimation = (
   animationName: string,
   keyframes: AnimationKeyframe[]
 ): string => {
-  const mergedFrames = mergeKeyframes(keyframes);
+  const normalized = keyframes
+    .map(k => ({ t: Math.min(1, Math.max(0, k.t)), style: k.style }))
+    .sort((a, b) => a.t - b.t);
+  const mergedFrames = mergeKeyframes(normalized);
 
   const keyframeRules = mergedFrames
     .map(({ style, times }) => {
