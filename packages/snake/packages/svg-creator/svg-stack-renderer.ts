@@ -688,14 +688,12 @@ function buildCounterStates(
     // Calculate cumulative width using uniform mode (each cell contributes equally)
     // CRITICAL: Use cellsForXPosition (progress bar cells) for X calculation
     // This ensures sprite X position matches progress bar position even when sprite uses full chain
-    const progressIndex = timeToProgressIndex.get(cell.t!) ?? -1;
+    const progressIndex = timeToProgressIndex.get(cell.t!);
 
     // Uniform mode: each cell in progress bar contributes equally to width
-    if (progressIndex >= 0) {
+    // If cell is not in progress bar (e.g., L0 in uniform mode), keep last known position
+    if (progressIndex !== undefined) {
       cumulativeWidth = width * ((progressIndex + 1) / cellsForXPosition.length);
-    } else {
-      // Cell not in progress bar (e.g., L0 in uniform mode) - use last known position
-      cumulativeWidth = cumulativeWidth; // Keep previous position
     }
 
     const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
