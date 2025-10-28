@@ -20,4 +20,4 @@ RUN bun install && \
     test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && exit 1)
 
 # Set entry point
-ENTRYPOINT ["bun", "dist/index.js"]
+ENTRYPOINT ["bun", "/app/dist/index.js"]
