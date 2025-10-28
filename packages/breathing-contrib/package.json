@@ -1,11 +1,11 @@
 {
   "name": "@gh-magic-matrix/breathing-contrib",
   "version": "0.1.0",
-  "main": "../../dist/breathing-contrib/index.js",
-  "types": "../../dist/breathing-contrib/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "private": true,
   "scripts": {
-    "build": "ncc build src/action.ts -o ../../dist/breathing-contrib --minify && tsc --emitDeclarationOnly --declaration --outDir ../../dist/breathing-contrib",
+    "build": "ncc build src/action.ts -o dist --minify && tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "bun test"
   },
   "dependencies": {
