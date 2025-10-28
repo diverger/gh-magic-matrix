@@ -233,16 +233,17 @@ const generateProgressBarAnimations = (
 
   // Shared keyframe: grow from 0 to var(--pb-max-scale)
   const sharedKeyframes: AnimationKeyframe[] = [
-    { t: 0, style: `transform:scale(0,1)` },
-    { t: 0.999, style: `transform:scale(0,1)` },
-    { t: 1, style: `transform:scale(var(--pb-max-scale,1),1)` },
+    { t: 0, style: `transform:scaleX(0)` },
+    { t: 0.999, style: `transform:scaleX(0)` },
+    { t: 1, style: `transform:scaleX(var(--pb-max-scale,1))` },
   ];
 
   styles.push(
     createKeyframeAnimation('pbGrow', sharedKeyframes),
     `.pb {
-      transform-origin: 0 0;
-      transform: scale(0,1);
+      transform-origin: 0% 50%;
+      transform-box: fill-box;
+      transform: scaleX(0);
       animation: pbGrow 1ms linear forwards;
       animation-play-state: paused;
     }`
