@@ -34,7 +34,14 @@ export const createElement = (tagName: string, attributes: Record<string, any>):
 export const convertToAttributes = (attributes: Record<string, any>): string => {
   return Object.entries(attributes)
     .filter(([, value]) => value !== null && value !== undefined)
-    .map(([name, value]) => `${name}="${String(value).replace(/"/g, '&quot;')}"`)
+    .map(([name, value]) => {
+      const escaped = String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+      return `${name}="${escaped}"`;
+    })
     .join(" ");
 };
 

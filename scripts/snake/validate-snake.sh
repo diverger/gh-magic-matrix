@@ -17,6 +17,8 @@ if [ ! -f "package.json" ] || [ ! -d "packages/snake" ]; then
     exit 1
 fi
 
+set +e
+
 SNAKE_DIR="packages/snake"
 ERRORS=0
 
@@ -37,7 +39,6 @@ REQUIRED_FILES=(
     "$SNAKE_DIR/packages/solver/tunnel.ts"
     "$SNAKE_DIR/packages/solver/outside-grid.ts"
     "Dockerfile.snake"
-    "$SNAKE_DIR/action.yml"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

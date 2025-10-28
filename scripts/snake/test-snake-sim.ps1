@@ -46,11 +46,26 @@ if (-not (Test-Path $SnakeActionDir)) {
 Write-Host "📦 Building snake action package..." -ForegroundColor Yellow
 Push-Location $SnakeActionDir
 
+$ActionResult = -1
 try {
+    # Common paths and tool detection
+    $RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $SnakeActionDir)))
+    $SnakeDist = Join-Path $RepoRoot "dist\snake\index.js"
+    $HasBun  = $null -ne (Get-Command bun  -ErrorAction SilentlyContinue)
+    $HasNode = $null -ne (Get-Command node -ErrorAction SilentlyContinue)
+    $HasNpm  = $null -ne (Get-Command npm  -ErrorAction SilentlyContinue)
+
     # Build if needed
-    if (-not (Test-Path "..\..\..\..\dist\snake\index.js")) {
-        Write-Host "🔨 Building with ncc..." -ForegroundColor Yellow
-        & bun run build
+    if (-not (Test-Path $SnakeDist)) {
+        Write-Host "🔨 Building action (bun/npm)..." -ForegroundColor Yellow
+        if ($HasBun) {
+            & bun run build
+        } elseif ($HasNpm) {
+            & npm run build
+        } else {
+            Write-Host "❌ Error: Neither bun nor npm found on PATH" -ForegroundColor Red
+            exit 1
+        }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ Error: Build failed" -ForegroundColor Red
             exit 1
@@ -169,7 +184,7 @@ try {
     Write-Host "🚀 Running snake action with simulated data..." -ForegroundColor Yellow
 
     # Try to run with mock data
-    $originalAction = Get-Content "..\..\..\..\dist\snake\index.js" -Raw
+    $originalAction = Get-Content $SnakeDist -Raw
 
     # Check if we can inject mock data (this is a simple approach)
     if ($originalAction -match "github.*token") {
@@ -245,8 +260,16 @@ try {
 
     } else {
         Write-Host "🔧 Attempting to run action directly..." -ForegroundColor Yellow
-        & bun ..\..\..\..\dist\snake\index.js
-        $ActionResult = $LASTEXITCODE
+        if ($HasBun) {
+            & bun $SnakeDist
+            $ActionResult = $LASTEXITCODE
+        } elseif ($HasNode) {
+            & node $SnakeDist
+            $ActionResult = $LASTEXITCODE
+        } else {
+            Write-Host "❌ Error: Neither bun nor node found on PATH" -ForegroundColor Red
+            $ActionResult = 1
+        }
     }
 
     # Clean up mock data

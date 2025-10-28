@@ -89,11 +89,27 @@ Write-Host ""
 Write-Host "📦 Building snake action package..." -ForegroundColor Yellow
 Push-Location $SnakeActionDir
 
+# Calculate repository root and build path
+$RepoRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+$SnakeIndexPath = Join-Path $RepoRoot "dist\snake\index.js"
+
+# Tool detection
+$HasBun  = $null -ne (Get-Command bun  -ErrorAction SilentlyContinue)
+$HasNode = $null -ne (Get-Command node -ErrorAction SilentlyContinue)
+$HasNpm  = $null -ne (Get-Command npm  -ErrorAction SilentlyContinue)
+
 try {
     # Build if needed
-    if (-not (Test-Path "..\..\..\..\dist\snake\index.js")) {
-        Write-Host "🔨 Building snake action (bun build)..." -ForegroundColor Yellow
-        & bun run build
+    if (-not (Test-Path $SnakeIndexPath)) {
+        Write-Host "🔨 Building snake action (bun/npm)..." -ForegroundColor Yellow
+        if ($HasBun) {
+            & bun run build
+        } elseif ($HasNpm) {
+            & npm run build
+        } else {
+            Write-Host "❌ Error: Neither bun nor npm found on PATH" -ForegroundColor Red
+            exit 1
+        }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ Error: Build failed" -ForegroundColor Red
             exit 1
@@ -111,7 +127,14 @@ try {
 
     # Try without GITHUB_TOKEN first (might work for public data)
     Write-Host "🚀 Running snake action with public data..." -ForegroundColor Yellow
-    & bun ..\..\..\..\dist\snake\index.js
+    if ($HasBun) {
+        & bun $SnakeIndexPath
+    } elseif ($HasNode) {
+        & node $SnakeIndexPath
+    } else {
+        Write-Host "❌ Error: Neither bun nor node found on PATH" -ForegroundColor Red
+        exit 1
+    }
 
     $ActionResult = $LASTEXITCODE
 

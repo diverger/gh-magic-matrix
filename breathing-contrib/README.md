@@ -126,7 +126,7 @@ Add the generated SVG to your profile README with theme support:
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/light.svg" />
   <img alt="Breathing Contribution Grid" src="https://raw.githubusercontent.com/USERNAME/REPO/output/breathing-contrib/dark.svg" />
 </picture>
-```html
+```
 
 Or for simple display without theme switching:
 

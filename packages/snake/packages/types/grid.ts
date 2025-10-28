@@ -34,13 +34,19 @@ export class Grid {
     if (emptyP < 0 || emptyP > 1) {
       throw new RangeError(`emptyP must be in range [0, 1], got ${emptyP}`);
     }
+    // Validate color palette
+    if (colors.length === 0 && emptyP < 1) {
+      throw new RangeError("colors must be non-empty when emptyP < 1");
+    }
 
     for (let x = this.width; x--; )
       for (let y = this.height; y--; ) {
         if (randomFn() < emptyP) {
           this.setColorEmpty(x, y);
         } else {
-          const colorIndex = Math.floor(randomFn() * colors.length);
+          const r = randomFn();
+          const idx = Math.min(colors.length - 1, Math.max(0, Math.floor(r * colors.length)));
+          const colorIndex = idx;
           this.setColor(x, y, colors[colorIndex]);
         }
       }
@@ -112,7 +118,7 @@ export class Grid {
       throw new RangeError(`setColor out of bounds: (${x},${y}) not in ${this.width}x${this.height}`);
     }
     const n = color as number;
-    if (!Number.isFinite(n) || n < 0 || n > 9) {
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 9) {
       throw new RangeError(`Color out of range: ${n}. Expected 0..9`);
     }
     this.data[this.getIndex(x, y)] = n;

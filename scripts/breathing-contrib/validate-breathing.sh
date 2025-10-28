@@ -17,6 +17,8 @@ if [ ! -f "package.json" ] || [ ! -d "packages/breathing-contrib" ]; then
     exit 1
 fi
 
+set +e
+
 BREATHING_DIR="packages/breathing-contrib"
 ERRORS=0
 

@@ -63,6 +63,10 @@ export const generateContributionSnake = async (
 ): Promise<(string | null)[]> => {
   const { githubToken, snakeLength = 4 } = options;
 
+  if (!Number.isInteger(snakeLength) || snakeLength <= 0) {
+    throw new RangeError(`snakeLength must be a positive integer, got: ${snakeLength}`);
+  }
+
   if (!userName) {
     throw new Error("Username is required for contribution snake generation");
   }
@@ -129,7 +133,7 @@ export const generateContributionSnake = async (
   if (emptyCellsInRoute.length > 0) {
     console.log(`📍 Snake passes through ${emptyCellsInRoute.length} empty cells (contribution=0)`);
     console.log(`   Empty cells:`, emptyCellsInRoute.slice(0, 5).map(c => `(${c.x},${c.y})`).join(', '),
-                emptyCellsInRoute.length > 5 ? '...' : '');
+      emptyCellsInRoute.length > 5 ? '...' : '');
   } else {
     console.log(`📍 Snake does not pass through any empty cells`);
   }

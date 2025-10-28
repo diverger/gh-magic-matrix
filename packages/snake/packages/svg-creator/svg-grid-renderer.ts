@@ -27,8 +27,8 @@ export interface SvgGridRenderOptions {
   cellSize: number;
   dotSize: number;
   dotBorderRadius: number;
-  gridWidth?: number; // Optional: grid width for filtering outside cells
-  gridHeight?: number; // Optional: grid height for filtering outside cells
+  gridWidth: number; // Grid width for filtering outside cells
+  gridHeight: number; // Grid height for filtering outside cells
   showEmptyCells?: boolean; // Optional: whether to render L0 empty cells (default false for SNK style)
 }
 
@@ -73,6 +73,14 @@ export const renderAnimatedSvgGrid = (
   const svgElements: string[] = [];
   const styles: string[] = [];
 
+  // Define required CSS variables from options
+  const colorVars = [
+    `--cb:${options.colorDotBorder}`,
+    `--ce:${options.colorEmpty}`,
+    ...Object.entries(options.colorDots).map(([lvl, hex]) => `--c${lvl}:${hex}`)
+  ].join(";");
+  styles.push(`:root{${colorVars}}`);
+
   // Base grid cell style
   const baseCellStyle = createCssRule(".grid-cell", {
     "shape-rendering": "geometricPrecision",
@@ -93,10 +101,8 @@ export const renderAnimatedSvgGrid = (
 
     // Grid should NEVER render cells outside the grid boundaries
     // Only progress bar should show outside cells
-    if (options.gridWidth !== undefined && options.gridHeight !== undefined) {
-      if (isOutsideGrid(x, y, options.gridWidth, options.gridHeight)) {
-        continue; // Outside cell - don't render in grid
-      }
+    if (isOutsideGrid(x, y, options.gridWidth, options.gridHeight)) {
+      continue; // Outside cell - don't render in grid
     }
 
     const classes = ["grid-cell"];

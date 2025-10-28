@@ -97,13 +97,13 @@ export const renderCircularStack = (
       );
     } else {
       // Fallback for older browsers and node-canvas
+      ctx.translate(-options.dotSize / 2, -options.dotSize / 2);
       createRoundedRectPath(
         ctx,
         options.dotSize,
         options.dotSize,
         options.borderRadius
       );
-      ctx.translate(-options.dotSize / 2, -options.dotSize / 2);
     }
     ctx.fill();
     ctx.stroke();

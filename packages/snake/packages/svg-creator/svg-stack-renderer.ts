@@ -1398,7 +1398,7 @@ export const createProgressStack = async (
                 x: elem.x.toFixed(1),
                 y: textY.toString(),
                 ...textAttrs,
-              }).replace("/>", `>${displayText}</text>`)
+              }).replace("/>", `>${escapeXml(displayText)}</text>`)
             );
           } else {
             // Mixed text and images - create group with text spans and image elements
@@ -1448,7 +1448,7 @@ export const createProgressStack = async (
                     x: currentX.toFixed(1),
                     y: textY.toString(),
                     ...mixedTextAttrs,
-                  }).replace("/>", `>${segment.content}</text>`)
+                  }).replace("/>", `>${escapeXml(segment.content)}</text>`)
                 );
 
                 currentX += textWidth;
@@ -2006,6 +2006,12 @@ interface TextSegment {
   content: string;      // Text content or image index as string
   imageIndex?: number;  // Parsed image index for type='image'
 }
+
+// Escape text for safe insertion into SVG/XML
+const escapeXml = (s: string): string =>
+  s.replace(/[&<>"']/g, ch =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" } as const)[ch]!
+  );
 
 /**
  * Parse text containing {img:N} placeholders into segments

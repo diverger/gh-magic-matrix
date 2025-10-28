@@ -36,6 +36,9 @@ export class Snake {
    * @throws Error if coordinates would cause wraparound
    */
   private static validateCoordinate(x: number, y: number): void {
+    if (!Number.isInteger(x) || !Number.isInteger(y)) {
+      throw new TypeError(`Snake coordinates must be integers; got (${x}, ${y})`);
+    }
     if (x < Snake.MIN_COORD || x > Snake.MAX_COORD) {
       throw new Error(`Snake x-coordinate ${x} out of valid range [${Snake.MIN_COORD}, ${Snake.MAX_COORD}]`);
     }
@@ -65,6 +68,13 @@ export class Snake {
    * Example for length=4: [{x:0,y:-1}, {x:1,y:-1}, {x:2,y:-1}, {x:3,y:-1}]
    */
   static createHorizontal(length: number): Snake {
+    if (!Number.isInteger(length) || length <= 0) {
+      throw new RangeError(`length must be a positive integer, got ${length}`);
+    }
+    const maxLen = Snake.MAX_COORD + 1; // x in [0..MAX_COORD]
+    if (length > maxLen) {
+      throw new RangeError(`length ${length} exceeds max supported ${maxLen}`);
+    }
     return new Snake(Array.from({ length }, (_, i) => new Point(i, -1)));
   }
 
@@ -124,6 +134,9 @@ export class Snake {
    * @returns A new Snake object with the head moved and the body shifted accordingly.
    */
   nextSnake(dx: number, dy: number): Snake {
+    if (!Number.isInteger(dx) || !Number.isInteger(dy)) {
+      throw new TypeError(`dx/dy must be integers; got dx=${dx}, dy=${dy}`);
+    }
     const copy = new Uint8Array(this.data.length);
     // Shift all segments back by one position
     for (let i = 2; i < this.data.length; i++) {
@@ -144,6 +157,9 @@ export class Snake {
    * Check if the snake will collide with itself when moving
    */
   willSelfCollide(dx: number, dy: number): boolean {
+    if (!Number.isInteger(dx) || !Number.isInteger(dy)) {
+      throw new TypeError(`dx/dy must be integers; got dx=${dx}, dy=${dy}`);
+    }
     const newHeadX = this.data[0] + dx;
     const newHeadY = this.data[1] + dy;
 

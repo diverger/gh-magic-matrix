@@ -14,7 +14,7 @@
  * - calc() for dynamic positioning where beneficial
  */
 
-import { createKeyframeAnimation, type AnimationKeyframe, generateColorVariables } from "./css-utils";
+import { createKeyframeAnimation, type AnimationKeyframe } from "./css-utils";
 import type { Color } from "../types/grid";
 
 /**
