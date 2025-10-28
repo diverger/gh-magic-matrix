@@ -1,4 +1,4 @@
-name: Generate Example
+name: Generate Example Files Used in README
 
 on:
   schedule:
@@ -76,8 +76,10 @@ jobs:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          INPUT_COUNTER_PREFIX: "🎯 "
-          INPUT_COUNTER_SUFFIX: " contributions"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#1f883d"}
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with dark theme
@@ -86,8 +88,10 @@ jobs:
           INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          INPUT_COUNTER_PREFIX: "🎯 "
-          INPUT_COUNTER_SUFFIX: " contributions"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#7ee787"}
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify outputs
