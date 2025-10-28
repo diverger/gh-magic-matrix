@@ -98,7 +98,8 @@ jobs:
           INPUT_COUNTER_DISPLAYS: |
             [
               {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
-              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"}
+              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
+              {"position": "follow", "prefix": "🏆 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -124,9 +125,16 @@ jobs:
             [
               {
                 "position": "top-left",
-                "image": "packages/snake/test-outputs/tree.png",
-                "imageWidth": 32,
-                "imageHeight": 32
+                "prefix": "{img:0} ",
+                "suffix": " contributions",
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 32,
+                    "height": 32,
+                    "anchorY": 0.875
+                  }
+                ]
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -141,27 +149,45 @@ jobs:
             [
               {
                 "position": "top-left",
-                "image": "packages/snake/test-outputs/tree.png",
-                "imageWidth": 24,
-                "imageHeight": 24
+                "prefix": "{img:0} ",
+                "suffix": "",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 24,
+                    "height": 24,
+                    "anchorY": 0.8
+                  }
+                ]
               },
               {
                 "position": "top-right",
-                "image": "packages/snake/test-outputs/tree.png",
-                "imageWidth": 24,
-                "imageHeight": 24
+                "prefix": "",
+                "suffix": " {img:0}",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 24,
+                    "height": 24,
+                    "anchorY": 0.8
+                  }
+                ]
               },
               {
-                "position": "bottom-left",
-                "image": "packages/snake/test-outputs/tree.png",
-                "imageWidth": 24,
-                "imageHeight": 24
-              },
-              {
-                "position": "bottom-right",
-                "image": "packages/snake/test-outputs/tree.png",
-                "imageWidth": 24,
-                "imageHeight": 24
+                "position": "follow",
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 12,
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 20,
+                    "height": 20,
+                    "anchorY": 0.75
+                  }
+                ]
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -176,10 +202,28 @@ jobs:
             [
               {
                 "position": "follow",
-                "spriteSheet": "packages/snake/test-outputs/contribution-levels-sprite.png",
-                "spriteWidth": 16,
-                "spriteHeight": 16,
-                "frameCount": 5
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "url": ".github/assets/sprite.png",
+                    "width": 64,
+                    "height": 86,
+                    "anchorY": 0.6875,
+                    "anchorX": 0.3,
+                    "textAnchorY": 1.0,
+                    "spacing": 0,
+                    "sprite": {
+                      "framesPerLevel": 8,
+                      "frameWidth": 48,
+                      "frameHeight": 64,
+                      "layout": "horizontal",
+                      "mode": "sync",
+                      "dynamicSpeed": true
+                    }
+                  }
+                ]
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -195,17 +239,30 @@ jobs:
             [
               {
                 "position": "follow",
-                "spriteSheet": "packages/snake/test-outputs/contribution-levels-sprite.png",
-                "spriteWidth": 16,
-                "spriteHeight": 16,
-                "frameCount": 5,
-                "levelMappings": {
-                  "0": 0,
-                  "1-5": 1,
-                  "6-10": 2,
-                  "11-20": 3,
-                  "21+": 4
-                }
+                "prefix": "{img:0} ",
+                "suffix": "",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "urlFolder": ".github/assets",
+                    "framePattern": "Lx.png",
+                    "width": 64,
+                    "height": 86,
+                    "anchorY": 0.6875,
+                    "anchorX": 0.3,
+                    "textAnchorY": 1.0,
+                    "spacing": 0,
+                    "sprite": {
+                      "mode": "contribution-level",
+                      "contributionLevels": 5,
+                      "framesPerLevel": 8,
+                      "frameWidth": 48,
+                      "frameHeight": 64,
+                      "layout": "horizontal",
+                      "useSpriteSheetPerLevel": true
+                    }
+                  }
+                ]
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -220,10 +277,30 @@ jobs:
             [
               {
                 "position": "follow",
-                "spriteSheet": "packages/snake/test-outputs/contribution-levels-sprite.png",
-                "spriteWidth": 16,
-                "spriteHeight": 16,
-                "frameCount": 5
+                "prefix": "{img:0} ",
+                "suffix": " commits",
+                "fontSize": 14,
+                "images": [
+                  {
+                    "urlFolder": ".github/assets",
+                    "framePattern": "Lx.png",
+                    "width": 64,
+                    "height": 86,
+                    "anchorY": 0.6875,
+                    "anchorX": 0.3,
+                    "textAnchorY": 1.0,
+                    "spacing": 8,
+                    "sprite": {
+                      "mode": "contribution-level",
+                      "contributionLevels": 5,
+                      "framesPerLevel": 8,
+                      "frameWidth": 48,
+                      "frameHeight": 64,
+                      "layout": "horizontal",
+                      "useSpriteSheetPerLevel": true
+                    }
+                  }
+                ]
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -238,10 +315,19 @@ jobs:
           INPUT_COUNTER_DISPLAYS: |
             [
               {
-                "position": "follow",
-                "prefix": "Contributions: ",
-                "showCount": true,
+                "position": "top-left",
+                "text": "Total Contributions",
+                "fontSize": 16,
+                "fontWeight": "bold",
                 "color": "#1f883d"
+              },
+              {
+                "position": "follow",
+                "prefix": "🏆 ",
+                "suffix": " commits",
+                "showCount": true,
+                "fontSize": 14,
+                "color": "#bf3989"
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -256,11 +342,19 @@ jobs:
             [
               {
                 "position": "follow",
-                "prefix": "🎯 ",
-                "suffix": " commits",
-                "showCount": true,
-                "spacing": 20,
-                "color": "#0969da"
+                "prefix": "{img:0} ",
+                "suffix": " contributions",
+                "fontSize": 14,
+                "color": "#0969da",
+                "images": [
+                  {
+                    "url": ".github/assets/tree.png",
+                    "width": 32,
+                    "height": 32,
+                    "anchorY": 0.875,
+                    "spacing": 16
+                  }
+                ]
               }
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -302,9 +396,7 @@ jobs:
           else
             echo "❌ Hidden progress bar test failed"
             exit 1
-          fi
-
-      - name: Upload PR preview artifacts
+          fi      - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
         uses: actions/upload-artifact@v4
         with:
