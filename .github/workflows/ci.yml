@@ -89,29 +89,220 @@ jobs:
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate snake contribution (light theme with multiple counters)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
+              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"}
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate snake contribution (dark theme)
         run: bun packages/snake/dist/index.js
         env:
           INPUT_GITHUB_USER_NAME: diverger
-          INPUT_OUTPUTS: |
-            dist/snake/github-contribution-snake-dark.svg?palette=github-dark&color_snake=#58a6ff&color_dots=#0d1117,#0e4429,#006d32,#26a641,#39d353
+          INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {"position": "follow", "prefix": "🏆 ", "suffix": " contributions", "color": "#7ee787"}
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate snake contribution (classic theme)
+      - name: Generate snake with static image (tree.png test)
         run: bun packages/snake/dist/index.js
         env:
           INPUT_GITHUB_USER_NAME: diverger
-          INPUT_OUTPUTS: |
-            dist/snake/github-contribution-snake-classic.svg?palette=github&color_snake=#7ac143&color_dots=#ebedf0,#9be9a8,#40c463,#30a14e,#216e39
+          INPUT_OUTPUTS: "dist/snake/with-image.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "image": "packages/snake/test-outputs/tree.png",
+                "imageWidth": 32,
+                "imageHeight": 32
+              }
+            ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify snake outputs
+      - name: Generate snake with images in all positions
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/with-image-all-positions.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "image": "packages/snake/test-outputs/tree.png",
+                "imageWidth": 24,
+                "imageHeight": 24
+              },
+              {
+                "position": "top-right",
+                "image": "packages/snake/test-outputs/tree.png",
+                "imageWidth": 24,
+                "imageHeight": 24
+              },
+              {
+                "position": "bottom-left",
+                "image": "packages/snake/test-outputs/tree.png",
+                "imageWidth": 24,
+                "imageHeight": 24
+              },
+              {
+                "position": "bottom-right",
+                "image": "packages/snake/test-outputs/tree.png",
+                "imageWidth": 24,
+                "imageHeight": 24
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with sprite sheet animation
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/with-sprite-sheet.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "spriteSheet": "packages/snake/test-outputs/contribution-levels-sprite.png",
+                "spriteWidth": 16,
+                "spriteHeight": 16,
+                "frameCount": 5
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with multi-level sprite sheets
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DEBUG: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "spriteSheet": "packages/snake/test-outputs/contribution-levels-sprite.png",
+                "spriteWidth": 16,
+                "spriteHeight": 16,
+                "frameCount": 5,
+                "levelMappings": {
+                  "0": 0,
+                  "1-5": 1,
+                  "6-10": 2,
+                  "11-20": 3,
+                  "21+": 4
+                }
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with empty cell animation (L0 test)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/with-empty-cell-animation.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "spriteSheet": "packages/snake/test-outputs/contribution-levels-sprite.png",
+                "spriteWidth": 16,
+                "spriteHeight": 16,
+                "frameCount": 5
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with hidden progress bar
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/hidden-progress-bar.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_HIDE_PROGRESS_BAR: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "Contributions: ",
+                "showCount": true,
+                "color": "#1f883d"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with spacing control test
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/with-spacing-control.svg?palette=github-light"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "follow",
+                "prefix": "🎯 ",
+                "suffix": " commits",
+                "showCount": true,
+                "spacing": 20,
+                "color": "#0969da"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify all snake outputs exist
         run: |
           echo "Checking what files were created..."
-          ls -la dist/snake/ || echo "dist/snake/ directory not found"
-          test -f dist/snake/github-contribution-snake-dark.svg
-          test -f dist/snake/github-contribution-snake-classic.svg
-          echo "All snake outputs verified ✓"
+          ls -la dist/snake/
+          test -f dist/snake/light.svg
+          test -f dist/snake/dark.svg
+          test -f dist/snake/with-image.svg
+          test -f dist/snake/with-image-all-positions.svg
+          test -f dist/snake/with-sprite-sheet.svg
+          test -f dist/snake/with-multi-level-sprites.svg
+          test -f dist/snake/with-empty-cell-animation.svg
+          test -f dist/snake/hidden-progress-bar.svg
+          test -f dist/snake/with-spacing-control.svg
+          echo "✅ All snake output files generated successfully"
+
+          # Verify static image is embedded as data URI
+          if grep -q "data:image" dist/snake/with-image.svg; then
+            echo "✅ Static image embedded as data URI"
+          else
+            echo "❌ Static image NOT embedded"
+            exit 1
+          fi
+
+          # Verify sprite sheet
+          if grep -q "<image" dist/snake/with-sprite-sheet.svg && grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet with symbols found"
+          else
+            echo "❌ Sprite sheet elements NOT found"
+            exit 1
+          fi
+
+          # Verify hidden progress bar
+          if grep -q "opacity: 0" dist/snake/hidden-progress-bar.svg && grep -q "contrib-counter" dist/snake/hidden-progress-bar.svg; then
+            echo "✅ Hidden progress bar test passed"
+          else
+            echo "❌ Hidden progress bar test failed"
+            exit 1
+          fi
 
       - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
