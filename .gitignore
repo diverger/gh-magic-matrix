@@ -60,10 +60,6 @@ jspm_packages/
 dist/
 build/
 
-# Exception: Allow built action distributions (required for GitHub Actions)
-!dist/blinking-contrib/
-!dist/breathing-contrib/
-
 # IDE
 .vscode/
 .idea/

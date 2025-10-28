@@ -1,17 +1,23 @@
-FROM oven/bun:1.2.2-slim AS builder
+# Breathing GitHub Action Dockerfile
+FROM oven/bun:1-alpine
 
+LABEL maintainer="diverger"
+LABEL description="Breathing GitHub contribution graph animation"
+
+# Set working directory
 WORKDIR /app
 
-COPY package.json bun.lock tsconfig.json ./
-COPY packages packages
+# Copy source and configuration
+COPY packages/breathing-contrib/src ./src/
+COPY packages/breathing-contrib/package.json ./
+COPY packages/breathing-contrib/tsconfig.json ./
 
-RUN bun install
-RUN bun run build
+# Install dependencies and build
+RUN bun install && \
+    bun run build && \
+    echo "Build complete. Verifying dist/index.js..." && \
+    ls -la dist/ && \
+    test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && exit 1)
 
-FROM oven/bun:1.2.2-slim
-
-WORKDIR /action
-
-COPY --from=builder /app/dist/breathing-contrib/ ./
-
-ENTRYPOINT ["bun", "index.js"]
+# Set entry point
+ENTRYPOINT ["bun", "dist/index.js"]

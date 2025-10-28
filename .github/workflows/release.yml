@@ -78,28 +78,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build packages (blinking and breathing only)
-        run: |
-          cd packages/blinking-contrib && bun run build
-          cd ../breathing-contrib && bun run build
-
-      - name: Verify build outputs
-        run: |
-          echo "Checking built distributions..."
-          ls -la dist/
-
-          echo "Verifying breathing-contrib build..."
-          test -f dist/breathing-contrib/index.js || { echo "❌ ERROR: breathing-contrib build not found at dist/breathing-contrib/index.js"; exit 1; }
-          echo "✅ breathing-contrib build verified"
-
-          echo "Verifying blinking-contrib build..."
-          test -f dist/blinking-contrib/index.js || { echo "❌ ERROR: blinking-contrib build not found at dist/blinking-contrib/index.js"; exit 1; }
-          echo "✅ blinking-contrib build verified"
-
-          echo "Note: Snake action uses Docker-based build, no dist commit needed"
-
-          echo "✅ All build artifacts verified successfully"
-
       - name: Bump package version
         run: |
           sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' package.json
@@ -119,9 +97,6 @@ jobs:
             snake/action.yml \
             package.json \
             packages/*/package.json
-          git add -f \
-            dist/breathing-contrib/ \
-            dist/blinking-contrib/
           git commit -m "🚀 Release v$VERSION"
           git tag v$VERSION
           BRANCH="${GITHUB_REF_NAME:-main}"

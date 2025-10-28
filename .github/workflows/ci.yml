@@ -48,12 +48,10 @@ jobs:
           cd ../snake && bun run build
 
       - name: Generate blinking contribution (dark theme)
-        uses: ./blinking-contrib
-        with:
-          github_user_name: diverger
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: bun packages/blinking-contrib/dist/index.js
         env:
           INPUT_OUTPUT_PATH: "dist/blinking-contrib/github-contribution-blinking-dark.svg"
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_PALETTE: "github-dark"
           INPUT_DURATION: "4.0"
           INPUT_FADE_IN_DURATION: "0.2"
@@ -64,12 +62,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate blinking contribution (classic theme)
-        uses: ./blinking-contrib
-        with:
-          github_user_name: diverger
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: bun packages/blinking-contrib/dist/index.js
         env:
           INPUT_OUTPUT_PATH: "dist/blinking-contrib/github-contribution-blinking-classic.svg"
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_PALETTE: "github"
           INPUT_DURATION: "4.0"
           INPUT_FADE_IN_DURATION: "0.2"
@@ -80,12 +76,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate breathing contribution (dark theme)
-        uses: ./breathing-contrib
-        with:
-          github_user_name: diverger
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: bun packages/breathing-contrib/dist/index.js
         env:
           INPUT_OUTPUT_PATH: "dist/breathing-contrib/github-contribution-breathing-dark.svg"
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_PALETTE: "github-dark"
           INPUT_DURATION: "3.0"
           INPUT_FADE_IN_DURATION: "0.2"
