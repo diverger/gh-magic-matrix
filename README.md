@@ -70,7 +70,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
 
 ### 🐍 Snake Contribution Grid
 
-Generate an animated SVG showing a snake eating GitHub contributions using advanced pathfinding algorithms inspired by the popular snk project. Features sophisticated A* pathfinding and tunnel-based optimization for smooth, optimal snake movement.
+Generate an animated SVG showing a snake eating GitHub contributions inspired by the popular snk project.
 
 <picture>
   <source
