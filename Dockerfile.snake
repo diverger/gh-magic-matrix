@@ -14,7 +14,11 @@ COPY packages/snake/package.json ./
 COPY packages/snake/tsconfig.json ./
 
 # Install dependencies and build
-RUN bun install && bun run build
+RUN bun install && \
+    bun run build && \
+    echo "Build complete. Verifying dist/index.js..." && \
+    ls -la dist/ && \
+    test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && exit 1)
 
 # Set entry point
 ENTRYPOINT ["bun", "dist/index.js"]

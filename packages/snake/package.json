@@ -4,7 +4,8 @@
   "description": "Snake GitHub contribution graph animation using advanced pathfinding algorithms",
   "main": "dist/index.js",
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node && mkdir -p ../../dist/snake && cp dist/index.js ../../dist/snake/index.js",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "build:action": "bun run build && mkdir -p ../../dist/snake && cp dist/index.js ../../dist/snake/index.js",
     "start": "bun dist/index.js",
     "dev": "bun --watch src/index.ts",
     "test": "bun tests/test.ts"
