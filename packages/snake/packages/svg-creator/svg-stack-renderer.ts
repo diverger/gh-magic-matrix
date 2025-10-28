@@ -740,7 +740,7 @@ function buildCounterStates(
  * @param displayIndex - Index of this display (for unique IDs)
  * @param counterConfig - Counter configuration (for debug logging)
  * @param maxContribution - Maximum contribution value (for level calculation)
- * @returns Map of image definitions (imageIndex -> level -> frameIndex -> defId) and SVG definition elements
+ * @returns Returns a nested Map structure: Map<imageIndex, Map<level, Map<frameIndex, defId>>> where defId is the SVG element ID, and an array of SVG definition elements.
  */
 async function preloadCounterImages(
   display: CounterDisplayConfig,
