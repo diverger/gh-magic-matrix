@@ -115,6 +115,8 @@ jobs:
 
       - name: Verify snake outputs
         run: |
+          echo "Checking what files were created..."
+          ls -la dist/snake/ || echo "dist/snake/ directory not found"
           test -f dist/snake/github-contribution-snake-dark.svg
           test -f dist/snake/github-contribution-snake-classic.svg
           test -f dist/snake/github-contribution-snake.gif
