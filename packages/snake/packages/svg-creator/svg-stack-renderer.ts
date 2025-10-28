@@ -1501,7 +1501,7 @@ export const createProgressStack = async (
                         const spriteFrameDuration = 100; // ms per sprite frame
                         const absoluteTime = elem.time * duration; // Current absolute time in ms
 
-                        const imageKey = displayIndex * 1000 + imageIndex; // Unique key per image
+                        const imageKey = `${displayIndex}-${imageIndex}`; // Unique key per image
                         let state = animationStates.get(imageKey);
 
                         if (!state) {
