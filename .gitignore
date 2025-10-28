@@ -81,3 +81,4 @@ Thumbs.db
 !DOCKER_SETUP.md
 !packages/**/README.md
 test-outputs/**
+goal.md

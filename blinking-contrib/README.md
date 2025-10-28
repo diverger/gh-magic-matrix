@@ -249,7 +249,3 @@ jobs:
 
 - [Smooth transitions](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/light.svg)
 - [Fast blinking](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/blinking-contrib/dark.svg)
-
-## License
-
-This project is part of the gh-magic-matrix collection and follows the same licensing terms.

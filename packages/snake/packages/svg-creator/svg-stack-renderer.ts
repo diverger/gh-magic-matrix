@@ -178,11 +178,14 @@ export const renderAnimatedSvgStacks = (
       const animationId = `stack-${stack.position.x}-${stack.position.y}`;
       const startTime = stack.animationTime * config.animationDuration;
 
+      // Helper to clamp normalized time to [0, 1] range
+      const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
       const keyframes: AnimationKeyframe[] = [
         { t: 0, style: "opacity: 0; transform: scale(0) translateY(10px);" },
-        { t: startTime / config.animationDuration, style: "opacity: 0; transform: scale(0) translateY(10px);" },
-        { t: (startTime + 300) / config.animationDuration, style: "opacity: 0.7; transform: scale(0.8) translateY(5px);" },
-        { t: (startTime + 600) / config.animationDuration, style: "opacity: 1; transform: scale(1) translateY(0);" },
+        { t: clamp01(startTime / config.animationDuration), style: "opacity: 0; transform: scale(0) translateY(10px);" },
+        { t: clamp01((startTime + 300) / config.animationDuration), style: "opacity: 0.7; transform: scale(0.8) translateY(5px);" },
+        { t: clamp01((startTime + 600) / config.animationDuration), style: "opacity: 1; transform: scale(1) translateY(0);" },
         { t: 1, style: "opacity: 1; transform: scale(1) translateY(0);" },
       ];
 
@@ -269,6 +272,15 @@ export interface AnimatedCellData {
   /** Y coordinate (for contribution counting) */
   y?: number;
 }
+
+/**
+ * Type guard: returns true when a cell has numeric x and y coordinates.
+ * Use this to centralize coordinate validation and avoid repeating the
+ * "typeof cell.x === 'number' && typeof cell.y === 'number'" check.
+ */
+export const hasValidCoordinates = (cell: { x?: number; y?: number }): cell is { x: number; y: number } => {
+  return typeof cell.x === 'number' && typeof cell.y === 'number' && !isNaN(cell.x) && !isNaN(cell.y);
+};
 
 /**
  * Result of progress stack rendering.
@@ -379,8 +391,8 @@ export interface CounterImageConfig {
    * not the frame's edge.
    */
   anchor?: 'top-left' | 'top-center' | 'top-right'
-         | 'center-left' | 'center' | 'center-right'
-         | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  | 'center-left' | 'center' | 'center-right'
+  | 'bottom-left' | 'bottom-center' | 'bottom-right';
   /**
    * Custom anchor X position (0-1 normalized, 0 = left edge, 0.5 = center, 1 = right edge)
    * Overrides the X component of 'anchor' if set
@@ -430,12 +442,6 @@ export interface CounterImageConfig {
      */
     framesPerLevel?: number | number[];
 
-    /**
-     * LEGACY: Total number of frames (deprecated, use framesPerLevel instead)
-     * Kept for backward compatibility with existing configurations.
-     * If both frames and framesPerLevel are set, framesPerLevel takes precedence.
-     */
-    frames?: number;
     /**
      * Frame width (only for sprite sheet mode)
      * If not provided, calculated as: image width / frames (horizontal) or image width (vertical)
@@ -564,15 +570,392 @@ export interface ContributionCounterConfig {
   displays?: CounterDisplayConfig[];
   /** Map from "x,y" coordinates to contribution count */
   contributionMap?: Map<string, number>;
-  /**
-   * Progress bar growth mode
-   * - 'uniform': Each cell occupies equal width (original behavior)
-   * - 'contribution': Width allocated based on contribution value (new behavior)
-   * Default: 'contribution'
-   */
-  progressBarMode?: 'uniform' | 'contribution';
   /** Color map for gradient (level -> hex color) */
   colorDots?: Record<number, string>;
+  /**
+   * Hide the progress bar completely
+   * When true, no progress bar will be rendered (useful for minimal layouts)
+   * Default: false
+   */
+  hideProgressBar?: boolean;
+  /**
+   * Enable debug logging
+   * When true, outputs detailed progress bar and animation state information to console
+   * Default: false
+   */
+  debug?: boolean;
+}
+
+/**
+ * Counter state at a specific point in time during the animation
+ */
+interface CounterState {
+  count: number;
+  percentage: string;
+  time: number;
+  x: number;
+  currentContribution: number;
+  isRepeatedCell?: boolean; // True if snake is re-visiting a cell (should keep previous level)
+}
+
+/**
+ * Build counter states by tracking cumulative contributions over time.
+ * This generates keyframes showing count/percentage at each snake position.
+ *
+ * @param sortedCells - Cells sorted by animation time (for sprite frames, includes L0)
+ * @param counterConfig - Counter configuration with contribution map
+ * @param totalContributions - Total contribution count
+ * @param width - Progress bar width (for position calculation)
+ * @param position - Counter position mode ('top-left', 'top-right', 'follow')
+ * @param textOffsetX - Horizontal offset for follow mode
+ * @param progressBarCells - Optional: cells used for progress bar (for X position calculation)
+ * @returns Array of counter states and repeated cell count
+ */
+function buildCounterStates(
+  sortedCells: Array<{ x?: number; y?: number; t: number | null }>,
+  counterConfig: ContributionCounterConfig,
+  totalContributions: number,
+  width: number,
+  position: 'top-left' | 'top-right' | 'follow',
+  textOffsetX: number,
+  progressBarCells?: Array<{ x?: number; y?: number; t: number | null }>
+): { states: CounterState[]; repeatedCellCount: number } {
+  const states: CounterState[] = [];
+  let cumulativeCount = 0;
+  let cumulativeWidth = 0;
+
+  // Track when each cell is first eaten (by coordinates)
+  const firstEatenTime = new Map<string, number>();
+  let repeatedCellCount = 0;
+
+  // Use progressBarCells for X position if provided, otherwise use sortedCells
+  // This allows sprite animation to use full chain (with L0) while X position follows progress bar
+  const cellsForXPosition = progressBarCells || sortedCells;
+
+  // Build a map of time -> index for quick lookup in cellsForXPosition
+  const timeToProgressIndex = new Map<number, number>();
+  cellsForXPosition.forEach((cell, index) => {
+    if (cell.t !== null) {
+      timeToProgressIndex.set(cell.t, index);
+    }
+  });
+
+  // Initial state
+  states.push({
+    count: 0,
+    percentage: '0.0',
+    time: 0,
+    x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0),
+    currentContribution: 0
+  });
+
+  sortedCells.forEach((cell, index) => {
+    // Get contribution count for this cell using its coordinates
+    let count = 0; // Default to 0 for empty cells (no contribution)
+    let isRepeatedCell = false; // Track if this is a repeated cell visit
+    if (counterConfig.contributionMap && hasValidCoordinates(cell)) {
+      const key = `${cell.x},${cell.y}`;
+
+      // Check if this cell has been eaten before (snake passing through again)
+      if (firstEatenTime.has(key)) {
+        // Cell was already eaten - treat as empty (contribution=0) on subsequent passes
+        count = 0;
+        repeatedCellCount++;
+        isRepeatedCell = true; // Mark as repeated cell
+        if (counterConfig.debug) {
+          console.log(`  ⚠️ Cell ${index} at ${key}: REPEATED (2nd+ pass) → count=0, will store currentContribution=0, isRepeatedCell=true`);
+        }
+      } else {
+        // First time eating this cell - use its original contribution value
+        count = counterConfig.contributionMap.get(key) || 0;
+
+        // Record the time this cell is first eaten
+        firstEatenTime.set(key, cell.t!);
+
+        if (counterConfig.debug && index < 10) {
+          console.log(`  Cell ${index} at ${key}: first time → count=${count}`);
+        }
+      }
+
+      // Debug: log cells with no contribution data
+      if (counterConfig.debug && !counterConfig.contributionMap.has(key) && index < 20) {
+        console.log(`⚠️  Cell ${index} at (${cell.x}, ${cell.y}) has no contribution data in map`);
+      }
+    }
+
+    cumulativeCount += count;
+
+    // Calculate cumulative width using uniform mode (each cell contributes equally)
+    // CRITICAL: Use cellsForXPosition (progress bar cells) for X calculation
+    // This ensures sprite X position matches progress bar position even when sprite uses full chain
+    const progressIndex = timeToProgressIndex.get(cell.t!) ?? -1;
+
+    // Uniform mode: each cell in progress bar contributes equally to width
+    if (progressIndex >= 0) {
+      cumulativeWidth = width * ((progressIndex + 1) / cellsForXPosition.length);
+    } else {
+      // Cell not in progress bar (e.g., L0 in uniform mode) - use last known position
+      cumulativeWidth = cumulativeWidth; // Keep previous position
+    }
+
+    const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
+
+    let x: number;
+    if (position === 'top-left') {
+      x = 0;
+    } else if (position === 'top-right') {
+      // Clamp x to width to prevent text overflow when using text-anchor="end"
+      x = Math.min(cumulativeWidth, width);
+    } else {
+      // follow mode
+      x = cumulativeWidth + textOffsetX;
+    }
+
+    states.push({
+      count: cumulativeCount,
+      percentage,
+      time: cell.t!,
+      x,
+      currentContribution: count, // Store current cell's contribution for dynamic frame selection
+      isRepeatedCell // Mark repeated cells so animation logic can handle them correctly
+    });
+  });
+
+  if (counterConfig.debug) {
+    if (repeatedCellCount > 0) {
+      console.log(`🔄 Snake re-visited ${repeatedCellCount} cells (these will use L0 animation)`);
+    } else {
+      console.log(`📍 Snake visited each cell only once (L0 only used for contribution=0 cells)`);
+    }
+  }
+
+  return { states, repeatedCellCount };
+}
+
+/**
+ * Pre-load counter images and create SVG definitions.
+ * This optimizes file size by defining images once in <defs> and referencing them.
+ *
+ * @param display - Display configuration with image settings
+ * @param displayIndex - Index of this display (for unique IDs)
+ * @param counterConfig - Counter configuration (for debug logging)
+ * @param maxContribution - Maximum contribution value (for level calculation)
+ * @returns Map of image definitions (imageIndex -> level -> frameIndex -> defId) and SVG definition elements
+ */
+async function preloadCounterImages(
+  display: CounterDisplayConfig,
+  displayIndex: number,
+  counterConfig: ContributionCounterConfig,
+  maxContribution: number
+): Promise<{
+  imageDataMap: Map<number, Map<number, Map<number, string>>>;
+  imageDefsElements: string[];
+}> {
+  const imageDataMap = new Map<number, Map<number, Map<number, string>>>();
+  const imageDefsElements: string[] = [];
+
+  if (!display.images || display.images.length === 0) {
+    return { imageDataMap, imageDefsElements };
+  }
+
+  for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
+    const imageConfig = display.images[imgIdx];
+    if (!validateImageConfig(imageConfig)) continue;
+
+    const levelMap = new Map<number, Map<number, string>>();
+    imageDataMap.set(imgIdx, levelMap);
+
+    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+    const framesPerLevel = imageConfig.sprite?.framesPerLevel;
+    const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
+
+    const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
+    const frameCount = effectiveFrameCount;
+
+    if (isContributionLevel && imageConfig.urlFolder) {
+      // Contribution-level mode: Lx pattern with multiple levels
+      const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
+      const framePattern = imageConfig.framePattern || 'Lx.png';
+      const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
+      const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
+
+      for (let level = 0; level < contributionLevels; level++) {
+        const frameMap = new Map<number, string>();
+        levelMap.set(level, frameMap);
+
+        const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+
+        if (useSpriteSheetPerLevel) {
+          // Each level is a sprite sheet file: L0.png, L1.png, etc.
+          const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
+          const resolvedUrl = await resolveImageUrl(spriteUrl);
+
+          if (counterConfig.debug) {
+            console.log(`🖼️  Loading sprite sheet for level ${level}: ${spriteUrl} → ${resolvedUrl ? 'OK' : 'FAILED'}`);
+          }
+
+          if (resolvedUrl) {
+            const sprite = imageConfig.sprite!;
+            const layout = sprite.layout || 'horizontal';
+            const frameWidth = sprite.frameWidth || imageConfig.width;
+            const frameHeight = sprite.frameHeight || imageConfig.height;
+
+            // Define the full sprite sheet image for this level
+            const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}-L${level}`;
+            imageDefsElements.push(
+              createElement("image", {
+                id: spriteImageId,
+                href: resolvedUrl,
+              })
+            );
+
+            // Create a symbol for each frame in this level's sprite sheet
+            for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+              const symbolId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
+              frameMap.set(frameIdx, symbolId);
+
+              // Calculate the position of this frame in the sprite sheet
+              let viewBoxX = 0;
+              let viewBoxY = 0;
+
+              if (layout === 'horizontal') {
+                viewBoxX = frameIdx * frameWidth;
+                viewBoxY = 0;
+              } else {
+                // vertical layout
+                viewBoxX = 0;
+                viewBoxY = frameIdx * frameHeight;
+              }
+
+              // Create a symbol that crops to just this frame
+              const useElement = `<use href="#${spriteImageId}" />`;
+              const symbolElement = createElement("symbol", {
+                id: symbolId,
+                viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
+              }).replace("/>", `>${useElement}</symbol>`);
+
+              imageDefsElements.push(symbolElement);
+            }
+
+            if (counterConfig.debug) {
+              console.log(`  ✓ Created ${levelFrameCount} symbols for level ${level}`);
+            }
+          }
+        } else {
+          // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
+          for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+            const frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
+            const resolvedUrl = await resolveImageUrl(frameUrl);
+
+            if (resolvedUrl) {
+              const defId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
+              frameMap.set(frameIdx, defId);
+
+              imageDefsElements.push(
+                createElement("image", {
+                  id: defId,
+                  href: resolvedUrl,
+                  width: imageConfig.width.toString(),
+                  height: imageConfig.height.toString(),
+                })
+              );
+            }
+          }
+        }
+      }
+    } else if (isMultiFrame && imageConfig.urlFolder) {
+      // Multi-file mode: load separate frame files (no Lx pattern)
+      const framePattern = imageConfig.framePattern || 'frame-{n}.png';
+      const frameUrls = generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
+
+      const frameMap = new Map<number, string>();
+      levelMap.set(0, frameMap); // Single level (level 0)
+
+      for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+        const resolvedUrl = await resolveImageUrl(frameUrls[frameIdx]);
+        if (resolvedUrl) {
+          const defId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
+          frameMap.set(frameIdx, defId);
+
+          imageDefsElements.push(
+            createElement("image", {
+              id: defId,
+              href: resolvedUrl,
+              width: imageConfig.width.toString(),
+              height: imageConfig.height.toString(),
+            })
+          );
+        }
+      }
+    } else if (isMultiFrame && imageConfig.url && imageConfig.sprite) {
+      // Single sprite sheet file with multiple frames
+      const resolvedUrl = await resolveImageUrl(imageConfig.url);
+      if (resolvedUrl) {
+        const sprite = imageConfig.sprite;
+        const layout = sprite.layout || 'horizontal';
+        const frameWidth = sprite.frameWidth || imageConfig.width;
+        const frameHeight = sprite.frameHeight || imageConfig.height;
+
+        // Define the sprite sheet image
+        const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}`;
+        imageDefsElements.push(
+          createElement("image", {
+            id: spriteImageId,
+            href: resolvedUrl,
+          })
+        );
+
+        // Create symbols for each frame
+        const frameMap = new Map<number, string>();
+        levelMap.set(0, frameMap);
+
+        for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+          const symbolId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
+          frameMap.set(frameIdx, symbolId);
+
+          let viewBoxX = 0;
+          let viewBoxY = 0;
+
+          if (layout === 'horizontal') {
+            viewBoxX = frameIdx * frameWidth;
+            viewBoxY = 0;
+          } else {
+            viewBoxX = 0;
+            viewBoxY = frameIdx * frameHeight;
+          }
+
+          const useElement = `<use href="#${spriteImageId}" />`;
+          const symbolElement = createElement("symbol", {
+            id: symbolId,
+            viewBox: `${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}`
+          }).replace("/>", `>${useElement}</symbol>`);
+
+          imageDefsElements.push(symbolElement);
+        }
+      }
+    } else if (imageConfig.url) {
+      // Static image (single frame, single level)
+      const resolvedUrl = await resolveImageUrl(imageConfig.url);
+
+      if (resolvedUrl) {
+        const defId = `contrib-img-${displayIndex}-${imgIdx}`;
+        const frameMap = new Map<number, string>();
+        levelMap.set(0, frameMap); // Single level (level 0)
+        frameMap.set(0, defId);
+
+        imageDefsElements.push(
+          createElement("image", {
+            id: defId,
+            href: resolvedUrl,
+            width: imageConfig.width.toString(),
+            height: imageConfig.height.toString(),
+          })
+        );
+      }
+    }
+  }
+
+  return { imageDataMap, imageDefsElements };
 }
 
 /**
@@ -610,29 +993,79 @@ export const createProgressStack = async (
   y: number,
   duration: number,
   counterConfig?: ContributionCounterConfig,
+  gridWidth?: number, // Optional: grid width for filtering outside cells
+  gridHeight?: number, // Optional: grid height for filtering outside cells
+  spriteAnimationCells?: AnimatedCellData[], // Optional: separate data source for sprite animation (includes L0)
 ): Promise<ProgressStackResult> => {
+  // Default frame duration when cells.length is 0 (fallback value)
+  const DEFAULT_FRAME_DURATION_MS = 100;
+
   const svgElements: string[] = [];
-  const styles: string[] = [
-    `.u{
+  const isHidden = counterConfig?.hideProgressBar ?? false;
+
+  const baseStyle = `.u{
       transform-origin: 0 0;
-      animation: none linear ${duration}ms infinite;
-    }`,
-  ];
+      animation: none linear ${duration}ms infinite;${isHidden ? '\n      opacity: 0;' : ''}
+    }`;
 
-  // Filter and sort cells by animation time
-  const sortedCells = cells
-    .filter((cell) => cell.t !== null)
-    .sort((a, b) => a.t! - b.t!);
+  const styles: string[] = [baseStyle];
 
-  // Determine progress bar mode (default to 'contribution')
-  const progressBarMode = counterConfig?.progressBarMode ?? 'contribution';
+  if (isHidden && counterConfig?.debug) {
+    console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
+  }
 
-  console.log(`📊 Progress Bar Debug:`);
-  console.log(`  - Total cells passed: ${cells.length}`);
-  console.log(`  - Cells with animation (t !== null): ${sortedCells.length}`);
-  console.log(`  - Progress bar mode: ${progressBarMode}`);
-  console.log(`  - Counter config enabled: ${counterConfig?.enabled}`);
-  console.log(`  - Contribution map size: ${counterConfig?.contributionMap?.size || 0}`);
+  // CRITICAL: Separate data sources for progress bar and sprite animation
+  // - Progress bar: uses filtered cells (excludes L0 and outside cells)
+  // - Sprite animation: should always include L0 to show animation when passing empty cells
+  // Use spriteAnimationCells if provided, otherwise fall back to cells
+  const spriteDataSource = spriteAnimationCells ?? cells;
+
+  // Filter cells for progress bar (uniform mode: exclude L0 and outside cells)
+  const filteredCells = cells.filter((cell) => {
+    if (cell.t === null) return false;
+
+    // Filter out outside cells
+    if (gridWidth !== undefined && gridHeight !== undefined && hasValidCoordinates(cell)) {
+      if (cell.x < 0 || cell.y < 0 || cell.x >= gridWidth || cell.y >= gridHeight) {
+        return false; // Outside cell - exclude from progress bar
+      }
+    }
+
+    // Filter out L0 (empty cells, color=0)
+    // Progress bar should only scroll for colored cells (L1-L4)
+    if (cell.color === 0) {
+      return false; // Empty cell (L0) - exclude from progress bar
+    }
+
+    return true;
+  });
+
+  // Sort remaining cells by animation time
+  const sortedCells = filteredCells.sort((a, b) => a.t! - b.t!);
+
+  // CRITICAL FIX: Calculate counter-specific duration
+  // Global duration is based on full chain (including outside cells)
+  // Counter duration should be based on filtered cells only
+  // This ensures each counter frame displays for the correct duration (frameDuration)
+  const frameDuration = cells.length > 0 ? duration / cells.length : DEFAULT_FRAME_DURATION_MS;
+  const counterDuration = sortedCells.length * frameDuration;
+
+  if (counterConfig?.debug) {
+    const cellsWithTime = cells.filter(c => c.t !== null).length;
+    const outsideFiltered = cells.length - cellsWithTime;
+    const l0Filtered = cells.filter(c => c.t !== null && c.color === 0).length;
+
+    console.log(`📊 Progress Bar Debug:`);
+    console.log(`  - Total cells in chain: ${cells.length}`);
+    console.log(`  - Progress bar mode: uniform (only colored cells)`);
+    console.log(`  - Outside cells filtered: ${outsideFiltered}`);
+    console.log(`  - L0 (empty) cells filtered: ${l0Filtered}`);
+    console.log(`  - Cells shown in progress bar: ${sortedCells.length}`);
+    console.log(`  - Global duration: ${duration}ms (${cells.length} frames × ${frameDuration.toFixed(1)}ms)`);
+    console.log(`  - Counter duration: ${counterDuration}ms (${sortedCells.length} frames × ${frameDuration.toFixed(1)}ms)`);
+    console.log(`  - Counter config enabled: ${counterConfig?.enabled}`);
+    console.log(`  - Contribution map size: ${counterConfig?.contributionMap?.size || 0}`);
+  }
 
   if (sortedCells.length === 0) {
     console.warn(`⚠️  No cells to animate in progress bar!`);
@@ -649,8 +1082,9 @@ export const createProgressStack = async (
     let contribution = 1;
     if (counterConfig?.contributionMap) {
       const key = `${cell.x},${cell.y}`;
-      contribution = counterConfig.contributionMap.get(key) || 1;
+      contribution = counterConfig.contributionMap.get(key) ?? 0;
     }
+
     return {
       time: cell.t!,
       color: cell.color as Color,
@@ -667,112 +1101,51 @@ export const createProgressStack = async (
 
   const blocks: ProgressBlock[] = [];
 
-  if (progressBarMode === 'contribution') {
-    // Contribution mode: Single block for entire progress bar
-    // Use the most common color or a default
-    const colorCounts = new Map<Color, number>();
-    cellsWithContributions.forEach(cell => {
-      colorCounts.set(cell.color, (colorCounts.get(cell.color) || 0) + 1);
-    });
+  // REFACTOR (Goal 3): Group cells by color to show block colors (SNK-style)
+  // CRITICAL DIFFERENCE between modes:
+  // - Uniform mode (SNK): L0 and outside cells already filtered out above
+  // - Contribution mode: Show ALL cells including L0 (empty cells snake passes through)
+  // Note: In uniform mode, cellsWithContributions already excludes L0, so no need to filter again
+  const cellsToShow = cellsWithContributions;
 
-    // Find most frequent color
-    let mostFrequentColor: Color = 1 as Color;
-    let maxCount = 0;
-    colorCounts.forEach((count, color) => {
-      if (count > maxCount) {
-        maxCount = count;
-        mostFrequentColor = color;
-      }
-    });
+  for (const cell of cellsToShow) {
+    const latestBlock = blocks[blocks.length - 1];
 
-    // Create single block with all cells
-    blocks.push({
-      color: mostFrequentColor,
-      times: cellsWithContributions.map(c => c.time),
-      contributions: cellsWithContributions.map(c => c.contribution),
-    });
-  } else {
-    // Uniform mode: Group by color as before
-    for (const cell of cellsWithContributions) {
-      const latestBlock = blocks[blocks.length - 1];
-
-      if (latestBlock && latestBlock.color === cell.color) {
-        // Same color - add to existing block
-        latestBlock.times.push(cell.time);
-        latestBlock.contributions.push(cell.contribution);
-      } else {
-        // Different color - create new block
-        blocks.push({
-          color: cell.color,
-          times: [cell.time],
-          contributions: [cell.contribution],
-        });
-      }
+    if (latestBlock && latestBlock.color === cell.color) {
+      // Same color - add to existing block
+      latestBlock.times.push(cell.time);
+      latestBlock.contributions.push(cell.contribution);
+    } else {
+      // Different color - create new block
+      blocks.push({
+        color: cell.color,
+        times: [cell.time],
+        contributions: [cell.contribution],
+      });
     }
   }
 
-  // No longer use fixed cellWidth in contribution mode
   // In uniform mode, each cell occupies equal width
-  const cellWidth = progressBarMode === 'uniform' ? width / sortedCells.length : 0;
-
-  // Create gradient definitions for contribution mode
-  const gradientDefs: string[] = [];
+  const cellWidth = width / sortedCells.length;
 
   let blockIndex = 0;
-  let cumulativeContribution = 0;
-  let cumulativeCellCount = 0; // For uniform mode
+  let cumulativeCellCount = 0;
 
   for (const block of blocks) {
-    // Calculate block's total contribution and cell count
-    const blockTotalContribution = block.contributions.reduce((sum, c) => sum + c, 0);
     const blockCellCount = block.times.length;
 
     // Generate unique ID for this block
     const blockId = "u" + blockIndex.toString(36);
     const animationName = blockId;
-    const gradientId = `gradient-${blockId}`;
+    // const gradientId = `gradient-${blockId}`; // REMOVED: No longer using gradients
 
-    // Create gradient for contribution mode
-    if (progressBarMode === 'contribution') {
-      const stops: string[] = [];
-      let accumulatedContribution = 0;
-
-      block.contributions.forEach((contribution, i) => {
-        const prevAccumulated = accumulatedContribution;
-        accumulatedContribution += contribution;
-
-        // Calculate position as percentage of total block
-        const startOffset = ((prevAccumulated / blockTotalContribution) * 100).toFixed(2);
-        const endOffset = ((accumulatedContribution / blockTotalContribution) * 100).toFixed(2);
-
-        // Determine color based on CUMULATIVE contribution progress (0-1)
-        // Map cumulative progress to color intensity (1=coldest, 4=hottest)
-        const cumulativeProgress = accumulatedContribution / blockTotalContribution;
-        const colorLevel = Math.max(1, Math.min(4, Math.ceil(cumulativeProgress * 4))) as Color;
-
-        // Get actual hex color from config (fallback to CSS variable)
-        const hexColor = counterConfig?.colorDots?.[colorLevel] || `var(--c${colorLevel})`;
-
-        // Create gradient stops for smooth transition
-        if (i === 0) {
-          stops.push(`<stop offset="${startOffset}%" stop-color="${hexColor}"/>`);
-        }
-        stops.push(`<stop offset="${endOffset}%" stop-color="${hexColor}"/>`);
-      });
-
-      // Create linearGradient definition
-      gradientDefs.push(
-        `<linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
-          ${stops.join('\n          ')}
-        </linearGradient>`,
-      );
-    }
+    // REFACTOR (Goal 3): Use solid block color instead of gradients
+    // Each block uses its base color (var(--cX))
+    // Note: Progress bar only shows cells eaten by snake, so color is always 1-4 (never empty/0)
 
     // ALL blocks start at x=0 and have full width
     // They will be clipped/scaled to show only their portion
-    const fillAttr = progressBarMode === 'contribution'
-      ? `url(#${gradientId})`
-      : `var(--c${block.color})`;
+    const fillAttr = `var(--c${block.color})`;  // Always use CSS variable, no gradients
 
     svgElements.push(
       createElement("rect", {
@@ -785,52 +1158,37 @@ export const createProgressStack = async (
       }),
     );
 
-    // Create animation keyframes based on progress bar mode
+    // Create animation keyframes for uniform mode
     // Each block is clipped to show only its range: [startX, endX]
-    let blockStartX: number, blockEndX: number;
-
-    if (progressBarMode === 'contribution') {
-      // Contribution mode: allocate space based on contribution value
-      blockStartX = cumulativeContribution / totalContributions;
-      blockEndX = (cumulativeContribution + blockTotalContribution) / totalContributions;
-    } else {
-      // Uniform mode: allocate equal space per cell
-      blockStartX = cumulativeCellCount / sortedCells.length;
-      blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
-    }
+    // Uniform mode: allocate equal space per cell
+    const blockStartX = cumulativeCellCount / sortedCells.length;
+    const blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
 
     const keyframes: AnimationKeyframe[] = [];
-    let blockCumulativeContribution = 0;
-    let blockCumulativeCellCount = 0; // For uniform mode
+    let blockCumulativeCellCount = 0;
+
+    // CRITICAL FIX: Add initial state - block starts completely hidden
+    // This prevents the progress bar from being visible before animation starts
+    const leftClip = (blockStartX * 100).toFixed(1);
+    keyframes.push({
+      t: 0,
+      style: `clip-path:inset(0 100% 0 ${leftClip}%)`,  // 100% from right = completely hidden
+    });
 
     block.times.forEach((t, i) => {
-      const prevContribution = blockCumulativeContribution;
-      blockCumulativeContribution += block.contributions[i];
-
       const prevCellCount = blockCumulativeCellCount;
       blockCumulativeCellCount += 1;
 
       const t1 = Math.max(0, t - 0.0001);
       const t2 = Math.min(1, t + 0.0001);
 
-      // Calculate current right edge of the visible progress based on mode
-      let currentRightEdge: number, prevRightEdge: number;
+      // Calculate current right edge of the visible progress (uniform mode)
+      // Uniform mode: position based on cell count
+      const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
+      const currentRightEdge = currentTotalCells / sortedCells.length;
 
-      if (progressBarMode === 'contribution') {
-        // Contribution mode: position based on accumulated contribution
-        const currentTotalContribution = cumulativeContribution + blockCumulativeContribution;
-        currentRightEdge = currentTotalContribution / totalContributions;
-
-        const prevTotalContribution = cumulativeContribution + prevContribution;
-        prevRightEdge = prevTotalContribution / totalContributions;
-      } else {
-        // Uniform mode: position based on cell count
-        const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
-        currentRightEdge = currentTotalCells / sortedCells.length;
-
-        const prevTotalCells = cumulativeCellCount + prevCellCount;
-        prevRightEdge = prevTotalCells / sortedCells.length;
-      }
+      const prevTotalCells = cumulativeCellCount + prevCellCount;
+      const prevRightEdge = prevTotalCells / sortedCells.length;
 
       // Clip path: left edge is where this block starts, right edge grows with progress
       // Format: inset(top right bottom left)
@@ -838,39 +1196,50 @@ export const createProgressStack = async (
       // left = startX * 100% (how much to cut from left)
       const prevRight = ((1 - Math.min(prevRightEdge, blockEndX)) * 100).toFixed(1);
       const currRight = ((1 - Math.min(currentRightEdge, blockEndX)) * 100).toFixed(1);
-      const left = (blockStartX * 100).toFixed(1);
 
       keyframes.push(
-        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${left}%)` },
-        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${left}%)` },
+        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${leftClip}%)` },
+        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${leftClip}%)` },
       );
     });
 
     // Add final keyframe - this block is fully visible within its range
     const finalRight = ((1 - blockEndX) * 100).toFixed(1);
-    const left = (blockStartX * 100).toFixed(1);
     keyframes.push({
       t: 1,
-      style: `clip-path:inset(0 ${finalRight}% 0 ${left}%)`,
+      style: `clip-path:inset(0 ${finalRight}% 0 ${leftClip}%)`,
     });
 
     // Generate CSS animation and styles
     // CRITICAL: transform-origin must be 0 for all blocks to grow from left
-    const cssStyle = progressBarMode === 'contribution'
-      ? `.u.${blockId} { animation-name: ${animationName}; }`  // fill already set on element
-      : `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
+    // In uniform mode, set fill color on each block
+    const cssStyle = `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
 
     styles.push(
       createKeyframeAnimation(animationName, keyframes),
       cssStyle,
     );
 
-    cumulativeContribution += blockTotalContribution;
     cumulativeCellCount += blockCellCount;
     blockIndex++;
   }
 
-  // Add contribution counter if enabled
+  // ============================================================================
+  // CONTRIBUTION COUNTER RENDERING
+  // ============================================================================
+  // This section handles the rendering of contribution counters (text + images)
+  // that animate during the snake's movement.
+  //
+  // Main flow:
+  // 1. Calculate total contributions
+  // 2. For each display configuration:
+  //    a. Set up text styling and positioning
+  //    b. Build counter states (count/percentage at each time)
+  //    c. Pre-load and define image assets
+  //    d. Render text elements with image placeholders
+  //    e. Create opacity animations for each frame
+  // ============================================================================
+
   if (counterConfig?.enabled && counterConfig.displays) {
     // Calculate total contributions from map or fall back to cell count
     const totalContributions = counterConfig.contributionMap
@@ -885,8 +1254,8 @@ export const createProgressStack = async (
       // Use monospace font for accurate width calculation when using image placeholders
       // This ensures precise alignment between text and images
       const hasImagePlaceholders = display.prefix?.includes('{img:') ||
-                                    display.suffix?.includes('{img:') ||
-                                    display.text?.includes('{img:');
+        display.suffix?.includes('{img:') ||
+        display.text?.includes('{img:');
       const fontFamily = hasImagePlaceholders
         ? (display.fontFamily || "'Courier New', 'Consolas', monospace")
         : (display.fontFamily || 'Arial, sans-serif');
@@ -937,288 +1306,70 @@ export const createProgressStack = async (
           }).replace("/>", `>${display.text}</text>`)
         );
       } else {
-        // Dynamic counter mode - show animated count/percentage
+        // -----------------------------------------------------------------------
+        // DYNAMIC COUNTER MODE - Animated count/percentage
+        // -----------------------------------------------------------------------
         const prefix = display.prefix || '';
         const suffix = display.suffix || '';
         const showCount = display.showCount !== false; // Default true
         const showPercentage = display.showPercentage !== false; // Default true
 
-        // Build counter states
-        let cumulativeCount = 0;
-        let cumulativeWidth = 0;
-        const textElements: Array<{
-          count: number;
-          percentage: string;
-          time: number;
-          x: number;
-          currentContribution: number; // Contribution value of the current cell (for dynamic image frames)
-        }> = [];
+        // --- Build Counter States ---
+        // Track cumulative progress and generate keyframes for each snake position
+        // CRITICAL: Use sprite data source (includes L0) for sprite animation
+        // This is separate from progress bar data (sortedCells) which excludes L0 in uniform mode
+        const spriteCells = spriteDataSource
+          .filter(cell => cell.t !== null)
+          .sort((a, b) => a.t! - b.t!);
 
-        // Initial state
-        textElements.push({
-          count: 0,
-          percentage: '0.0',
-          time: 0,
-          x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0),
-          currentContribution: 0
-        });
+        const { states: textElements, repeatedCellCount } = buildCounterStates(
+          spriteCells,  // Use sprite data source (includes L0) for frame generation
+          counterConfig,
+          totalContributions,
+          width,
+          position,
+          textOffsetX,
+          sortedCells  // Pass progress bar cells for X position calculation
+        );
 
-        sortedCells.forEach((cell, index) => {
-          // Get contribution count for this cell using its coordinates
-          let count = 1; // Default to 1 if no map or coordinates
-          if (counterConfig.contributionMap && cell.x !== undefined && cell.y !== undefined) {
-            const key = `${cell.x},${cell.y}`;
-            count = counterConfig.contributionMap.get(key) || 1;
-          }
+        // Track level distribution for debugging (contribution-level mode)
+        const levelDistribution = new Map<number, number>();
 
-          cumulativeCount += count;
+        // Track animation state for smooth level transitions
+        // For each image, track: previous level, cycle start index, absolute start time, and last cycle number
+        // lastCycleNumber helps detect cycle completion even when frames are skipped
+        // prevLevel is undefined on first frame to trigger initialization
+        const animationStates = new Map<string, {
+          prevLevel: number | undefined;
+          cycleStartIndex: number;
+          cycleStartTime?: number;
+          lastCycleNumber?: number;
+        }>();
 
-          // Calculate cumulative width based on total contribution progress
-          // cumulativeWidth = total progress bar width × (eaten contributions / total contributions)
-          cumulativeWidth = width * (cumulativeCount / totalContributions);
-
-          const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
-
-          let x: number;
-          if (position === 'top-left') {
-            x = 0;
-          } else if (position === 'top-right') {
-            // Clamp x to width to prevent text overflow when using text-anchor="end"
-            x = Math.min(cumulativeWidth, width);
-          } else {
-            // follow mode
-            x = cumulativeWidth + textOffsetX;
-          }
-
-          textElements.push({
-            count: cumulativeCount,
-            percentage,
-            time: cell.t!,
-            x,
-            currentContribution: count // Store current cell's contribution for dynamic frame selection
-          });
-        });
-
-        // Pre-load image data URIs and create SVG defs
-        // IMPORTANT: Without this optimization, each animation frame would embed
-        // a full copy of the image data URI, causing SVG files to balloon to
-        // hundreds of MB (e.g., 365 frames × 50KB image = 18MB+ just for one image).
-        // By defining images in <defs> once and using <use> references, we keep file sizes manageable.
-
-        // Map structure:
-        // - For contribution-level mode: imageIndex -> level -> frameIndex -> defId
-        // - For other modes: imageIndex -> level(0) -> frameIndex -> defId
-        const imageDataMap = new Map<number, Map<number, Map<number, string>>>();
-        const imageDefsElements: string[] = [];
-
-        // Track max contribution value for level/dynamic speed calculation
+        // --- Pre-load Images and Create SVG Definitions ---
+        // Calculate max contribution for level/speed calculations
         let maxContribution = 1;
         if (counterConfig.contributionMap) {
           maxContribution = Math.max(...Array.from(counterConfig.contributionMap.values()));
-        }
-
-        if (display.images && display.images.length > 0) {
-          for (let imgIdx = 0; imgIdx < display.images.length; imgIdx++) {
-            const imageConfig = display.images[imgIdx];
-            if (!validateImageConfig(imageConfig)) continue;
-
-            const levelMap = new Map<number, Map<number, string>>();
-            imageDataMap.set(imgIdx, levelMap);
-
-            const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
-            // Support both 'frames' (legacy) and 'framesPerLevel' (unified)
-            // For non-contribution modes: use frames if specified, otherwise framesPerLevel
-            const legacyFrames = imageConfig.sprite?.frames;
-            const framesPerLevel = imageConfig.sprite?.framesPerLevel;
-            const effectiveFrameCount = isContributionLevel
-              ? (typeof framesPerLevel === 'number' ? framesPerLevel : 1)
-              : (legacyFrames || (typeof framesPerLevel === 'number' ? framesPerLevel : 1));
-
-            const isMultiFrame = imageConfig.sprite && effectiveFrameCount > 1;
-            const frameCount = effectiveFrameCount;
-            const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
-
-            if (isContributionLevel && imageConfig.urlFolder) {
-              // Contribution-level mode: Lx pattern with multiple levels
-              const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
-              const framePattern = imageConfig.framePattern || 'Lx.png';
-              const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
-              const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
-
-              for (let level = 0; level < contributionLevels; level++) {
-                const frameMap = new Map<number, string>();
-                levelMap.set(level, frameMap);
-
-                const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
-
-                if (useSpriteSheetPerLevel) {
-                  // Each level is a sprite sheet file: L0.png, L1.png, etc.
-                  const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
-                  const resolvedUrl = await resolveImageUrl(spriteUrl);
-
-                  if (resolvedUrl) {
-                    const sprite = imageConfig.sprite!;
-                    const layout = sprite.layout || 'horizontal';
-                    const frameWidth = sprite.frameWidth || imageConfig.width;
-                    const frameHeight = sprite.frameHeight || imageConfig.height;
-
-                    // Define the full sprite sheet image for this level
-                    const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}-L${level}`;
-                    imageDefsElements.push(
-                      createElement("image", {
-                        id: spriteImageId,
-                        href: resolvedUrl,
-                      })
-                    );
-
-                    // Create a symbol for each frame in this level's sprite sheet
-                    for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
-                      const symbolId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
-                      frameMap.set(frameIdx, symbolId);
-
-                      // Calculate the position of this frame in the sprite sheet
-                      let viewBoxX = 0;
-                      let viewBoxY = 0;
-
-                      if (layout === 'horizontal') {
-                        viewBoxX = frameIdx * frameWidth;
-                        viewBoxY = 0;
-                      } else {
-                        // vertical layout
-                        viewBoxX = 0;
-                        viewBoxY = frameIdx * frameHeight;
-                      }
-
-                      // Create a symbol that crops to just this frame
-                      // Symbol should maintain the frame's aspect ratio (frameWidth × frameHeight)
-                      // The actual display size will be controlled by the <use> element
-                      // Combine into single string so svg-builder filter catches entire element
-                      imageDefsElements.push(
-                        `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}">  <use href="#${spriteImageId}" /></symbol>`
-                      );
-                    }
-                  }
-                } else {
-                  // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
-                  for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
-                    const frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
-                    const resolvedUrl = await resolveImageUrl(frameUrl);
-
-                    if (resolvedUrl) {
-                      const defId = `contrib-img-${displayIndex}-${imgIdx}-L${level}-f${frameIdx}`;
-                      frameMap.set(frameIdx, defId);
-
-                      imageDefsElements.push(
-                        createElement("image", {
-                          id: defId,
-                          href: resolvedUrl,
-                          width: imageConfig.width.toString(),
-                          height: imageConfig.height.toString(),
-                        })
-                      );
-                    }
-                  }
-                }
-              }
-            } else if (isMultiFrame && imageConfig.urlFolder) {
-              // Multi-file mode: load separate frame files (no Lx pattern)
-              const framePattern = imageConfig.framePattern || 'frame-{n}.png';
-              const frameUrls = generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
-
-              const frameMap = new Map<number, string>();
-              levelMap.set(0, frameMap); // Single level (level 0)
-
-              for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-                const resolvedUrl = await resolveImageUrl(frameUrls[frameIdx]);
-                if (resolvedUrl) {
-                  const defId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
-                  frameMap.set(frameIdx, defId);
-
-                  imageDefsElements.push(
-                    createElement("image", {
-                      id: defId,
-                      href: resolvedUrl,
-                      width: imageConfig.width.toString(),
-                      height: imageConfig.height.toString(),
-                    })
-                  );
-                }
-              }
-            } else if (isMultiFrame && imageConfig.url && imageConfig.sprite) {
-              // Sprite sheet mode: single image with multiple frames
-              const resolvedUrl = await resolveImageUrl(imageConfig.url);
-              if (resolvedUrl) {
-                const sprite = imageConfig.sprite;
-                const layout = sprite.layout || 'horizontal';
-
-                const frameWidth = sprite.frameWidth || imageConfig.width;
-                const frameHeight = sprite.frameHeight || imageConfig.height;
-
-                // First, define the full sprite sheet image
-                const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}`;
-                imageDefsElements.push(
-                  createElement("image", {
-                    id: spriteImageId,
-                    href: resolvedUrl,
-                  })
-                );
-
-                const frameMap = new Map<number, string>();
-                levelMap.set(0, frameMap); // Single level (level 0)
-
-                // Create a symbol for each frame using viewBox to clip the sprite
-                for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-                  const symbolId = `contrib-img-${displayIndex}-${imgIdx}-f${frameIdx}`;
-                  frameMap.set(frameIdx, symbolId);
-
-                  // Calculate the position of this frame in the sprite sheet
-                  let viewBoxX = 0;
-                  let viewBoxY = 0;
-
-                  if (layout === 'horizontal') {
-                    viewBoxX = frameIdx * frameWidth;
-                    viewBoxY = 0;
-                  } else {
-                    // vertical layout
-                    viewBoxX = 0;
-                    viewBoxY = frameIdx * frameHeight;
-                  }
-
-                  // Create a symbol that crops to just this frame
-                  // Combine into single string so svg-builder filter catches entire element
-                  imageDefsElements.push(
-                    `<symbol id="${symbolId}" viewBox="${viewBoxX} ${viewBoxY} ${frameWidth} ${frameHeight}" width="${imageConfig.width}" height="${imageConfig.height}">  <use href="#${spriteImageId}" /></symbol>`
-                  );
-                }
-              }
-            } else if (imageConfig.url) {
-              // Single static image
-              const resolvedUrl = await resolveImageUrl(imageConfig.url);
-              if (resolvedUrl) {
-                const defId = `contrib-img-${displayIndex}-${imgIdx}-f0`;
-
-                const frameMap = new Map<number, string>();
-                levelMap.set(0, frameMap); // Single level (level 0)
-                frameMap.set(0, defId);
-
-                imageDefsElements.push(
-                  createElement("image", {
-                    id: defId,
-                    href: resolvedUrl,
-                    width: imageConfig.width.toString(),
-                    height: imageConfig.height.toString(),
-                  })
-                );
-              }
-            }
+          if (counterConfig.debug) {
+            console.log(`🎨 Contribution levels: max=${maxContribution}, map size=${counterConfig.contributionMap.size}`);
           }
         }
+
+        // Pre-load all images and create SVG defs
+        const { imageDataMap, imageDefsElements } = await preloadCounterImages(
+          display,
+          displayIndex,
+          counterConfig,
+          maxContribution
+        );
 
         // Add image defs to svgElements (without <defs> wrapper - svg-builder will handle that)
         if (imageDefsElements.length > 0) {
           svgElements.push(...imageDefsElements);
         }
 
+        // --- Render Counter Frames ---
         // Create text elements with position and opacity animations
         for (let index = 0; index < textElements.length; index++) {
           const elem = textElements[index];
@@ -1317,28 +1468,200 @@ export const createProgressStack = async (
                     let frameIndex = 0;
 
                     const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
-                    // Use unified framesPerLevel, fallback to legacy frames
-                    const legacyFrames = imageConfig.sprite?.frames;
                     const framesPerLevelValue = imageConfig.sprite?.framesPerLevel;
-                    const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+                    const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
                     const isMultiFrame = imageConfig.sprite && totalFrames > 1;
                     const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
 
                     if (isContributionLevel) {
                       // Contribution-level mode: select level based on contribution value
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
-                      level = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
+
+                      // Calculate current level from contribution (includes repeated cells with contribution=0 → L0)
+                      const currentLevel = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
+
+                      // DEBUG: Check Frame 100-110 to see why Frame 102 gets L0
+                      if (counterConfig.debug && index >= 100 && index <= 110) {
+                        console.log(`🔍 Frame ${index}: elem.currentContribution=${elem.currentContribution}, maxContribution=${maxContribution}, calculated currentLevel=L${currentLevel}`);
+                      }
+
+                      // Track level distribution
+                      levelDistribution.set(currentLevel, (levelDistribution.get(currentLevel) || 0) + 1);
+
+                      // Debug: log level distribution for first few frames and when contribution=0
+                      if (counterConfig.debug && (index < 10 || (elem.currentContribution === 0 && index < 100))) {
+                        console.log(`📊 Frame ${index}: contribution=${elem.currentContribution}, max=${maxContribution}, currentLevel=L${currentLevel}, time=${elem.time}`);
+                        if (elem.currentContribution === 0) {
+                          console.log(`   → L0 cell at frame ${index} (${index < 10 ? 'early' : 'later'} in animation)`);
+                        }
+                      }
 
                       // For animated levels, cycle through frames
                       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
-                      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+                      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[currentLevel] : framesPerLevel;
+
+                      if (counterConfig.debug && elem.currentContribution === 0 && index < 50) {
+                        console.log(`  🔍 Frame ${index}: L0 cell detected - levelFrameCount=${levelFrameCount}, framesPerLevel=${JSON.stringify(framesPerLevel)}`);
+                      }
 
                       if (levelFrameCount > 1) {
-                        frameIndex = index % levelFrameCount;
+                        // Time-based animation using actual animation time
+                        // CRITICAL: elem.time is normalized (0-1), duration is total animation time
+                        // Sprite frame duration is fixed at 100ms per frame
+                        const spriteFrameDuration = 100; // ms per sprite frame
+                        const absoluteTime = elem.time * duration; // Current absolute time in ms
+
+                        const imageKey = `${displayIndex}-${imageIndex}`; // Unique key per image
+                        let state = animationStates.get(imageKey);
+
+                        if (!state) {
+                          // Initialize state: start animation cycle at current position
+                          // Store the absolute time when animation started
+                          // prevLevel left undefined to trigger first frame initialization
+                          state = {
+                            prevLevel: undefined,  // Will be set during first frame initialization
+                            cycleStartIndex: index,
+                            cycleStartTime: absoluteTime,
+                            lastCycleNumber: -1  // -1 allows first frame to switch immediately
+                          };
+                          animationStates.set(imageKey, state);
+
+                          if (counterConfig.debug && index < 20) {
+                            console.log(`  🆕 Frame ${index}: Init state for image ${imageKey}, currentLevel=L${currentLevel}, time=${absoluteTime.toFixed(0)}ms`);
+                          }
+                        }
+
+                        // Get the frame count for the PREVIOUS level (currently playing)
+                        // Use currentLevel as fallback if prevLevel is undefined (first frame)
+                        const prevLevelFrameCount = Array.isArray(framesPerLevel)
+                          ? framesPerLevel[state.prevLevel ?? currentLevel]
+                          : framesPerLevel;
+
+                        // Defensive: ensure prevLevelFrameCount is a positive finite number
+                        const safePrevLevelFrameCount = Number.isFinite(prevLevelFrameCount) && prevLevelFrameCount > 0
+                          ? prevLevelFrameCount
+                          : 1;
+
+                        if (safePrevLevelFrameCount !== prevLevelFrameCount && counterConfig?.debug) {
+                          console.warn(`⚠️ Frame ${index}: invalid prevLevelFrameCount=${prevLevelFrameCount} for prevLevel=${state.prevLevel}, falling back to ${safePrevLevelFrameCount}`);
+                        }
+
+                        // Calculate elapsed SPRITE frames based on actual time difference
+                        // This ensures each sprite frame plays for exactly 100ms regardless of counter frame intervals
+                        // Round to avoid floating point precision issues (e.g., 99.9999 vs 100)
+                        let elapsedTime = Math.round(absoluteTime - (state.cycleStartTime || 0));
+                        let elapsedFrames = Math.floor(elapsedTime / spriteFrameDuration);
+
+                        // Check if current animation cycle is complete by detecting cycle number change
+                        // This handles frame skipping: if we jump from frame 7 to frame 9, we still detect completion
+                        const currentCycleNumber = Math.floor(elapsedFrames / safePrevLevelFrameCount);
+                        const lastCycleNumber = state.lastCycleNumber ?? -1; // Use -1 as default for first frame
+                        const isCycleComplete = currentCycleNumber > lastCycleNumber;
+
+                        if (counterConfig.debug && (index < 15 || (index >= 60 && index <= 62))) {
+                          console.log(`  Frame ${index}: time=${elem.time.toFixed(6)}, absTime=${absoluteTime.toFixed(2)}ms, cycleStart=${(state.cycleStartTime || 0).toFixed(2)}ms`);
+                          console.log(`    elapsedTime=${elapsedTime.toFixed(2)}ms, elapsedFrames=${elapsedFrames}, cycleNum=${currentCycleNumber}, lastCycleNum=${lastCycleNumber}, isCycleComplete=${isCycleComplete}`);
+                          console.log(`    → currentLevel=L${currentLevel}, prevLevel=L${state.prevLevel}, contribution=${elem.currentContribution}`);
+                        }
+
+                        // Level selection logic:
+                        // ALL level transitions (L0↔L1↔L2↔L3↔L4): wait for cycle complete
+                        // No special cases - smooth animation for all level changes
+
+                        // DEBUG: Log state before switching logic
+                        if (counterConfig.debug && ((index >= 46 && index <= 52) || (index >= 127 && index <= 132))) {
+                          console.log(`  🔍 Frame ${index} PRE-SWITCH: currentLevel=${currentLevel}, state.prevLevel=${state.prevLevel}, isCycleComplete=${isCycleComplete}, absoluteTime=${absoluteTime.toFixed(2)}ms, cycleStartTime=${state.cycleStartTime?.toFixed(2)}ms`);
+                        }
+
+                        // Initialize state for first frame
+                        const isFirstFrame = state.prevLevel === undefined;
+
+                        if (isFirstFrame) {
+                          // First frame - initialize with current level
+                          // Start at cycle 0, animation will play through all 8 frames before switching
+                          state.prevLevel = currentLevel;
+                          state.cycleStartIndex = index;
+                          state.cycleStartTime = absoluteTime;
+                          state.lastCycleNumber = 0;  // Start at cycle 0, wait for full cycle before switching
+                          level = currentLevel;
+                          elapsedTime = 0;
+                          elapsedFrames = 0;
+
+                          if (counterConfig.debug && index < 20) {
+                            console.log(`  🎬 Frame ${index}: First frame initialization, level=L${level}, cycleStartTime=${absoluteTime.toFixed(2)}ms, lastCycleNum=0 (will play full cycle)`);
+                          }
+                          // Don't check isCycleComplete on first frame - just initialize and continue
+                        } else if (isCycleComplete) {
+                          // Cycle just completed - sample new level for next cycle
+                          const oldLevel = state.prevLevel;
+                          level = currentLevel;
+                          state.prevLevel = currentLevel;
+
+                          // CRITICAL: Only reset cycleStartTime on LEVEL CHANGE
+                          // Same level should continue animation without restart!
+                          if (oldLevel !== currentLevel) {
+                            // Level changed - reset cycle start time and index
+                            state.cycleStartIndex = index;
+                            state.cycleStartTime = absoluteTime;
+                            state.lastCycleNumber = 0; // Reset to 0 for new level's first cycle
+
+                            // CRITICAL FIX: Reset elapsedFrames for new level
+                            // This ensures animation starts from f0 when switching levels
+                            elapsedTime = 0;
+                            elapsedFrames = 0;
+                          } else {
+                            // Same level - just update cycle number, keep cycleStartTime!
+                            state.lastCycleNumber = currentCycleNumber;
+                          }
+
+                          if (counterConfig.debug && ((index < 20 || oldLevel === 0 || currentLevel === 0 || oldLevel !== currentLevel) || (index >= 127 && index <= 132))) {
+                            console.log(`  ⚡ Frame ${index}: Cycle complete (cycle ${currentCycleNumber}), ${oldLevel === currentLevel ? 'continuing' : 'switching from'} L${oldLevel} ${oldLevel === currentLevel ? '' : `to L${level}`} (contribution=${elem.currentContribution}, elapsedFrames=${elapsedFrames})`);
+                            if (oldLevel !== currentLevel) {
+                              console.log(`     → Level changed! cycleStartTime=${absoluteTime.toFixed(0)}ms, elapsedFrames RESET to 0`);
+                            } else {
+                              console.log(`     → Same level continuing! cycleStartTime kept at ${state.cycleStartTime?.toFixed(0)}ms`);
+                            }
+                          }
+                        } else {
+                          // Mid-cycle - use previous level (don't interrupt animation)
+                          // Use currentLevel as fallback if prevLevel is undefined (shouldn't happen in mid-cycle)
+                          level = state.prevLevel ?? currentLevel;
+
+                          if (counterConfig.debug && (((currentLevel === 0 || state.prevLevel === 0) && index < 50) || (index >= 127 && index <= 132))) {
+                            console.log(`  🎯 Frame ${index}: Mid-cycle, using prevLevel=L${level} (currentLevel=L${currentLevel}, elapsedFrames=${elapsedFrames}/${safePrevLevelFrameCount})`);
+                          }
+                        }
+
+                        // Calculate current frame within the animation cycle
+                        // Use elapsed sprite frames (based on actual time) to determine frame index
+                        const selectedLevelFrameCount = Array.isArray(framesPerLevel)
+                          ? framesPerLevel[level]
+                          : framesPerLevel;
+
+                        // Defensive check: ensure selectedLevelFrameCount is a valid positive integer
+                        if (!Number.isFinite(selectedLevelFrameCount) || selectedLevelFrameCount <= 0) {
+                          // Invalid frame count - default to frame 0 and warn
+                          frameIndex = 0;
+                          if (counterConfig.debug) {
+                            console.warn(`⚠️ Frame ${index}: Invalid selectedLevelFrameCount=${selectedLevelFrameCount} for level=${level}, defaulting to frameIndex=0`);
+                          }
+                        } else {
+                          // Simply use elapsed time to determine frame
+                          // ceil ensures consecutive frames always advance (even if < 100ms apart)
+                          frameIndex = elapsedFrames % selectedLevelFrameCount;
+                        }
+
+                        if (counterConfig.debug && (elapsedFrames === 0 || (currentLevel === 0 && index < 50))) {
+                          console.log(`    ✅ Frame ${index}: level=L${level}, elapsedFrames=${elapsedFrames}, frameIndex=${frameIndex}, contribution=${elem.currentContribution}`);
+                        }
+                      } else {
+                        // Static image (1 frame) - use current level directly
+                        level = currentLevel;
+                        frameIndex = 0; // Static image always uses frame 0
                       }
-                    } else if (isDynamicSpeed && elem.currentContribution > 0) {
+                    } else if (isDynamicSpeed) {
                       // Dynamic speed mode: animation speed based on contribution level
-                      // Level 0: speed = 0 (no animation)
+                      // Level 0: speed = 1 (normal animation, same as L1)
                       // Level 1: speed = 1 (normal, 8 steps for 8 frames)
                       // Level 2: speed = 2 (2x, 4 steps for 8 frames)
                       // Level 3: speed = 4 (4x, 2 steps for 8 frames)
@@ -1346,12 +1669,9 @@ export const createProgressStack = async (
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
                       const currentLevel = getContributionLevel(elem.currentContribution, maxContribution, contributionLevels);
 
-                      if (currentLevel === 0) {
-                        frameIndex = 0; // No animation for level 0
-                      } else {
-                        const speedFactor = Math.pow(2, currentLevel - 1);
-                        frameIndex = Math.floor((index * speedFactor) % totalFrames);
-                      }
+                      // L0 also animates! Use speed factor based on level
+                      const speedFactor = currentLevel === 0 ? 1 : Math.pow(2, currentLevel - 1);
+                      frameIndex = Math.floor((index * speedFactor) % totalFrames);
                     } else if (isMultiFrame && imageConfig.sprite?.mode === 'sync') {
                       // Sequential sync mode: cycle through frames with fixed speed
                       const animSpeed = imageConfig.sprite?.animationSpeed ?? 1;
@@ -1360,7 +1680,20 @@ export const createProgressStack = async (
                     // For static images or loop mode, level=0, frameIndex=0
 
                     const frameMap = levelMap.get(level);
-                    const defId = frameMap?.get(frameIndex);
+                    let defId = frameMap?.get(frameIndex);
+
+                    // Fallback: if frameIndex doesn't exist for this level, try frame 0
+                    if (!defId && frameIndex !== 0) {
+                      defId = frameMap?.get(0);
+                      if (counterConfig.debug && defId) {
+                        console.warn(`⚠️ Frame ${index}: frameIndex=${frameIndex} not found for level=${level}, falling back to frame 0`);
+                      }
+                    }
+
+                    // Debug: log symbol ID for first few frames
+                    if (counterConfig.debug && index < 10 && isContributionLevel) {
+                      console.log(`  → Using symbol: ${defId} (level=${level}, frameIndex=${frameIndex})`);
+                    }
 
                     if (defId) {
                       // Calculate image position based on anchor
@@ -1380,6 +1713,9 @@ export const createProgressStack = async (
                       const imgX = currentX - (imageConfig.width * anchorX);
                       const imgY = textReferenceY - (imageConfig.height * anchorY);
 
+                      // Calculate image's actual right edge
+                      const imgRightEdge = imgX + imageConfig.width;
+
                       // Use <use> element to reference the image definition
                       // This avoids duplicating the large data URI in every frame
                       // width/height control the final display size (may differ from sprite frame size)
@@ -1394,9 +1730,15 @@ export const createProgressStack = async (
                         })
                       );
 
-                      // Add image width plus optional spacing to currentX
+                      // Update currentX to image's right edge plus spacing
+                      // This makes spacing represent the actual visual gap between image and next element
                       const spacing = imageConfig.spacing ?? 0;
-                      currentX += imageConfig.width + spacing;
+                      currentX = imgRightEdge + spacing;
+                    } else {
+                      // Symbol not found - log error to help debug missing sprite frames
+                      if (counterConfig.debug) {
+                        console.error(`❌ Frame ${index}: Symbol not found for level=${level}, frameIndex=${frameIndex}. Check if L${level} frames are properly loaded.`);
+                      }
                     }
                   }
                 }
@@ -1409,44 +1751,59 @@ export const createProgressStack = async (
             });
           }
 
-      // Create opacity animation keyframes
-      const keyframes: AnimationKeyframe[] = [];
+          // Log level distribution for contribution-level mode
+          if (counterConfig.debug && levelDistribution.size > 0) {
+            console.log(`📊 Level distribution across ${textElements.length} frames:`);
+            for (let i = 0; i < 5; i++) {
+              const count = levelDistribution.get(i) || 0;
+              const percentage = ((count / textElements.length) * 100).toFixed(1);
+              console.log(`  Level ${i}: ${count} frames (${percentage}%)`);
+            }
+          }
 
-      // Before this element's time: opacity 0
-      if (index === 0) {
-        // First element: visible from start
-        keyframes.push({ t: 0, style: 'opacity:1' });
-      } else {
-        // Start invisible
-        keyframes.push({ t: 0, style: 'opacity:0' });
-        // Stay invisible until just before this element's time
-        if (elem.time > 0) {
-          keyframes.push({ t: Math.max(0, elem.time - 0.0001), style: 'opacity:0' });
-        }
-      }
+          // Create opacity animation keyframes
+          const keyframes: AnimationKeyframe[] = [];
 
-      // At this element's time: opacity 1
-      if (elem.time > 0 || index > 0) {
-        keyframes.push({ t: Math.max(0, elem.time), style: 'opacity:1' });
-      }
+          // Before this element's time: opacity 0
+          if (index === 0) {
+            // First element: visible from start
+            keyframes.push({ t: 0, style: 'opacity:1' });
+          } else {
+            // Start invisible
+            keyframes.push({ t: 0, style: 'opacity:0' });
+            // Stay invisible until just before this element's time
+            if (elem.time > 0) {
+              keyframes.push({ t: Math.max(0, elem.time - 0.0001), style: 'opacity:0' });
+            }
+          }
 
-      // At next element's time: opacity 0 (or stay at 1 if last)
-      if (index < textElements.length - 1) {
-        const nextTime = textElements[index + 1].time;
-        if (nextTime > elem.time) {
-          keyframes.push({ t: Math.max(0, Math.min(1, nextTime - 0.0001)), style: 'opacity:1' });
-        }
-        keyframes.push({ t: Math.max(0, Math.min(1, nextTime)), style: 'opacity:0' });
-        keyframes.push({ t: 1, style: 'opacity:0' });
-      } else {
-        keyframes.push({ t: 1, style: 'opacity:1' });
-      }
+          // At this element's time: opacity 1
+          if (elem.time > 0 || index > 0) {
+            keyframes.push({ t: Math.max(0, elem.time), style: 'opacity:1' });
+          }
+
+          // At next element's time: opacity 0 (or stay at 1 if last)
+          if (index < textElements.length - 1) {
+            const nextTime = textElements[index + 1].time;
+            if (nextTime > elem.time) {
+              keyframes.push({ t: Math.max(0, Math.min(1, nextTime - 0.0001)), style: 'opacity:1' });
+            }
+            keyframes.push({ t: Math.max(0, Math.min(1, nextTime)), style: 'opacity:0' });
+            keyframes.push({ t: 1, style: 'opacity:0' });
+          } else {
+            keyframes.push({ t: 1, style: 'opacity:1' });
+          }
 
           const animName = `contrib-anim-${displayIndex}-${index}`;
+
+          // Calculate total number of discrete steps for step-based animation
+          // This prevents CSS from interpolating opacity between keyframes
+          const totalSteps = textElements.length;
+
           styles.push(
             createKeyframeAnimation(animName, keyframes),
             `.${textId} {
-              animation: ${animName} linear ${duration}ms infinite;
+              animation: ${animName} steps(${totalSteps}, jump-none) ${duration}ms infinite;
               opacity: 0;
             }`
           );
@@ -1454,12 +1811,6 @@ export const createProgressStack = async (
       } // End if (display.text) else
     } // End displays loop
   } // End if (counterConfig?.enabled)
-
-  // Prepend gradient definitions if in contribution mode
-  // Note: Don't wrap in <defs> here - svg-builder.ts will handle that
-  if (progressBarMode === 'contribution' && gradientDefs.length > 0) {
-    svgElements.unshift(...gradientDefs);
-  }
 
   return { svgElements, styles: styles.join('\n') };
 };
@@ -1506,26 +1857,38 @@ export const generateFrameUrls = (
 
 /**
  * Calculate contribution level (0-4) based on contribution value.
- * Matches GitHub's 5-level contribution intensity system.
+ * Maps contribution values to 5 sprite levels (L0-L4).
+ *
+ * Level distribution:
+ * - L0: Empty cells only (contribution = 0)
+ * - L1: Lowest non-zero contributions (1 to ~25% of max)
+ * - L2: Low contributions (~25% to ~50% of max)
+ * - L3: Medium contributions (~50% to ~75% of max)
+ * - L4: High contributions (~75% to 100% of max)
+ *
+ * Note: Snake only eats cells with contributions ≥ 0. Cells with contribution=0
+ * (empty cells) are included in the animation path but use L0 sprite.
  *
  * @param contribution - Contribution count for a cell
  * @param maxContribution - Maximum contribution value in the dataset
  * @param levels - Number of levels (default: 5)
- * @returns Level index (0 = lowest, 4 = highest by default)
+ * @returns Level index (0 = empty, 1-4 = low to high contributions)
  */
 export const getContributionLevel = (
   contribution: number,
   maxContribution: number,
   levels: number = 5
 ): number => {
+  // Edge case: no contribution → L0 (empty cell sprite)
   if (contribution === 0 || maxContribution === 0) return 0;
 
-  // Distribute contributions evenly across levels
-  // level 0: contribution = 0 (handled above)
-  // level 1-4: divided by quartiles of max
+  // Map all positive contributions (1 to max) to levels 1-4
+  // Use Math.ceil to ensure contribution=1 maps to L1 (not L0)
+  // This distributes non-zero contributions across L1-L4 evenly
   const normalizedValue = contribution / maxContribution;
   const level = Math.ceil(normalizedValue * (levels - 1));
 
+  // Clamp to valid range [0, levels-1]
   return Math.max(0, Math.min(levels - 1, level));
 };
 
@@ -1574,11 +1937,8 @@ export const validateImageConfig = (config: CounterImageConfig): boolean => {
     return false;
   }
 
-  // If urlFolder is used, sprite.frames or sprite.framesPerLevel must be set
-  if (config.urlFolder && (!config.sprite || (!config.sprite.frames && !config.sprite.framesPerLevel))) {
-    console.error('When using "urlFolder", sprite.frames or sprite.framesPerLevel must be specified');
-    return false;
-  }
+  // Note: framesPerLevel defaults to 1 (static image) if omitted, so no validation needed
+  // The code at line 747 handles: framesPerLevel = imageConfig.sprite?.framesPerLevel || 1
 
   return true;
 };
@@ -1601,10 +1961,8 @@ export const resolveImageMode = (config: CounterImageConfig): {
 
   // Multi-file mode: separate images in a folder
   if (config.urlFolder) {
-    // Use unified framesPerLevel, fallback to legacy frames
     const framesPerLevelValue = config.sprite?.framesPerLevel;
-    const legacyFrames = config.sprite?.frames;
-    const frameCount = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+    const frameCount = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
     const framePattern = config.framePattern || 'frame-{n}.png';
     const frameUrls = generateFrameUrls(config.urlFolder, framePattern, frameCount);
 
@@ -1616,8 +1974,7 @@ export const resolveImageMode = (config: CounterImageConfig): {
 
   // Sprite sheet or single image mode
   const framesPerLevelValue = config.sprite?.framesPerLevel;
-  const legacyFrames = config.sprite?.frames;
-  const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : legacyFrames) || 1;
+  const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
 
   if (config.sprite && totalFrames > 1) {
     return {
@@ -1713,6 +2070,53 @@ const parseTextWithPlaceholders = (text: string): TextSegment[] => {
 };
 
 /**
+ * Known monospace font families for accurate width estimation
+ */
+const MONOSPACE_FONTS = [
+  'courier',
+  'courier new',
+  'consolas',
+  'monospace',
+  'monaco',
+  'menlo',
+  'source code pro',
+  'lucida console',
+  'andale mono',
+  'bitstream vera sans mono',
+  'dejavu sans mono',
+  'liberation mono',
+  'inconsolata',
+  'fira code',
+  'fira mono',
+  'roboto mono',
+  'ubuntu mono',
+  'jetbrains mono',
+  'cascadia code',
+  'cascadia mono',
+  'sf mono',
+  'ibm plex mono'
+];
+
+/**
+ * Check if a font family string contains monospace fonts
+ *
+ * @param fontFamily - Font family string (may contain multiple fonts separated by commas)
+ * @returns true if any font in the family is monospace
+ */
+const isMonospaceFont = (fontFamily: string): boolean => {
+  // Normalize the font family string
+  const normalized = fontFamily.toLowerCase().trim();
+
+  // Split by comma to handle fallback fonts
+  const fonts = normalized.split(',').map(f => f.trim().replace(/['"]/g, ''));
+
+  // Check if any font matches our known monospace list
+  return fonts.some(font =>
+    MONOSPACE_FONTS.some(mono => font.includes(mono) || mono.includes(font))
+  );
+};
+
+/**
  * Estimate text width based on character count and font size
  * This is a rough estimation for layout purposes
  *
@@ -1723,9 +2127,7 @@ const parseTextWithPlaceholders = (text: string): TextSegment[] => {
  */
 const estimateTextWidth = (text: string, fontSize: number, fontFamily: string): number => {
   // Check if monospace font is being used
-  const isMonospace = fontFamily.toLowerCase().includes('courier') ||
-                      fontFamily.toLowerCase().includes('consolas') ||
-                      fontFamily.toLowerCase().includes('monospace');
+  const isMonospace = isMonospaceFont(fontFamily);
 
   // Monospace fonts: ~0.6x fontSize per character (accurate)
   // Proportional fonts: ~0.5x fontSize average (less accurate)
@@ -1783,8 +2185,24 @@ export const loadImageAsDataUri = async (filePath: string): Promise<string | nul
     const fs = await import('fs');
     const path = await import('path');
 
+    // Get workspace root (GitHub Actions sets GITHUB_WORKSPACE, fallback to cwd)
+    const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
+    const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
+
     // Resolve absolute path
     const absolutePath = path.resolve(filePath);
+
+    // Security: Validate path is within workspace (prevent path traversal attacks)
+    // This prevents malicious configurations from reading files outside the workspace
+    // (e.g., "../../etc/passwd" or "../../.env")
+    if (!absolutePath.startsWith(resolvedWorkspaceRoot + path.sep) && absolutePath !== resolvedWorkspaceRoot) {
+      console.error(`⚠️  Security: Path traversal detected!`);
+      console.error(`   Requested: ${filePath}`);
+      console.error(`   Resolved:  ${absolutePath}`);
+      console.error(`   Workspace: ${resolvedWorkspaceRoot}`);
+      console.error(`   Access denied - path is outside workspace directory`);
+      return null;
+    }
 
     // Check if file exists
     if (!fs.existsSync(absolutePath)) {

@@ -31,7 +31,6 @@ export const FONT_METRICS: Record<FontSize, FontMetrics> = {
 
 
 // Tom Thumb 3x5 Font - Compact and highly readable
-// Based on the popular open-source Tom Thumb font (MIT License)
 export const FONT_3X5: Record<string, PixelChar> = {
   // Numbers
   '0': [

@@ -1,6 +1,6 @@
 # Snake Contribution Grid
 
-Generate an animated SVG showing a snake eating GitHub contributions using advanced pathfinding algorithms inspired by the popular snk project. Features sophisticated A* pathfinding and tunnel-based optimization for smooth, optimal snake movement.
+Generate an animated SVG showing a snake eating GitHub contributions inspired by the popular snk project.
 
 <picture>
   <source
@@ -16,15 +16,6 @@ Generate an animated SVG showing a snake eating GitHub contributions using advan
     src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/dark.svg"
   />
 </picture>
-
-## Features
-
-- **Advanced Pathfinding**: Uses A* algorithm and tunnel-based pathfinding for optimal snake movement
-- **Object-Oriented Design**: Built with TypeScript classes for maintainable and extensible code
-- **Smart Route Optimization**: Two-phase clearing strategy (residual + clean color clearing)
-- **Sophisticated Algorithms**: Implements the same core algorithms as snk but with modern architecture
-- **GitHub Integration**: Fetches real contribution data via GitHub GraphQL API
-- **Customizable Animation**: Configurable snake length, colors, and animation timing
 
 ## Usage
 
@@ -255,7 +246,3 @@ This implementation differs from the original snk project by:
 
 - [Light theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/light.svg)
 - [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/dark.svg)
-
-## License
-
-This project is part of the gh-magic-matrix collection and follows the same licensing terms.

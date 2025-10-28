@@ -84,10 +84,12 @@ export interface AnimationOptions {
       };
     }>;
     contributionMap?: Map<string, number>; // Map from "x,y" coordinates to contribution count
-    /** Progress bar growth mode - 'uniform' or 'contribution' */
-    progressBarMode?: 'uniform' | 'contribution';
     /** Color map for gradient (level -> hex color) */
     colorDots?: Record<number, string>;
+    /** Hide the progress bar (opacity: 0, but still in DOM for follow mode positioning) */
+    hideProgressBar?: boolean;
+    /** Enable debug logging for counter rendering */
+    debug?: boolean;
   };
 }
 

@@ -22,7 +22,7 @@ A collection of GitHub Actions for creating various animations and visualization
   with:
     github_user_name: ${{ github.repository_owner }}
     output_path: dist/snake/dark.svg
-```yaml
+```
 
 ## Actions
 
@@ -70,7 +70,7 @@ Generate an animated SVG that displays your GitHub contributions **year by year*
 
 ### 🐍 Snake Contribution Grid
 
-Generate an animated SVG showing a snake eating GitHub contributions using advanced pathfinding algorithms inspired by the popular snk project. Features sophisticated A* pathfinding and tunnel-based optimization for smooth, optimal snake movement.
+Generate an animated SVG showing a snake eating GitHub contributions inspired by the popular snk project.
 
 <picture>
   <source
@@ -177,7 +177,3 @@ Add the generated SVGs to your profile README with theme support:
 ```html
 
 For detailed configuration options and advanced usage, see each action's documentation above.
-
-## License
-
-MIT License - see individual action folders for specific details.

@@ -157,8 +157,3 @@ const matrixTheme = {
   colorDotBorder: '#004400',
   colorSnake: '#ff0000'
 };
-```
-
-## License
-
-MIT

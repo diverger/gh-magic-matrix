@@ -99,6 +99,41 @@ export const generateContributionSnake = async (
 
   console.log(`🎯 Route computed: ${route.length} steps (including return path)`);
 
+  // Analyze route to find empty cells that the snake passes through
+  // Build a map of all contributions for quick lookup
+  const contributionLookup = new Map<string, number>();
+  for (const cell of contributionData) {
+    const key = `${cell.x},${cell.y}`;
+    contributionLookup.set(key, cell.count);
+  }
+
+  // Extract unique cells from route (snake may pass through same cell multiple times)
+  const visitedCells = new Set<string>();
+  const emptyCellsInRoute: Array<{ x: number; y: number }> = [];
+
+  for (const snakeState of route) {
+    // Get the head position from each snake state in the route
+    const head = snakeState.getHead();
+    const key = `${head.x},${head.y}`;
+
+    if (!visitedCells.has(key)) {
+      visitedCells.add(key);
+
+      const count = contributionLookup.get(key);
+      if (count === 0) {
+        emptyCellsInRoute.push({ x: head.x, y: head.y });
+      }
+    }
+  }
+
+  if (emptyCellsInRoute.length > 0) {
+    console.log(`📍 Snake passes through ${emptyCellsInRoute.length} empty cells (contribution=0)`);
+    console.log(`   Empty cells:`, emptyCellsInRoute.slice(0, 5).map(c => `(${c.x},${c.y})`).join(', '),
+                emptyCellsInRoute.length > 5 ? '...' : '');
+  } else {
+    console.log(`📍 Snake does not pass through any empty cells`);
+  }
+
   // Step 5: Generate outputs in requested formats
   console.log(`🎨 Generating ${outputs.length} output(s)...`);
 
@@ -123,18 +158,21 @@ export const generateContributionSnake = async (
               let totalCount = 0;
 
               // Store each cell's contribution count by its coordinates
+              // Include all cells, even those with 0 contributions (level 0)
               for (const contrib of contributionData) {
-                if (contrib.level > 0) {
-                  const key = `${contrib.x},${contrib.y}`;
-                  contributionMap.set(key, contrib.count);
-                  totalCount += contrib.count;
-                }
+                const key = `${contrib.x},${contrib.y}`;
+                contributionMap.set(key, contrib.count);
+                totalCount += contrib.count;
               }
 
               console.log(`📊 Built contribution map with ${contributionMap.size} cells, total: ${totalCount} contributions`);
               animationOptions.contributionCounter.contributionMap = contributionMap;
+              // Keep default 'uniform' mode - progress bar shows only colored cells (SNK style)
 
-              // Pass colorDots to counter config for gradient generation
+              // Pass colorDots to counter config with direct index mapping
+              // NOTE: drawOptions.colorDots array already includes L0 at index 0
+              // Array structure: [L0_color, L1_color, L2_color, L3_color, L4_color]
+              // This maps directly to CSS variables: --c0, --c1, --c2, --c3, --c4
               const colorDotsRecord = drawOptions.colorDots.reduce((acc, color, level) => {
                 if (color) acc[level] = color;
                 return acc;
@@ -150,6 +188,8 @@ export const generateContributionSnake = async (
               null, // Use all cells
               route,
               {
+                // Direct mapping: drawOptions.colorDots array already includes all levels
+                // Array structure: [L0, L1, L2, L3, L4] maps to CSS: [--c0, --c1, --c2, --c3, --c4]
                 colorDots: drawOptions.colorDots.reduce((acc, color, level) => {
                   if (color) acc[level] = color;
                   return acc;

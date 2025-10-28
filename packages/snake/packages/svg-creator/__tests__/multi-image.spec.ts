@@ -53,13 +53,13 @@ it('should validate config with url', () => {
   expect(validateImageConfig(config)).toBe(true);
 });
 
-it('should validate config with urlFolder and sprite.frames', () => {
+it('should validate config with urlFolder and sprite.framesPerLevel', () => {
   const config: CounterImageConfig = {
     urlFolder: 'images/character',
     width: 32,
     height: 32,
     sprite: {
-      frames: 5,
+      framesPerLevel: 5,
     },
   };
   expect(validateImageConfig(config)).toBe(true);
@@ -83,16 +83,16 @@ it('should reject config with both url and urlFolder', () => {
   expect(validateImageConfig(config)).toBe(false);
 });
 
-it('should reject urlFolder without sprite.frames', () => {
+it('should accept urlFolder without sprite.framesPerLevel (defaults to 1 for static images)', () => {
   const config: CounterImageConfig = {
     urlFolder: 'images/character',
     width: 32,
     height: 32,
   };
-  expect(validateImageConfig(config)).toBe(false);
+  expect(validateImageConfig(config)).toBe(true);
 });
 
-it('should reject urlFolder with sprite but no frames', () => {
+it('should accept urlFolder with sprite but no framesPerLevel (defaults to 1)', () => {
   const config: CounterImageConfig = {
     urlFolder: 'images/character',
     width: 32,
@@ -101,7 +101,7 @@ it('should reject urlFolder with sprite but no frames', () => {
       mode: 'sync',
     } as any,
   };
-  expect(validateImageConfig(config)).toBe(false);
+  expect(validateImageConfig(config)).toBe(true);
 });
 
 // resolveImageMode tests
@@ -123,7 +123,7 @@ it('should resolve sprite sheet mode', () => {
     width: 160,
     height: 32,
     sprite: {
-      frames: 5,
+      framesPerLevel: 5,
       layout: 'horizontal',
     },
   };
@@ -139,7 +139,7 @@ it('should resolve multi-file mode with default pattern', () => {
     width: 32,
     height: 32,
     sprite: {
-      frames: 3,
+      framesPerLevel: 3,
     },
   };
   const result = resolveImageMode(config);
@@ -159,7 +159,7 @@ it('should resolve multi-file mode with custom pattern', () => {
     width: 32,
     height: 32,
     sprite: {
-      frames: 4,
+      framesPerLevel: 4,
     },
   };
   const result = resolveImageMode(config);
@@ -187,7 +187,7 @@ it('should support loop mode with multi-file', () => {
     width: 32,
     height: 32,
     sprite: {
-      frames: 8,
+      framesPerLevel: 8,
       mode: 'loop',
       fps: 10,
     },
@@ -206,7 +206,7 @@ it('should support sync mode with multi-file', () => {
     width: 48,
     height: 48,
     sprite: {
-      frames: 6,
+      framesPerLevel: 6,
       mode: 'sync',
     },
   };
