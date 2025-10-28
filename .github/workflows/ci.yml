@@ -41,50 +41,21 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build actions (blinking and breathing only)
-        run: bun run build
-
-      - name: Create output directories
+      - name: Build actions
         run: |
-          mkdir -p dist/breathing-contrib
-          mkdir -p dist/blinking-contrib
-
-      - name: Generate breathing contribution (light theme)
-        run: bun dist/breathing-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/breathing-contrib/light.svg
-          INPUT_PERIOD: "6"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate breathing contribution (dark theme)
-        run: bun dist/breathing-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/breathing-contrib/dark.svg
-          INPUT_PERIOD: "6"
-          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate blinking contribution (light theme)
-        run: bun dist/blinking-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/blinking-contrib/light.svg
-          INPUT_FRAME_DURATION: "0.8"
-          INPUT_FADE_IN_DURATION: "0.2"
-          INPUT_FADE_OUT_DURATION: "0.4"
-          INPUT_TEXT_FRAME_DURATION: "2.0"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cd packages/blinking-contrib && bun run build
+          cd ../breathing-contrib && bun run build
+          cd ../snake && bun run build
 
       - name: Generate blinking contribution (dark theme)
-        run: bun dist/blinking-contrib/index.js
+        uses: ./blinking-contrib
+        with:
+          github_user_name: diverger
+          github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/blinking-contrib/dark.svg
-          INPUT_FRAME_DURATION: "0.8"
+          INPUT_OUTPUT_PATH: "dist/blinking-contrib/github-contribution-blinking-dark.svg"
+          INPUT_PALETTE: "github-dark"
+          INPUT_DURATION: "4.0"
           INPUT_FADE_IN_DURATION: "0.2"
           INPUT_FADE_OUT_DURATION: "0.4"
           INPUT_ENDING_TEXT: "diverger"
@@ -92,353 +63,87 @@ jobs:
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload PR preview artifacts (blinking and breathing)
+      - name: Generate blinking contribution (classic theme)
+        uses: ./blinking-contrib
+        with:
+          github_user_name: diverger
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          INPUT_OUTPUT_PATH: "dist/blinking-contrib/github-contribution-blinking-classic.svg"
+          INPUT_PALETTE: "github"
+          INPUT_DURATION: "4.0"
+          INPUT_FADE_IN_DURATION: "0.2"
+          INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_ENDING_TEXT: "diverger"
+          INPUT_TEXT_FRAME_DURATION: "2.0"
+          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate breathing contribution (dark theme)
+        uses: ./breathing-contrib
+        with:
+          github_user_name: diverger
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          INPUT_OUTPUT_PATH: "dist/breathing-contrib/github-contribution-breathing-dark.svg"
+          INPUT_PALETTE: "github-dark"
+          INPUT_DURATION: "3.0"
+          INPUT_FADE_IN_DURATION: "0.2"
+          INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_ENDING_TEXT: "diverger"
+          INPUT_TEXT_FRAME_DURATION: "2.0"
+          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake contribution (dark theme)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: |
+            dist/snake/github-contribution-snake-dark.svg?palette=github-dark&color_snake=#58a6ff&color_dots=#0d1117,#0e4429,#006d32,#26a641,#39d353
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake contribution (classic theme)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: |
+            dist/snake/github-contribution-snake-classic.svg?palette=github&color_snake=#7ac143&color_dots=#ebedf0,#9be9a8,#40c463,#30a14e,#216e39
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake contribution (gif)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: |
+            dist/snake/github-contribution-snake.gif?color_snake=#58a6ff&color_dots=#0d1117,#0e4429,#006d32,#26a641,#39d353
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify snake outputs
+        run: |
+          test -f dist/snake/github-contribution-snake-dark.svg
+          test -f dist/snake/github-contribution-snake-classic.svg
+          test -f dist/snake/github-contribution-snake.gif
+          echo "All snake outputs verified ✓"
+
+      - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
         uses: actions/upload-artifact@v4
         with:
-          name: contrib-preview-node-actions
+          name: contrib-preview
           path: |
             dist/breathing-contrib/*.svg
             dist/blinking-contrib/*.svg
+            dist/snake/*.svg
+            dist/snake/*.gif
           retention-days: 7
 
-      - name: Publish to output branch (blinking and breathing)
+      - name: Publish to output branch
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
         uses: crazy-max/ghaction-github-pages@v4.1.0
         with:
           target_branch: output
           build_dir: dist
-          commit_message: "Update output (blinking and breathing) [skip ci]"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  test-snake-action:
-    runs-on: ubuntu-latest
-    needs: lint-and-test
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Update action.yml to use local Dockerfile
-        run: |
-          sed -i "s|image: .*|image: ../Dockerfile.snake|" snake/action.yml
-          cat snake/action.yml
-
-      - name: Generate snake contribution (light theme with multiple counters)
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/light.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
-              {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
-              {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
-            ]
-
-      - name: Generate snake contribution (dark theme)
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/dark.svg?palette=github-dark"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#7ee787"}
-            ]
-
-      - name: Generate snake with static image (tree.png test)
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/with-image.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {
-                "position": "top-left",
-                "prefix": "{img:0} ",
-                "suffix": " contributions",
-                "images": [
-                  {
-                    "url": ".github/assets/tree.png",
-                    "width": 32,
-                    "height": 32,
-                    "anchorY": 0.875
-                  }
-                ]
-              }
-            ]
-
-      - name: Generate snake with images in all positions
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/with-image-all-positions.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {
-                "position": "top-left",
-                "prefix": "{img:0} ",
-                "suffix": "",
-                "fontSize": 14,
-                "images": [
-                  {
-                    "url": ".github/assets/tree.png",
-                    "width": 24,
-                    "height": 24,
-                    "anchorY": 0.8
-                  }
-                ]
-              },
-              {
-                "position": "top-right",
-                "prefix": "",
-                "suffix": " {img:0}",
-                "fontSize": 14,
-                "images": [
-                  {
-                    "url": ".github/assets/tree.png",
-                    "width": 24,
-                    "height": 24,
-                    "anchorY": 0.8
-                  }
-                ]
-              },
-              {
-                "position": "follow",
-                "prefix": "{img:0} ",
-                "suffix": " commits",
-                "fontSize": 12,
-                "images": [
-                  {
-                    "url": ".github/assets/tree.png",
-                    "width": 20,
-                    "height": 20,
-                    "anchorY": 0.75
-                  }
-                ]
-              }
-            ]
-
-      - name: Generate snake with sprite sheet animation
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/with-sprite-sheet.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {
-                "position": "follow",
-                "prefix": "{img:0} ",
-                "suffix": " commits",
-                "fontSize": 14,
-                "images": [
-                  {
-                    "url": ".github/assets/sprite.png",
-                    "width": 64,
-                    "height": 86,
-                    "anchorY": 0.6875,
-                    "anchorX": 0.3,
-                    "textAnchorY": 1.0,
-                    "spacing": 0,
-                    "sprite": {
-                      "framesPerLevel": 8,
-                      "frameWidth": 48,
-                      "frameHeight": 64,
-                      "layout": "horizontal",
-                      "mode": "sync",
-                      "dynamicSpeed": true
-                    }
-                  }
-                ]
-              }
-            ]
-
-      - name: Generate snake with multi-level sprite sheets
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_debug: "true"
-          counter_displays: |
-            [
-              {
-                "position": "follow",
-                "prefix": "{img:0} ",
-                "suffix": "",
-                "fontSize": 14,
-                "images": [
-                  {
-                    "urlFolder": ".github/assets",
-                    "framePattern": "Lx.png",
-                    "width": 64,
-                    "height": 86,
-                    "anchorY": 0.6875,
-                    "anchorX": 0.3,
-                    "textAnchorY": 1.0,
-                    "spacing": 0,
-                    "sprite": {
-                      "mode": "contribution-level",
-                      "contributionLevels": 5,
-                      "framesPerLevel": 8,
-                      "frameWidth": 48,
-                      "frameHeight": 64,
-                      "layout": "horizontal",
-                      "useSpriteSheetPerLevel": true
-                    }
-                  }
-                ]
-              }
-            ]
-
-      - name: Generate snake with empty cell animation (L0 test)
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/with-empty-cell-animation.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {
-                "position": "follow",
-                "prefix": "{img:0} ",
-                "suffix": " commits",
-                "fontSize": 14,
-                "images": [
-                  {
-                    "urlFolder": ".github/assets",
-                    "framePattern": "Lx.png",
-                    "width": 64,
-                    "height": 86,
-                    "anchorY": 0.6875,
-                    "anchorX": 0.3,
-                    "textAnchorY": 1.0,
-                    "spacing": 8,
-                    "sprite": {
-                      "mode": "contribution-level",
-                      "contributionLevels": 5,
-                      "framesPerLevel": 8,
-                      "frameWidth": 48,
-                      "frameHeight": 64,
-                      "layout": "horizontal",
-                      "useSpriteSheetPerLevel": true
-                    }
-                  }
-                ]
-              }
-            ]
-
-      - name: Generate snake with hidden progress bar
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/hidden-progress-bar.svg?palette=github-light"
-          show_contribution_counter: "true"
-          hide_progress_bar: "true"
-          counter_displays: |
-            [
-              {
-                "position": "top-left",
-                "text": "Total Contributions",
-                "fontSize": 16,
-                "fontWeight": "bold",
-                "color": "#1f883d"
-              },
-              {
-                "position": "follow",
-                "prefix": "🎯 ",
-                "suffix": " commits",
-                "showCount": true,
-                "fontSize": 14,
-                "color": "#bf3989"
-              }
-            ]
-
-      - name: Generate snake with spacing control test
-        uses: ./snake
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: "dist/snake/with-spacing-control.svg?palette=github-light"
-          show_contribution_counter: "true"
-          counter_displays: |
-            [
-              {
-                "position": "follow",
-                "prefix": "{img:0} ",
-                "suffix": " contributions",
-                "fontSize": 14,
-                "color": "#0969da",
-                "images": [
-                  {
-                    "url": ".github/assets/tree.png",
-                    "width": 32,
-                    "height": 32,
-                    "anchorY": 0.875,
-                    "spacing": 16
-                  }
-                ]
-              }
-            ]
-
-      - name: Verify all snake outputs exist
-        run: |
-          ls -la dist/snake/
-          test -f dist/snake/light.svg
-          test -f dist/snake/dark.svg
-          test -f dist/snake/with-image.svg
-          test -f dist/snake/with-image-all-positions.svg
-          test -f dist/snake/with-sprite-sheet.svg
-          test -f dist/snake/with-multi-level-sprites.svg
-          test -f dist/snake/with-empty-cell-animation.svg
-          test -f dist/snake/hidden-progress-bar.svg
-          test -f dist/snake/with-spacing-control.svg
-          echo "✅ All snake output files generated successfully"
-
-          # Verify static image is embedded as data URI
-          if grep -q "data:image" dist/snake/with-image.svg; then
-            echo "✅ Static image embedded as data URI"
-          else
-            echo "❌ Static image NOT embedded"
-            exit 1
-          fi
-
-          # Verify sprite sheet
-          if grep -q "<image" dist/snake/with-sprite-sheet.svg && grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
-            echo "✅ Sprite sheet with symbols found"
-          else
-            echo "❌ Sprite sheet elements NOT found"
-            exit 1
-          fi
-
-          # Verify hidden progress bar
-          if grep -q "opacity: 0" dist/snake/hidden-progress-bar.svg && grep -q "contrib-counter" dist/snake/hidden-progress-bar.svg; then
-            echo "✅ Hidden progress bar test passed"
-          else
-            echo "❌ Hidden progress bar test failed"
-            exit 1
-          fi
-
-      - name: Upload PR preview artifacts (snake)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
-        uses: actions/upload-artifact@v4
-        with:
-          name: contrib-preview-snake
-          path: dist/snake/*.svg
-          retention-days: 7
-
-      - name: Publish snake outputs to output branch
-        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
-        uses: crazy-max/ghaction-github-pages@v4.1.0
-        with:
-          target_branch: output
-          build_dir: dist
-          commit_message: "Update output (snake) [skip ci]"
+          commit_message: "Update output [skip ci]"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
