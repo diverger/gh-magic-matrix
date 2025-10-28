@@ -62,6 +62,8 @@ jobs:
 
 ## Configuration Options
 
+### Basic Options
+
 | Option | Description | Default |
 |--------|-------------|---------|
 | `github_user_name` | GitHub username | (required) |
@@ -75,6 +77,245 @@ jobs:
 | `snake_length` | Length of the snake in segments | `6` |
 | `animation_duration` | Total animation duration in seconds | `20` |
 | `colors` | Comma-separated color levels (empty, L1, L2, L3, L4) | GitHub default colors |
+
+### Contribution Counter Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `show_contribution_counter` | Enable contribution counter and progress bar | `false` |
+| `counter_displays` | JSON array of counter display configurations (see below) | - |
+
+## Contribution Counter Feature
+
+Display real-time contribution statistics with animated progress bars and customizable counters that update as the snake eats cells.
+
+### Quick Start
+
+**Simple counter following the progress bar:**
+
+```yaml
+- name: Generate snake with counter
+  uses: diverger/gh-magic-matrix/snake@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    output_path: snake.svg
+    show_contribution_counter: true
+    counter_displays: |
+      [
+        {
+          "position": "follow",
+          "prefix": "🎯 ",
+          "suffix": " contributions",
+          "color": "#7ee787"
+        }
+      ]
+```
+
+### Counter Display Configuration
+
+The `counter_displays` parameter accepts a JSON array. Each display can have:
+
+#### Position Options
+
+- **`top-left`**: Fixed position at the left edge above the grid
+- **`top-right`**: Right-aligned position above the grid (auto-clamped to canvas width)
+- **`follow`**: Follows the progress bar head as it moves
+
+#### Text Display Options
+
+**Static Text:**
+```json
+{
+  "position": "top-left",
+  "text": "GitHub Contributions",
+  "color": "#58a6ff",
+  "fontSize": 16,
+  "fontWeight": "bold"
+}
+```
+
+**Dynamic Counter:**
+```json
+{
+  "position": "follow",
+  "prefix": "🎯 ",
+  "suffix": " commits",
+  "showCount": true,
+  "showPercentage": true,
+  "color": "#ffa657"
+}
+```
+
+#### Image Display Options
+
+**Static Image:**
+```json
+{
+  "position": "follow",
+  "images": [{
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+    "width": 32,
+    "height": 32
+  }]
+}
+```
+
+**Sprite Sheet Animation (synced with progress):**
+```json
+{
+  "position": "follow",
+  "images": [{
+    "url": "https://example.com/sprite.png",
+    "width": 128,
+    "height": 32,
+    "sprite": {
+      "frames": 4,
+      "layout": "horizontal",
+      "mode": "sync"
+    }
+  }]
+}
+```
+
+**Multiple Image Files (GitHub workflow friendly):**
+```json
+{
+  "position": "follow",
+  "images": [{
+    "urlFolder": "images/character",
+    "framePattern": "frame-{n}.png",
+    "width": 32,
+    "height": 32,
+    "sprite": {
+      "frames": 8,
+      "mode": "loop",
+      "fps": 10
+    }
+  }]
+}
+```
+
+#### Full Configuration Reference
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `position` | string | `'top-left'` \| `'top-right'` \| `'follow'` | required |
+| `text` | string | Static text (ignores count/percentage if set) | - |
+| `prefix` | string | Text before count/percentage | - |
+| `suffix` | string | Text after count/percentage | - |
+| `showCount` | boolean | Display contribution count | `true` |
+| `showPercentage` | boolean | Display percentage | `true` |
+| `fontSize` | number | Font size in pixels | `14` |
+| `fontFamily` | string | Font family | `'Arial, sans-serif'` |
+| `fontWeight` | string \| number | `'normal'`, `'bold'`, or 100-900 | `'normal'` |
+| `fontStyle` | string | `'normal'` or `'italic'` | `'normal'` |
+| `color` | string | Text color (CSS color) | `'#666'` |
+| `images` | array | Array of image configurations | - |
+
+#### Image Configuration Fields
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `url` | string | Image URL (data URI or external) | - |
+| `urlFolder` | string | Folder path for numbered frame files | - |
+| `framePattern` | string | Filename pattern (e.g., `'frame-{n}.png'`) | `'frame-{n}.png'` |
+| `width` | number | Image width in pixels | required |
+| `height` | number | Image height in pixels | required |
+| `offsetY` | number | Vertical offset in pixels | `0` |
+| `anchor` | string | Predefined anchor point | `'bottom-center'` |
+| `anchorX` | number | Custom horizontal anchor (0-1) | - |
+| `anchorY` | number | Custom vertical anchor (0-1) | - |
+| `spacing` | number | Horizontal spacing after image in pixels | `0` |
+| `sprite` | object | Sprite animation configuration | - |
+
+#### Sprite Configuration Fields
+
+| Field | Type | Description | Required |
+|-------|------|-------------|----------|
+| `frames` | number | Number of animation frames | ✅ |
+| `frameWidth` | number | Frame width (sprite sheet only) | auto |
+| `frameHeight` | number | Frame height (sprite sheet only) | auto |
+| `layout` | string | `'horizontal'` or `'vertical'` | `'horizontal'` |
+| `mode` | string | `'sync'` (with progress) or `'loop'` (independent) | `'sync'` |
+| `fps` | number | Frames per second (loop mode) | - |
+| `duration` | number | Animation duration in ms (loop mode) | - |
+
+### Complete Examples
+
+**Example 1: Multiple Text Displays**
+
+```yaml
+show_contribution_counter: true
+counter_displays: |
+  [
+    {
+      "position": "top-left",
+      "text": "GitHub Contributions",
+      "color": "#1f883d",
+      "fontSize": 14,
+      "fontWeight": "bold"
+    },
+    {
+      "position": "top-right",
+      "prefix": "Total: ",
+      "suffix": " commits",
+      "showCount": true,
+      "showPercentage": true,
+      "color": "#bf3989",
+      "fontStyle": "italic"
+    },
+    {
+      "position": "follow",
+      "prefix": "🎯 ",
+      "suffix": " contributions",
+      "color": "#d29922"
+    }
+  ]
+```
+
+**Example 2: Image with Counter**
+
+```yaml
+show_contribution_counter: true
+counter_displays: |
+  [
+    {
+      "position": "follow",
+      "images": [{
+        "url": "data:image/png;base64,iVBORw0KG...",
+        "width": 24,
+        "height": 24,
+        "spacing": 8
+      }],
+      "prefix": "",
+      "suffix": " commits collected!",
+      "color": "#7ee787"
+    }
+  ]
+```
+
+**Example 3: Sprite Animation**
+
+```yaml
+show_contribution_counter: true
+counter_displays: |
+  [
+    {
+      "position": "follow",
+      "images": [{
+        "url": "https://example.com/character-sprite.png",
+        "width": 128,
+        "height": 32,
+        "anchor": "bottom-center",
+        "sprite": {
+          "frames": 4,
+          "layout": "horizontal",
+          "mode": "sync"
+        }
+      }]
+    }
+  ]
+```
 
 ## Outputs
 
@@ -193,26 +434,6 @@ jobs:
           build_dir: dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-## Architecture
-
-```text
-packages/snake/
-├── packages/
-│   ├── types/           # Core data structures
-│   │   ├── grid.ts      # Grid class with branded types
-│   │   ├── point.ts     # Point class with utilities
-│   │   └── snake.ts     # Snake class with movement logic
-│   └── solver/          # Pathfinding algorithms
-│       ├── OutsideGrid.ts    # Boundary detection
-│       ├── Pathfinder.ts     # A* pathfinding
-│       ├── Tunnel.ts         # Tunnel management
-│       └── SnakeSolver.ts    # Main solver class
-├── src/
-│   └── index.ts         # GitHub Action implementation
-├── action.yml           # Action definition
-└── package.json         # Dependencies
 ```
 
 ## Development
