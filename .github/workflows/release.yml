@@ -118,7 +118,8 @@ jobs:
             blinking-contrib/action.yml \
             snake/action.yml \
             package.json \
-            packages/*/package.json \
+            packages/*/package.json
+          git add -f \
             dist/breathing-contrib/ \
             dist/blinking-contrib/ \
             dist/snake/
