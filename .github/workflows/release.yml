@@ -69,9 +69,9 @@ jobs:
 
       - name: Update action.yml files with new image digests
         run: |
-          sed -i "s|image: docker://diverger/gh-magic-matrix-breathing.*|image: docker://diverger/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}|" breathing-contrib/action.yml
-          sed -i "s|image: docker://diverger/gh-magic-matrix-blinking.*|image: docker://diverger/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}|" blinking-contrib/action.yml
-          sed -i "s|image: docker://diverger/gh-magic-matrix-snake.*|image: docker://diverger/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}|" snake/action.yml
+          sed -i "s|image: 'docker://diverger/gh-magic-matrix-breathing.*'|image: 'docker://diverger/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}'|" breathing-contrib/action.yml
+          sed -i "s|image: 'docker://diverger/gh-magic-matrix-blinking.*'|image: 'docker://diverger/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}'|" blinking-contrib/action.yml
+          sed -i "s|image: 'docker://diverger/gh-magic-matrix-snake.*'|image: 'docker://diverger/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}'|" snake/action.yml
 
       - uses: oven-sh/setup-bun@v1
 
