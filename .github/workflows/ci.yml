@@ -396,7 +396,9 @@ jobs:
           else
             echo "❌ Hidden progress bar test failed"
             exit 1
-          fi      - name: Upload PR preview artifacts
+          fi
+
+      - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
         uses: actions/upload-artifact@v4
         with:
