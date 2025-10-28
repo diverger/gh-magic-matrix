@@ -89,8 +89,6 @@ Generate an animated SVG showing a snake eating GitHub contributions inspired by
 
 **[📖 Full Documentation](./snake/README.md)**
 
-> 🎯 **Live examples** are automatically generated daily and available in the [`output` branch](../../tree/output)
-
 ## Quick Reference
 
 This repository contains **three GitHub Actions** that can be used independently:
