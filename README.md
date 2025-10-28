@@ -177,26 +177,3 @@ Add the generated SVGs to your profile README with theme support:
 ```html
 
 For detailed configuration options and advanced usage, see each action's documentation above.
-
----
-
-## 🧪 CSS Animation Features Test
-
-Testing optimized CSS animation features for GitHub README compatibility:
-
-### Test 1: Basic CSS Features
-<img src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/snake-dev/github-css-features-test.svg" width="600" alt="CSS Features Test" />
-
-### Test 2: Optimized Animation (Shared Keyframes)
-<img src="https://raw.githubusercontent.com/diverger/gh-magic-matrix/snake-dev/optimized-animation-test.svg" width="600" alt="Optimized Animation Test" />
-
-**Expected Results:**
-- ✅ Grid cells should show different colors (green shades)
-- ✅ Progress bars should have different widths
-- ❓ If you see this working, `animation-delay` + `animation-play-state` + CSS variables are supported!
-
----
-
-## License
-
-MIT License - see individual action folders for specific details.
