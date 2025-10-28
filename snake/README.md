@@ -436,33 +436,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## Development
-
-To work on this action locally:
-
-```bash
-cd packages/snake
-bun install
-bun build src/index.ts --outdir dist --target node
-bun start
-```
-
-**Available Scripts:**
-- `bun run build` - Build TypeScript to JavaScript
-- `bun run start` - Run the built action
-- `bun run dev` - Watch mode for development
-- `bun run test` - Run unit tests
-
-## Comparison to Original SNK
-
-This implementation differs from the original snk project by:
-
-- **Object-Oriented Design**: Uses classes instead of functional programming
-- **TypeScript Throughout**: Full type safety with branded types
-- **Modular Architecture**: Clear separation of concerns
-- **GitHub Action Integration**: Direct integration with GitHub workflows
-- **Enhanced Error Handling**: Comprehensive error checking and validation
-
 ## Examples
 
 - [Light theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/light.svg)
