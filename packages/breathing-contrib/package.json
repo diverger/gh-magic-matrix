@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "main": "../../dist/breathing-contrib/index.js",
   "types": "../../dist/breathing-contrib/index.d.ts",
-  "license": "MIT",
   "private": true,
   "scripts": {
     "build": "ncc build src/action.ts -o ../../dist/breathing-contrib --minify && tsc --emitDeclarationOnly --declaration --outDir ../../dist/breathing-contrib",

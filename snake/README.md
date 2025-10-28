@@ -246,7 +246,3 @@ This implementation differs from the original snk project by:
 
 - [Light theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/light.svg)
 - [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/snake/dark.svg)
-
-## License
-
-This project is part of the gh-magic-matrix collection and follows the same licensing terms.

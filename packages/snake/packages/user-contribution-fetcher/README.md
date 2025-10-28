@@ -39,7 +39,3 @@ Fetches the contribution grid from a GitHub user profile.
 - `ContributionCell`: Represents a single contribution cell
 - `GitHubContributionOptions`: Configuration options
 - `GitHubContributionResult`: Type alias for the result array
-
-## License
-
-MIT

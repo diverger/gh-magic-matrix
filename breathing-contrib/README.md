@@ -138,7 +138,3 @@ Or for simple display without theme switching:
 
 - [Light theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/light.svg)
 - [Dark theme](https://raw.githubusercontent.com/diverger/gh-magic-matrix/output/breathing-contrib/dark.svg)
-
-## License
-
-This project is part of the gh-magic-matrix collection and follows the same licensing terms.
