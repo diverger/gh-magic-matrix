@@ -1,4 +1,4 @@
-name: Test Published Action
+name: Test Published Action (Manual)
 
 on:
   workflow_dispatch:
@@ -52,6 +52,35 @@ jobs:
           transition_duration: "0.8"
           color_levels: "#161b22,#0e4429,#006d32,#26a641,#39d353"
 
+      # Test snake action
+      - name: Test snake action with light theme
+        uses: diverger/gh-magic-matrix/snake@main
+        with:
+          github_user_name: ${{ inputs.test_user || github.repository_owner }}
+          output_path: dist/test/snake/light.svg
+          snake_length: "6"
+          animation_duration: "20"
+          colors: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          show_contribution_counter: "true"
+          counter_displays: |
+            [
+              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#1f883d"}
+            ]
+
+      - name: Test snake with dark theme
+        uses: diverger/gh-magic-matrix/snake@main
+        with:
+          github_user_name: ${{ inputs.test_user || github.repository_owner }}
+          output_path: dist/test/snake/dark.svg
+          snake_length: "6"
+          animation_duration: "20"
+          colors: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          show_contribution_counter: "true"
+          counter_displays: |
+            [
+              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#7ee787"}
+            ]
+
       - name: Verify all outputs exist
         run: |
           ls -R dist/test
@@ -59,6 +88,8 @@ jobs:
           test -f dist/test/breathing-contrib/dark.svg
           test -f dist/test/blinking-contrib/light.svg
           test -f dist/test/blinking-contrib/dark.svg
+          test -f dist/test/snake/light.svg
+          test -f dist/test/snake/dark.svg
           echo "✅ All outputs generated successfully"
 
       - name: Publish to test-output branch

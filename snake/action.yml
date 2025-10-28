@@ -1,0 +1,172 @@
+name: 'Snake GitHub Contribution Graph'
+description: 'Generate an animated SVG showing a snake eating GitHub contributions using advanced pathfinding algorithms'
+author: 'diverger'
+
+branding:
+  icon: 'activity'
+  color: 'green'
+
+inputs:
+  github_user_name:
+    description: 'GitHub username'
+    required: true
+  github_token:
+    description: 'GitHub token used to fetch the contribution calendar. Defaults to the action token if empty.'
+    required: false
+    default: ''
+  outputs:
+    description: |
+      List of SVG files to generate.
+      One file per line. Each output can be customized with options as query string.
+
+      Supported query string options:
+      - palette:      A preset of color, one of [github, github-dark, github-light]
+      - color_snake:  Color of the snake
+      - color_dots:   Comma separated list of dots color.
+                      The first one is 0 contribution, then it goes from the low contribution to the highest.
+                      Exactly 5 colors are expected.
+
+      Example:
+        outputs: |
+          dark.svg?palette=github-dark&color_snake=blue
+          light.svg?color_snake=#7845ab
+          ocean.svg?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
+    required: false
+    default: 'snake.svg'
+  show_contribution_counter:
+    description: 'Show contribution counter with progress bar (requires counter_displays to be set)'
+    required: false
+    default: 'false'
+  counter_displays:
+    description: |
+      JSON array of multiple counter displays. Each display can have different position, text, colors, and images.
+
+      Example with text:
+        [{
+          "position": "top-left",
+          "text": "GitHub Contributions",
+          "color": "#58a6ff",
+          "fontSize": 16
+        }, {
+          "position": "top-right",
+          "prefix": "Total: ",
+          "showCount": true,
+          "showPercentage": false,
+          "color": "#7ee787"
+        }, {
+          "position": "follow",
+          "prefix": "🎯 ",
+          "suffix": " commits",
+          "color": "#ffa657"
+        }]
+
+      Example with image:
+        [{
+          "position": "follow",
+          "image": {
+            "url": "data:image/png;base64,...",
+            "width": 32,
+            "height": 32
+          }
+        }]
+
+      Example with sprite sheet (synced with progress):
+        [{
+          "position": "follow",
+          "images": [{
+            "url": "https://example.com/sprite.png",
+            "width": 128,
+            "height": 32,
+            "anchor": "center",
+            "sprite": {
+              "frames": 4,
+              "layout": "horizontal",
+              "mode": "sync"
+            }
+          }]
+        }]
+
+      Example with sprite sheet (independent loop):
+        [{
+          "position": "follow",
+          "images": [{
+            "url": "https://example.com/sprite.png",
+            "width": 128,
+            "height": 32,
+            "anchor": "bottom-center",
+            "offsetY": -2,
+            "sprite": {
+              "frames": 4,
+              "layout": "horizontal",
+              "mode": "loop",
+              "fps": 10
+            }
+          }]
+        }]
+
+      Fields:
+      - position: 'top-left' | 'top-right' | 'follow' (required)
+        - 'top-left': Fixed at left edge
+        - 'top-right': Right-aligned, clamped to canvas width to prevent overflow
+        - 'follow': Follows progress bar head
+      - text: Fixed text to display (if set, count/percentage are ignored)
+      - prefix, suffix: Text around count/percentage
+      - showCount, showPercentage: Control what to display (default: both true)
+      - fontSize, fontFamily, color: Text styling
+      - fontWeight: 'normal', 'bold', or numeric (100-900)
+      - fontStyle: 'normal' or 'italic'
+      - images: Array of PNG images or sprite sheets
+        Three modes supported:
+
+        1. Single static image:
+          - url: Image URL (data URI or external URL)
+
+        2. Sprite sheet animation:
+          - url: Sprite sheet URL
+          - sprite: Configuration with frames, layout, etc.
+
+        3. Multiple separate image files (GitHub workflows compatible):
+          - urlFolder: Folder path containing numbered frames (e.g., 'images/character')
+          - framePattern: Filename pattern (default: 'frame-{n}.png')
+            Examples: 'frame-{n}.png', 'img_{n}.gif', 'sprite{n}.webp'
+          - sprite: Configuration with frames count and animation mode
+
+        For urlFolder mode, images should be named sequentially:
+          - frame-0.png, frame-1.png, frame-2.png, ... (default pattern)
+          - Or custom pattern like img_0.gif, img_1.gif, ...
+        These files must exist in the repository or be generated before the action runs.
+
+        Common fields for all modes:
+        - width, height: Image dimensions in pixels
+        - offsetY: Vertical offset from baseline in pixels (optional, default: 0)
+        - anchor: Predefined anchor point for alignment (optional, default: 'bottom-center')
+          - 'top-left', 'top-center', 'top-right'
+          - 'center-left', 'center', 'center-right'
+          - 'bottom-left', 'bottom-center', 'bottom-right'
+          - Useful when frame size is larger than actual icon (e.g., 32x32 frame with 24x24 icon)
+        - anchorX, anchorY: Custom anchor point (0-1 normalized, overrides anchor)
+          - anchorX: 0=left, 0.5=center, 1=right
+          - anchorY: 0=top, 0.5=center, 1=bottom
+        - spacing: Horizontal spacing after the image in pixels (optional, default: 0)
+          - Adds extra gap between image and adjacent text
+          - Example: spacing: 8 adds 8 pixels gap after the image
+        - sprite: Animation configuration (for modes 2 and 3)
+          - frames: Number of animation frames (required)
+          - frameWidth, frameHeight: Frame dimensions (sprite sheet mode only, auto-calculated if not provided)
+          - layout: 'horizontal' or 'vertical' (sprite sheet mode only, default: horizontal)
+          - mode: 'sync' (with progress bar) or 'loop' (independent, default: sync)
+          - fps: Frames per second for loop mode (e.g., 10)
+          - duration: Animation duration in ms for loop mode (alternative to fps)
+    required: false
+
+outputs:
+  svg_path:
+    description: 'Path to the generated SVG file'
+  moves_count:
+    description: 'Total number of moves in the snake path'
+  cells_eaten:
+    description: 'Number of contribution cells consumed'
+
+runs:
+  using: 'docker'
+  image: 'docker://diverger/gh-magic-matrix-snake:latest'
