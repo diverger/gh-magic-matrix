@@ -1,0 +1,217 @@
+import { Point } from "./point";
+
+export class Snake {
+  // Using Uint8Array for efficient storage like snk
+  // Stores pairs of coordinates as [x+2, y+2, x+2, y+2, ...]
+  // The +2 offset allows coordinates in range [-2, 253]
+  // WARNING: Coordinates outside this range will wraparound in Uint8Array!
+  private data: Uint8Array;
+
+  // Valid coordinate range with +2 offset to prevent wraparound
+  private static readonly MIN_COORD = -2;
+  private static readonly MAX_COORD = 253;
+
+  // Internal-only constructor
+  private static fromRaw(data: Uint8Array): Snake {
+    const s = Object.create(Snake.prototype) as Snake;
+    s.data = data;
+    return s;
+  }
+
+  constructor(points: Point[]) {
+    if (points.length === 0) {
+      throw new Error("Snake must have at least one segment");
+    }
+
+    this.data = new Uint8Array(points.length * 2);
+    for (let i = 0; i < points.length; i++) {
+      Snake.validateCoordinate(points[i].x, points[i].y);
+      this.data[i * 2] = points[i].x + 2;
+      this.data[i * 2 + 1] = points[i].y + 2;
+    }
+  }
+
+  /**
+   * Validates that coordinates are within the safe range for Uint8Array storage.
+   * @throws Error if coordinates would cause wraparound
+   */
+  private static validateCoordinate(x: number, y: number): void {
+    if (x < Snake.MIN_COORD || x > Snake.MAX_COORD) {
+      throw new Error(`Snake x-coordinate ${x} out of valid range [${Snake.MIN_COORD}, ${Snake.MAX_COORD}]`);
+    }
+    if (y < Snake.MIN_COORD || y > Snake.MAX_COORD) {
+      throw new Error(`Snake y-coordinate ${y} out of valid range [${Snake.MIN_COORD}, ${Snake.MAX_COORD}]`);
+    }
+  }
+
+  /**
+   * Create a snake from a single point (head only)
+   */
+  static fromPoint(point: Point): Snake {
+    return new Snake([point]);
+  }
+
+  /**
+   * Create a snake with multiple segments at the same position
+   * @deprecated Use createHorizontal instead for a valid snake pose
+   */
+  static fromSinglePoint(point: Point, length: number): Snake {
+    return new Snake(Array.from({ length }, () => point));
+  }
+
+  /**
+   * Create a horizontal snake outside the grid (like SNK's snake4)
+   * The snake starts at y=-1 with segments from x=0 to x=length-1
+   * Example for length=4: [{x:0,y:-1}, {x:1,y:-1}, {x:2,y:-1}, {x:3,y:-1}]
+   */
+  static createHorizontal(length: number): Snake {
+    return new Snake(Array.from({ length }, (_, i) => new Point(i, -1)));
+  }
+
+  /**
+   * Get the head position of the snake
+   */
+  getHead(): Point {
+    return new Point(this.data[0] - 2, this.data[1] - 2);
+  }
+
+  /**
+   * Get the head X coordinate
+   */
+  getHeadX(): number {
+    return this.data[0] - 2;
+  }
+
+  /**
+   * Get the head Y coordinate
+   */
+  getHeadY(): number {
+    return this.data[1] - 2;
+  }
+
+  /**
+   * Get the length of the snake
+   */
+  getLength(): number {
+    return this.data.length / 2;
+  }
+
+  /**
+   * Create a copy of this snake
+   */
+  clone(): Snake {
+    return Snake.fromRaw(new Uint8Array(this.data));
+  }
+
+  /**
+   * Check if two snakes are equal
+   */
+  equals(other: Snake): boolean {
+    if (this.data.length !== other.data.length) return false;
+    for (let i = 0; i < this.data.length; i++) {
+      if (this.data[i] !== other.data[i]) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Returns a new Snake instance representing the next state after moving the head by (dx, dy).
+   *
+   * Every segment of the snake is shifted back by one position, and the head is moved by (dx, dy).
+   *
+   * @param dx - The change in x-coordinate for the head movement.
+   * @param dy - The change in y-coordinate for the head movement.
+   * @returns A new Snake object with the head moved and the body shifted accordingly.
+   */
+  nextSnake(dx: number, dy: number): Snake {
+    const copy = new Uint8Array(this.data.length);
+    // Shift all segments back by one position
+    for (let i = 2; i < this.data.length; i++) {
+      copy[i] = this.data[i - 2];
+    }
+    // Set new head position with bounds checking
+    const newHeadX = this.data[0] - 2 + dx; // Convert to real coords, add delta
+    const newHeadY = this.data[1] - 2 + dy;
+    Snake.validateCoordinate(newHeadX, newHeadY);
+
+    copy[0] = this.data[0] + dx;
+    copy[1] = this.data[1] + dy;
+
+    return Snake.fromRaw(copy);
+  }
+
+  /**
+   * Check if the snake will collide with itself when moving
+   */
+  willSelfCollide(dx: number, dy: number): boolean {
+    const newHeadX = this.data[0] + dx;
+    const newHeadY = this.data[1] + dy;
+
+    // Check against all body segments except the tail (last segment)
+    for (let i = 2; i < this.data.length - 2; i += 2) {
+      if (this.data[i] === newHeadX && this.data[i + 1] === newHeadY) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Convert snake to array of Points
+   */
+  toCells(): Point[] {
+    const points: Point[] = [];
+    for (let i = 0; i < this.data.length; i += 2) {
+      points.push(new Point(this.data[i] - 2, this.data[i + 1] - 2));
+    }
+    return points;
+  }
+
+  /**
+   * Get the raw data array (for internal/performance-critical operations only).
+   *
+   * WARNING: Returns the backing array directly. Mutating this array will break
+   * Snake invariants. Use getRawDataCopy() if you need a safe copy.
+   *
+   * @internal
+   */
+  getRawData(): Uint8Array {
+    return this.data;
+  }
+
+  /**
+   * Get a copy of the raw data array (safe for external use).
+   *
+   * @returns A new Uint8Array containing a copy of the snake's coordinate data.
+   */
+  getRawDataCopy(): Uint8Array {
+    return new Uint8Array(this.data);
+  }
+
+  /**
+   * Get a specific segment of the snake
+   */
+  getSegment(index: number): Point {
+    const len = Math.floor(this.getLength());
+    if (!Number.isInteger(index) || index < 0 || index >= len) {
+      throw new RangeError(`Segment index ${index} out of range [0, ${len - 1}]`);
+    }
+    return new Point(this.data[index * 2] - 2, this.data[index * 2 + 1] - 2);
+  }
+
+  /**
+   * Check if the snake contains a specific point
+   */
+  containsPoint(point: Point): boolean {
+    const targetX = point.x + 2;
+    const targetY = point.y + 2;
+
+    for (let i = 0; i < this.data.length; i += 2) {
+      if (this.data[i] === targetX && this.data[i + 1] === targetY) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
