@@ -105,21 +105,12 @@ jobs:
             dist/snake/github-contribution-snake-classic.svg?palette=github&color_snake=#7ac143&color_dots=#ebedf0,#9be9a8,#40c463,#30a14e,#216e39
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate snake contribution (gif)
-        run: bun packages/snake/dist/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: diverger
-          INPUT_OUTPUTS: |
-            dist/snake/github-contribution-snake.gif?color_snake=#58a6ff&color_dots=#0d1117,#0e4429,#006d32,#26a641,#39d353
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Verify snake outputs
         run: |
           echo "Checking what files were created..."
           ls -la dist/snake/ || echo "dist/snake/ directory not found"
           test -f dist/snake/github-contribution-snake-dark.svg
           test -f dist/snake/github-contribution-snake-classic.svg
-          test -f dist/snake/github-contribution-snake.gif
           echo "All snake outputs verified ✓"
 
       - name: Upload PR preview artifacts
@@ -131,7 +122,6 @@ jobs:
             dist/breathing-contrib/*.svg
             dist/blinking-contrib/*.svg
             dist/snake/*.svg
-            dist/snake/*.gif
           retention-days: 7
 
       - name: Publish to output branch
