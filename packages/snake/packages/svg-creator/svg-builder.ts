@@ -13,7 +13,7 @@ import { Snake } from "../types/snake";
 import { renderAnimatedSvgGrid, createAnimatedGridCells } from "./svg-grid-renderer";
 import { renderAnimatedSvgSnake } from "./svg-snake-renderer";
 import { createProgressStack, ContributionCounterConfig } from "./svg-stack-renderer";
-import { createElement } from "./svg-utils";
+import { createElement, isOutsideGrid } from "./svg-utils";
 
 /**
  * SVG rendering configuration options.
@@ -173,7 +173,7 @@ export const createSvg = async (
   spriteAnimationCells = chain.map((snake, index) => {
     const headPos = snake.getHead();
     let cellColor: Color | Empty;
-    if (headPos.x < 0 || headPos.y < 0 || headPos.x >= grid.width || headPos.y >= grid.height) {
+    if (isOutsideGrid(headPos.x, headPos.y, grid.width, grid.height)) {
       cellColor = 0 as Empty; // Outside grid = empty
     } else {
       cellColor = grid.getColor(headPos.x, headPos.y);

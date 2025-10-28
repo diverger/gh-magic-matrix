@@ -75,3 +75,23 @@ export const createSvgContainer = (options: {
 
   return createElement("svg", attributes).replace("/>", ">");
 };
+
+/**
+ * Checks if a point (x, y) is outside the grid boundaries.
+ *
+ * @param x - X coordinate of the point.
+ * @param y - Y coordinate of the point.
+ * @param width - Width of the grid.
+ * @param height - Height of the grid.
+ * @returns True if the point is outside the grid, false otherwise.
+ *
+ * @example
+ * ```typescript
+ * isOutsideGrid(5, 5, 10, 10) // Returns: false (inside grid)
+ * isOutsideGrid(-1, 5, 10, 10) // Returns: true (outside grid)
+ * isOutsideGrid(10, 5, 10, 10) // Returns: true (outside grid, x >= width)
+ * ```
+ */
+export const isOutsideGrid = (x: number, y: number, width: number, height: number): boolean => {
+  return x < 0 || y < 0 || x >= width || y >= height;
+};

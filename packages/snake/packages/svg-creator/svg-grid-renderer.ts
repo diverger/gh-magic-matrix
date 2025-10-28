@@ -1,6 +1,6 @@
 import { Grid, Color, EMPTY } from "../types/grid";
 import { Point } from "../types/point";
-import { createElement } from "./svg-utils";
+import { createElement, isOutsideGrid } from "./svg-utils";
 import { createKeyframeAnimation, createCssRule, AnimationKeyframe } from "./css-utils";
 
 /**
@@ -94,7 +94,7 @@ export const renderAnimatedSvgGrid = (
     // Grid should NEVER render cells outside the grid boundaries
     // Only progress bar should show outside cells
     if (options.gridWidth !== undefined && options.gridHeight !== undefined) {
-      if (x < 0 || y < 0 || x >= options.gridWidth || y >= options.gridHeight) {
+      if (isOutsideGrid(x, y, options.gridWidth, options.gridHeight)) {
         continue; // Outside cell - don't render in grid
       }
     }

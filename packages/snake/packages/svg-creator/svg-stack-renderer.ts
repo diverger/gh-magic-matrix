@@ -274,6 +274,15 @@ export interface AnimatedCellData {
 }
 
 /**
+ * Type guard: returns true when a cell has numeric x and y coordinates.
+ * Use this to centralize coordinate validation and avoid repeating the
+ * "typeof cell.x === 'number' && typeof cell.y === 'number'" check.
+ */
+export const hasValidCoordinates = (cell: { x?: number; y?: number }): cell is { x: number; y: number } => {
+  return typeof cell.x === 'number' && typeof cell.y === 'number' && !isNaN(cell.x) && !isNaN(cell.y);
+};
+
+/**
  * Result of progress stack rendering.
  */
 export interface ProgressStackResult {
@@ -644,8 +653,7 @@ function buildCounterStates(
     // Get contribution count for this cell using its coordinates
     let count = 0; // Default to 0 for empty cells (no contribution)
     let isRepeatedCell = false; // Track if this is a repeated cell visit
-    if (counterConfig.contributionMap &&
-      typeof cell.x === 'number' && typeof cell.y === 'number') {
+    if (counterConfig.contributionMap && hasValidCoordinates(cell)) {
       const key = `${cell.x},${cell.y}`;
 
       // Check if this cell has been eaten before (snake passing through again)
@@ -989,6 +997,9 @@ export const createProgressStack = async (
   gridHeight?: number, // Optional: grid height for filtering outside cells
   spriteAnimationCells?: AnimatedCellData[], // Optional: separate data source for sprite animation (includes L0)
 ): Promise<ProgressStackResult> => {
+  // Default frame duration when cells.length is 0 (fallback value)
+  const DEFAULT_FRAME_DURATION_MS = 100;
+
   const svgElements: string[] = [];
   const isHidden = counterConfig?.hideProgressBar ?? false;
 
@@ -1014,8 +1025,7 @@ export const createProgressStack = async (
     if (cell.t === null) return false;
 
     // Filter out outside cells
-    if (gridWidth !== undefined && gridHeight !== undefined &&
-      cell.x !== undefined && cell.y !== undefined) {
+    if (gridWidth !== undefined && gridHeight !== undefined && hasValidCoordinates(cell)) {
       if (cell.x < 0 || cell.y < 0 || cell.x >= gridWidth || cell.y >= gridHeight) {
         return false; // Outside cell - exclude from progress bar
       }
@@ -1037,7 +1047,7 @@ export const createProgressStack = async (
   // Global duration is based on full chain (including outside cells)
   // Counter duration should be based on filtered cells only
   // This ensures each counter frame displays for the correct duration (frameDuration)
-  const frameDuration = cells.length > 0 ? duration / cells.length : 100;
+  const frameDuration = cells.length > 0 ? duration / cells.length : DEFAULT_FRAME_DURATION_MS;
   const counterDuration = sortedCells.length * frameDuration;
 
   if (counterConfig?.debug) {
@@ -1329,7 +1339,7 @@ export const createProgressStack = async (
         // For each image, track: previous level, cycle start index, absolute start time, and last cycle number
         // lastCycleNumber helps detect cycle completion even when frames are skipped
         // prevLevel is undefined on first frame to trigger initialization
-        const animationStates = new Map<number, {
+        const animationStates = new Map<string, {
           prevLevel: number | undefined;
           cycleStartIndex: number;
           cycleStartTime?: number;
@@ -1531,6 +1541,7 @@ export const createProgressStack = async (
                         const safePrevLevelFrameCount = Number.isFinite(prevLevelFrameCount) && prevLevelFrameCount > 0
                           ? prevLevelFrameCount
                           : 1;
+
                         if (safePrevLevelFrameCount !== prevLevelFrameCount && counterConfig?.debug) {
                           console.warn(`⚠️ Frame ${index}: invalid prevLevelFrameCount=${prevLevelFrameCount} for prevLevel=${state.prevLevel}, falling back to ${safePrevLevelFrameCount}`);
                         }
