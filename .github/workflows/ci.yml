@@ -123,7 +123,8 @@ jobs:
 
       - name: Update action.yml to use local Dockerfile
         run: |
-          sed -i "s|image: .*|image: Dockerfile.snake|" snake/action.yml
+          sed -i "s|image: .*|image: ../Dockerfile.snake|" snake/action.yml
+          cat snake/action.yml
 
       - name: Generate snake contribution (light theme with multiple counters)
         uses: ./snake
