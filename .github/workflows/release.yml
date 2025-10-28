@@ -119,7 +119,9 @@ jobs:
             snake/action.yml \
             package.json \
             packages/*/package.json \
-            dist/
+            dist/breathing-contrib/ \
+            dist/blinking-contrib/ \
+            dist/snake/
           git commit -m "🚀 Release v$VERSION"
           git tag v$VERSION
           BRANCH="${GITHUB_REF_NAME:-main}"
