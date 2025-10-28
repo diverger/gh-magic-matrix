@@ -117,16 +117,20 @@ export const createSvg = async (
   // Create animated grid cells
   const animatedCells = createAnimatedGridCells(grid, chain, cells);
 
-  console.log(`📊 SVG Builder Debug:`);
-  console.log(`  - Grid: ${grid.width}x${grid.height} cells`);
-  console.log(`  - Total animated cells: ${animatedCells.length}`);
-  console.log(`  - Cells with animation: ${animatedCells.filter(c => c.animationTime !== null).length}`);
-  console.log(`  - Cells with color: ${animatedCells.filter(c => c.color > 0).length}`);
-  console.log(`  - Snake chain length: ${chain.length}`);
+  if (animationOptions.contributionCounter?.debug) {
+    console.log(`📊 SVG Builder Debug:`);
+    console.log(`  - Grid: ${grid.width}x${grid.height} cells`);
+    console.log(`  - Total animated cells: ${animatedCells.length}`);
+    console.log(`  - Cells with animation: ${animatedCells.filter(c => c.animationTime !== null).length}`);
+    console.log(`  - Cells with color: ${animatedCells.filter(c => c.color > 0).length}`);
+    console.log(`  - Snake chain length: ${chain.length}`);
+  }
 
   // Grid render mode: uniform (only show colored cells, L1-L4)
   const showEmptyCells = false;
-  console.log(`  - Grid render mode: uniform (showEmptyCells: ${showEmptyCells})`);
+  if (animationOptions.contributionCounter?.debug) {
+    console.log(`  - Grid render mode: uniform (showEmptyCells: ${showEmptyCells})`);
+  }
 
   // Render the animated grid
   const gridResult = renderAnimatedSvgGrid(animatedCells, {
@@ -233,11 +237,9 @@ export const createSvg = async (
 
     // Combine all defs and style into a single <defs> block
     "<defs>",
-    // Include gradient definitions (linearGradient elements) and symbol/image definitions
+    // Include common def elements
     ...stackResult.svgElements.filter(e =>
-      e.startsWith('<linearGradient') ||
-      e.startsWith('<image') ||
-      e.startsWith('<symbol')
+      /^(<linearGradient|<image|<symbol|<pattern|<clipPath|<mask|<filter)\b/.test(e)
     ),
     "<style>",
     optimizeCss(style),

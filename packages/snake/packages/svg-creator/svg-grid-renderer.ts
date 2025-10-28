@@ -184,6 +184,12 @@ export const createAnimatedGridCells = (
     color: initialGrid.getColor(point.x, point.y),
   }));
 
+  // Pre-index cells for O(1) lookups during simulation
+  const indexByPos = new Map<string, number>();
+  for (let i = 0; i < animatedCells.length; i++) {
+    indexByPos.set(`${animatedCells[i].x},${animatedCells[i].y}`, i);
+  }
+
   // Simulate snake movement and mark consumption times
   const workingGrid = initialGrid.clone();
 
@@ -191,7 +197,13 @@ export const createAnimatedGridCells = (
     const snake = snakeChain[i];
     const head = snake.getHead();
 
-    if (workingGrid.isInside(head.x, head.y)) {
+    // Calculate key and index once for both branches
+    const key = `${head.x},${head.y}`;
+    const idx = indexByPos.get(key);
+
+    if (head.x >= 0 && head.x < initialGrid.width &&
+        head.y >= 0 && head.y < initialGrid.height) {
+      // Snake is inside the grid
       const cellColor = workingGrid.getColor(head.x, head.y);
       const isEmpty = workingGrid.isEmptyCell(cellColor);
 
@@ -202,18 +214,14 @@ export const createAnimatedGridCells = (
 
       // Set animation time for ALL cells (including empty ones)
       // This enables progress stack to show animations for empty cells (L0 sprite)
-      const cell = animatedCells.find(c => c.x === head.x && c.y === head.y);
-      if (cell && cell.animationTime === null) {
+      if (idx !== undefined && animatedCells[idx].animationTime === null) {
         // SNK uses i / snakeChain.length - cell appears when snake head touches it
         // Only set animationTime on first visit (for return path, don't re-trigger animation)
-        cell.animationTime = i / snakeChain.length;
+        animatedCells[idx].animationTime = i / snakeChain.length;
       }
     } else {
       // Snake is outside the grid - add this position as an empty cell (L0 animation)
-      // Check if this outside position already exists in animatedCells
-      const existingCell = animatedCells.find(c => c.x === head.x && c.y === head.y);
-
-      if (!existingCell) {
+      if (idx === undefined) {
         // Create new cell for this outside position
         const outsideCell: AnimatedGridCell = {
           x: head.x,
@@ -221,10 +229,10 @@ export const createAnimatedGridCells = (
           animationTime: i / snakeChain.length,
           color: EMPTY, // Empty cell (no contribution)
         };
-        animatedCells.push(outsideCell);
-      } else if (existingCell.animationTime === null) {
+        indexByPos.set(key, animatedCells.push(outsideCell) - 1);
+      } else if (animatedCells[idx].animationTime === null) {
         // Position exists but hasn't been animated yet
-        existingCell.animationTime = i / snakeChain.length;
+        animatedCells[idx].animationTime = i / snakeChain.length;
       }
     }
   }

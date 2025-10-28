@@ -90,7 +90,8 @@ export class Grid {
    * @returns true if (x, y) is within the expanded area, false otherwise
    */
   isInsideLarge(m: number, x: number, y: number): boolean {
-    return x >= -m && y >= -m && x < this.width + m && y < this.height + m;
+    const mm = Number.isFinite(m) ? Math.max(0, Math.floor(m)) : 0;
+    return x >= -mm && y >= -mm && x < this.width + mm && y < this.height + mm;
   }
 
 
@@ -147,7 +148,7 @@ export class Grid {
   }
 
   clone(): Grid {
-    // Use direct buffer copy to avoid double validation
-    return new Grid(this.width, this.height, new Uint8Array(this.data));
+    // Single copy occurs inside the constructor
+    return new Grid(this.width, this.height, this.data);
   }
 }

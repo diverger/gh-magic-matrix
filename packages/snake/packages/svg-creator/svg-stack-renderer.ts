@@ -636,7 +636,9 @@ function buildCounterStates(
   const timeToProgressIndex = new Map<number, number>();
   cellsForXPosition.forEach((cell, index) => {
     if (cell.t !== null) {
-      timeToProgressIndex.set(cell.t, index);
+      // Use rounded time as key to avoid float precision issues
+      const roundedT = Math.round(cell.t * 10000) / 10000;
+      timeToProgressIndex.set(roundedT, index);
     }
   });
 
@@ -688,7 +690,7 @@ function buildCounterStates(
     // Calculate cumulative width using uniform mode (each cell contributes equally)
     // CRITICAL: Use cellsForXPosition (progress bar cells) for X calculation
     // This ensures sprite X position matches progress bar position even when sprite uses full chain
-    const progressIndex = timeToProgressIndex.get(cell.t!);
+  const progressIndex = timeToProgressIndex.get(Math.round(cell.t! * 10000) / 10000);
 
     // Uniform mode: each cell in progress bar contributes equally to width
     // If cell is not in progress bar (e.g., L0 in uniform mode), keep last known position
@@ -1007,6 +1009,7 @@ export const createProgressStack = async (
     }`;
 
   const styles: string[] = [baseStyle];
+  styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
 
   if (isHidden && counterConfig?.debug) {
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
@@ -1805,6 +1808,7 @@ export const createProgressStack = async (
               opacity: 0;
             }`
           );
+          styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
         } // End for loop
       } // End if (display.text) else
     } // End displays loop
