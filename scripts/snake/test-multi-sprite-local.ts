@@ -37,18 +37,12 @@ const REPO_ROOT = path.resolve(__dirname, "../..");
  * Load GitHub token from file or environment
  */
 function loadGitHubToken(): string {
-  // 1. Check command line argument
-  const args = process.argv.slice(2);
-  if (args[0]) {
-    return args[0];
-  }
-
-  // 2. Check environment variable
+  // 1. Check environment variable (preferred)
   if (process.env.GITHUB_TOKEN) {
     return process.env.GITHUB_TOKEN;
   }
 
-  // 3. Try to load from .github/token.txt
+  // 2. Try to load from .github/token.txt
   const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
   if (fs.existsSync(tokenPath)) {
     const token = fs.readFileSync(tokenPath, "utf8").trim();
@@ -57,13 +51,12 @@ function loadGitHubToken(): string {
     }
   }
 
-  // 4. No token found
+  // 3. No token found
   console.error("❌ Error: GitHub token is required");
   console.error("");
   console.error("Please provide a token in one of these ways:");
-  console.error("  1. Command line: bun scripts/snake/test-multi-sprite-local.ts ghp_xxxxx");
-  console.error("  2. Environment: export GITHUB_TOKEN=ghp_xxxxx");
-  console.error("  3. File: Create .github/token.txt with your token");
+  console.error("  1. Environment: export GITHUB_TOKEN=ghp_xxxxx");
+  console.error("  2. File: Create .github/token.txt with your token");
   console.error("");
   console.error("To create token file:");
   console.error("  cp .github/token.txt.example .github/token.txt");
@@ -75,7 +68,7 @@ const githubToken = loadGitHubToken();
 
 console.log("🐍 Multi-Level Sprite Sheets Local Test");
 console.log("==========================================");
-console.log(`📝 GitHub Token: ${githubToken.substring(0, 8)}...`);
+console.log("📝 GitHub Token: [masked]");
 console.log(`👤 Test User: diverger`);
 console.log("");
 
@@ -186,6 +179,19 @@ async function runTest() {
 
     // Parse outputs (same as the action does)
     const outputs = parseOutputsOption([process.env.INPUT_OUTPUTS || ""]);
+
+    // Ensure frameDuration is applied when running locally (index.ts is not used here)
+    const fd = Number(process.env.INPUT_FRAME_DURATION || "0");
+    if (Number.isFinite(fd) && fd > 0) {
+      outputs.forEach(o => {
+        if (!o) return;
+        // Guard in case parseOutputsOption ever returns undefined animationOptions
+        // @ts-ignore
+        o.animationOptions = o.animationOptions || {};
+        // @ts-ignore
+        o.animationOptions.frameDuration = fd;
+      });
+    }
 
     // Apply contribution counter configuration (matching index.ts logic)
     const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
