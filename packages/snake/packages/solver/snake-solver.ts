@@ -483,7 +483,7 @@ export class SnakeSolver {
       parent: SearchNode | null;
     }
 
-    const closedList: Snake[] = [];
+    const closed = new Set<string>();
     const openList: SearchNode[] = [{ snake, parent: null }];
 
     while (openList.length > 0) {
@@ -514,9 +514,10 @@ export class SnakeSolver {
           this.getColorSafe(newX, newY) <= (targetColor as number)
         ) {
           const newSnake = current.snake.nextSnake(direction.x, direction.y);
+          const key = newSnake.getRawData().join(',');
 
-          if (!closedList.some((s) => s.equals(newSnake))) {
-            closedList.push(newSnake);
+          if (!closed.has(key)) {
+            closed.add(key);
             openList.push({ snake: newSnake, parent: current });
           }
         }
