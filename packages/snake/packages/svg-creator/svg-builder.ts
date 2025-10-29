@@ -123,8 +123,10 @@ export const createSvg = async (
   // Gap between grid and progress bar: max of 2 cells (original) or text space requirement (for top text)
   const gapCells = Math.max(2, textSpaceInCellsTop);
 
-  // Bottom margin: max of 2 cells (original) or text space requirement (for bottom text)
-  const bottomMarginCells = Math.max(2, textSpaceInCellsBottom);
+  // Bottom margin: minBottomMarginCells guarantees enough space for bottom counter text and progress bar
+  const minBottomMarginPx = maxCounterFontSizeBottom * TEXT_PADDING_MULTIPLIER + drawOptions.sizeDot;
+  const minBottomMarginCells = Math.ceil(minBottomMarginPx / drawOptions.sizeCell);
+  const bottomMarginCells = Math.max(2, minBottomMarginCells);
 
   // Total extra space after grid: gap + progress bar (1) + bottom margin
   // Note: hideProgressBar only sets opacity:0, doesn't change layout
