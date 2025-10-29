@@ -10,14 +10,11 @@
  *   2. Replace the placeholder with your GitHub token
  *
  * Usage:
- *   bun scripts/snake/test-multi-sprite-local.ts [GITHUB_TOKEN]
+ *   bun scripts/snake/test-multi-sprite-local.ts
  *
  * Example:
  *   # Use token from file
  *   bun scripts/snake/test-multi-sprite-local.ts
- *
- *   # Or provide token as argument
- *   bun scripts/snake/test-multi-sprite-local.ts ghp_xxxxx
  *
  * Run from repository root:
  *   cd gh-magic-matrix
@@ -185,11 +182,10 @@ async function runTest() {
     if (Number.isFinite(fd) && fd > 0) {
       outputs.forEach(o => {
         if (!o) return;
-        // Guard in case parseOutputsOption ever returns undefined animationOptions
-        // @ts-ignore
-        o.animationOptions = o.animationOptions || {};
-        // @ts-ignore
-        o.animationOptions.frameDuration = fd;
+        // Ensure animationOptions exists and set frameDuration
+        const output = o as any;
+        output.animationOptions = output.animationOptions || {};
+        output.animationOptions.frameDuration = fd;
       });
     }
 
@@ -310,11 +306,11 @@ async function runTest() {
       process.exit(1);
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("");
     console.error("❌ Error generating SVG:");
-    console.error(error.message);
-    if (error.stack) {
+    console.error(error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
       console.error("");
       console.error("Stack trace:");
       console.error(error.stack);
