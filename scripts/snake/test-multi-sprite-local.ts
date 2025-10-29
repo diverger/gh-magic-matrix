@@ -26,6 +26,12 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
+
+// Get the repository root directory (2 levels up from this script)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, "../..");
 
 /**
  * Load GitHub token from file or environment
@@ -43,7 +49,7 @@ function loadGitHubToken(): string {
   }
 
   // 3. Try to load from .github/token.txt
-  const tokenPath = path.resolve(process.cwd(), ".github/token.txt");
+  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
   if (fs.existsSync(tokenPath)) {
     const token = fs.readFileSync(tokenPath, "utf8").trim();
     if (token && !token.includes("your_github_token_here")) {
@@ -77,7 +83,7 @@ console.log("");
 const config = {
   // User and output
   githubUserName: "diverger",
-  outputPath: "test-outputs/multi-sprite-local.svg",
+  outputPath: path.join(REPO_ROOT, "test-outputs/multi-sprite-local.svg"),  // Absolute path to output
 
   // Animation settings
   frameDuration: "100",
@@ -95,7 +101,7 @@ const config = {
       fontSize: 14,
       images: [
         {
-          urlFolder: ".github/assets",
+          urlFolder: path.join(REPO_ROOT, ".github/assets"),  // Absolute path to assets
           framePattern: "Lx.png",
           width: 64,
           height: 86,
@@ -138,7 +144,7 @@ console.log("");
 
 // Check if sprite assets exist
 console.log("🔍 Checking sprite assets...");
-const assetsPath = path.resolve(process.cwd(), ".github/assets");
+const assetsPath = path.join(REPO_ROOT, ".github/assets");
 const requiredAssets = ["L0.png", "L1.png", "L2.png", "L3.png", "L4.png"];
 const missingAssets: string[] = [];
 

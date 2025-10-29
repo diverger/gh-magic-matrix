@@ -1009,7 +1009,8 @@ export const createProgressStack = async (
     }`;
 
   const styles: string[] = [baseStyle];
-  styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
+  // DISABLED: Force animations to play regardless of user preferences
+  // styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
 
   if (isHidden && counterConfig?.debug) {
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
@@ -1808,7 +1809,8 @@ export const createProgressStack = async (
               opacity: 0;
             }`
           );
-          styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
+          // DISABLED: Force animations to play regardless of user preferences
+          // styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
         } // End for loop
       } // End if (display.text) else
     } // End displays loop
