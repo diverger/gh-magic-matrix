@@ -17,7 +17,7 @@ import { createElement, isOutsideGrid } from "./svg-utils";
 
 /**
  * Text padding multiplier for counter displays.
- * Used to calculate vertical space needed above/below text (1.5x = 0.75x padding on each side).
+ * Used to calculate vertical space needed above/below text (1.5x = 0.5x total padding, or 0.25x on each side).
  * This ensures adequate spacing between counter text and adjacent elements (grid/progress bar).
  */
 const TEXT_PADDING_MULTIPLIER = 1.5;
