@@ -69,36 +69,14 @@ jobs:
 
       - name: Update action.yml files with new image digests
         run: |
-          sed -i "s|^image:\s*docker://diverger/gh-magic-matrix-breathing@.*$|image: docker://diverger/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}|" breathing-contrib/action.yml
-          sed -i "s|^image:\s*docker://diverger/gh-magic-matrix-blinking@.*$|image: docker://diverger/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}|" blinking-contrib/action.yml
-          sed -i "s|^image:\s*docker://diverger/gh-magic-matrix-snake@.*$|image: docker://diverger/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}|" snake/action.yml
+          sed -i "s|image: 'docker://diverger/gh-magic-matrix-breathing.*'|image: 'docker://diverger/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}'|" breathing-contrib/action.yml
+          sed -i "s|image: 'docker://diverger/gh-magic-matrix-blinking.*'|image: 'docker://diverger/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}'|" blinking-contrib/action.yml
+          sed -i "s|image: 'docker://diverger/gh-magic-matrix-snake.*'|image: 'docker://diverger/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}'|" snake/action.yml
 
       - uses: oven-sh/setup-bun@v1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Build packages
-        run: bun run build
-
-      - name: Verify build outputs
-        run: |
-          echo "Checking built distributions..."
-          ls -la dist/
-
-          echo "Verifying breathing-contrib build..."
-          test -f dist/breathing-contrib/index.js || { echo "❌ ERROR: breathing-contrib build not found at dist/breathing-contrib/index.js"; exit 1; }
-          echo "✅ breathing-contrib build verified"
-
-          echo "Verifying blinking-contrib build..."
-          test -f dist/blinking-contrib/index.js || { echo "❌ ERROR: blinking-contrib build not found at dist/blinking-contrib/index.js"; exit 1; }
-          echo "✅ blinking-contrib build verified"
-
-          echo "Verifying snake build..."
-          test -d packages/snake/dist || { echo "❌ ERROR: snake build not found at packages/snake/dist"; exit 1; }
-          echo "✅ snake build verified"
-
-          echo "✅ All build artifacts verified successfully"
 
       - name: Bump package version
         run: |
@@ -118,8 +96,7 @@ jobs:
             blinking-contrib/action.yml \
             snake/action.yml \
             package.json \
-            packages/*/package.json \
-            dist/
+            packages/*/package.json
           git commit -m "🚀 Release v$VERSION"
           git tag v$VERSION
           BRANCH="${GITHUB_REF_NAME:-main}"

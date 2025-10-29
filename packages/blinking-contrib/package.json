@@ -1,11 +1,11 @@
 {
   "name": "@gh-magic-matrix/blinking-contrib",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "GitHub Action to create blinking contribution visualization - displays each year's contributions with fade transitions",
-  "main": "../../dist/blinking-contrib/index.js",
-  "types": "../../dist/blinking-contrib/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "ncc build src/action.ts -o ../../dist/blinking-contrib --minify && tsc --emitDeclarationOnly --declaration --outDir ../../dist/blinking-contrib",
+    "build": "ncc build src/action.ts -o dist --minify && tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "echo \"No tests yet\""
   },
   "keywords": [

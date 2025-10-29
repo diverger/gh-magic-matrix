@@ -13,7 +13,7 @@ inputs:
   github_token:
     description: 'GitHub token used to fetch the contribution calendar. Defaults to the action token if empty.'
     required: false
-    default: ''
+    default: ${{ github.token }}
   outputs:
     description: |
       List of SVG files to generate.
@@ -169,4 +169,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://diverger/gh-magic-matrix-snake:latest'
+  image: 'docker://diverger/gh-magic-matrix-snake@sha256:44bb8b920a6ae144fb5c706ea60d94b5e06fdf16952d0101e38c5b74cc64a80e'

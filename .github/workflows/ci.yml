@@ -42,50 +42,18 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build actions
-        run: bun run build
-
-      - name: Create output directories
         run: |
-          mkdir -p dist/breathing-contrib
-          mkdir -p dist/blinking-contrib
-          mkdir -p dist/snake
-
-      - name: Generate breathing contribution (light theme)
-        run: bun dist/breathing-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/breathing-contrib/light.svg
-          INPUT_PERIOD: "6"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate breathing contribution (dark theme)
-        run: bun dist/breathing-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/breathing-contrib/dark.svg
-          INPUT_PERIOD: "6"
-          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate blinking contribution (light theme)
-        run: bun dist/blinking-contrib/index.js
-        env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/blinking-contrib/light.svg
-          INPUT_FRAME_DURATION: "0.8"
-          INPUT_FADE_IN_DURATION: "0.2"
-          INPUT_FADE_OUT_DURATION: "0.4"
-          INPUT_TEXT_FRAME_DURATION: "2.0"
-          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cd packages/blinking-contrib && bun run build
+          cd ../breathing-contrib && bun run build
+          cd ../snake && bun run build
 
       - name: Generate blinking contribution (dark theme)
-        run: bun dist/blinking-contrib/index.js
+        run: bun packages/blinking-contrib/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
-          INPUT_OUTPUT_PATH: dist/blinking-contrib/dark.svg
-          INPUT_FRAME_DURATION: "0.8"
+          INPUT_OUTPUT_PATH: "dist/blinking-contrib/github-contribution-blinking-dark.svg"
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_PALETTE: "github-dark"
+          INPUT_DURATION: "4.0"
           INPUT_FADE_IN_DURATION: "0.2"
           INPUT_FADE_OUT_DURATION: "0.4"
           INPUT_ENDING_TEXT: "diverger"
@@ -93,45 +61,66 @@ jobs:
           INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate snake contribution (light theme)
-        run: bun dist/snake/index.js
+      - name: Generate blinking contribution (classic theme)
+        run: bun packages/blinking-contrib/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_OUTPUT_PATH: "dist/blinking-contrib/github-contribution-blinking-classic.svg"
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_PALETTE: "github"
+          INPUT_DURATION: "4.0"
+          INPUT_FADE_IN_DURATION: "0.2"
+          INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_ENDING_TEXT: "diverger"
+          INPUT_TEXT_FRAME_DURATION: "2.0"
+          INPUT_COLOR_LEVELS: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate breathing contribution (dark theme)
+        run: bun packages/breathing-contrib/dist/index.js
+        env:
+          INPUT_OUTPUT_PATH: "dist/breathing-contrib/github-contribution-breathing-dark.svg"
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_PALETTE: "github-dark"
+          INPUT_DURATION: "3.0"
+          INPUT_FADE_IN_DURATION: "0.2"
+          INPUT_FADE_OUT_DURATION: "0.4"
+          INPUT_ENDING_TEXT: "diverger"
+          INPUT_TEXT_FRAME_DURATION: "2.0"
+          INPUT_COLOR_LEVELS: "#161b22,#0e4429,#006d32,#26a641,#39d353"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake contribution (light theme with multiple counters)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/light.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Multiple displays example: fixed text + dynamic count + percentage with font styles
           INPUT_COUNTER_DISPLAYS: |
             [
               {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
               {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
-              {"position": "follow", "prefix": "🎯 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
+              {"position": "follow", "prefix": "🏆 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake contribution (dark theme)
-        run: bun dist/snake/index.js
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/dark.svg?palette=github-dark"
-          INPUT_FRAME_DURATION: "100"  # default: 100ms per frame
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Single counter following progress bar
           INPUT_COUNTER_DISPLAYS: |
             [
-              {"position": "follow", "prefix": "🎯 ", "suffix": " contributions", "color": "#7ee787"}
+              {"position": "follow", "prefix": "🏆 ", "suffix": " contributions", "color": "#7ee787"}
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with static image (tree.png test)
-        run: bun dist/snake/index.js
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-image.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Test image placeholder syntax: {img:0} embeds image inline with text
-          # Note: width/height are display sizes (how it appears in SVG), not original image dimensions
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -151,13 +140,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with images in all positions
-        run: bun dist/snake/index.js
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-image-all-positions.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Test images in all three positions: top-left, top-right, follow
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -206,13 +193,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with sprite sheet animation
-        run: bun dist/snake/index.js
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-sprite-sheet.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Test sprite sheet with dynamic speed (contribution-driven animation)
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -243,16 +228,13 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate snake with multi-level sprite sheets (contribution-level mode)
-        run: bun dist/snake/index.js
+      - name: Generate snake with multi-level sprite sheets
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          INPUT_COUNTER_DEBUG: "true"  # Enable debug logging
-          # Test contribution-level mode with 5 separate sprite sheets (L0.png - L4.png)
-          # Each level has different animation based on contribution intensity
+          INPUT_COUNTER_DEBUG: "true"
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -285,15 +267,12 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate snake with multi-level sprites and empty cell animation (L0 test)
-        run: bun dist/snake/index.js
+      - name: Generate snake with empty cell animation (L0 test)
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-empty-cell-animation.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Test L0 sprite for empty cells (contribution=0) that snake passes through
-          # Speed multipliers: L0=8.0x, L1=10.0x, L2=12.0x, L3=14.0x, L4=16.0x
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -326,16 +305,13 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate snake with hidden progress bar (text only)
-        run: bun dist/snake/index.js
+      - name: Generate snake with hidden progress bar
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/hidden-progress-bar.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
           INPUT_HIDE_PROGRESS_BAR: "true"
-          # Progress bar is hidden (opacity: 0) but still in DOM for follow mode positioning
-          # Only the counter text is visible
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -347,7 +323,7 @@ jobs:
               },
               {
                 "position": "follow",
-                "prefix": "🎯 ",
+                "prefix": "🏆 ",
                 "suffix": " commits",
                 "showCount": true,
                 "fontSize": 14,
@@ -357,13 +333,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate snake with spacing control test
-        run: bun dist/snake/index.js
+        run: bun packages/snake/dist/index.js
         env:
-          INPUT_GITHUB_USER_NAME: ${{ github.repository_owner }}
+          INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-spacing-control.svg?palette=github-light"
-          INPUT_FRAME_DURATION: "100"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
-          # Test spacing parameter to control gap between image and text
           INPUT_COUNTER_DISPLAYS: |
             [
               {
@@ -385,16 +359,10 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify all outputs exist
+      - name: Verify all snake outputs exist
         run: |
-          ls -la dist/
-          ls -la dist/breathing-contrib/
-          ls -la dist/blinking-contrib/
+          echo "Checking what files were created..."
           ls -la dist/snake/
-          test -f dist/breathing-contrib/light.svg
-          test -f dist/breathing-contrib/dark.svg
-          test -f dist/blinking-contrib/light.svg
-          test -f dist/blinking-contrib/dark.svg
           test -f dist/snake/light.svg
           test -f dist/snake/dark.svg
           test -f dist/snake/with-image.svg
@@ -404,7 +372,31 @@ jobs:
           test -f dist/snake/with-empty-cell-animation.svg
           test -f dist/snake/hidden-progress-bar.svg
           test -f dist/snake/with-spacing-control.svg
-          echo "✅ All output files generated successfully"
+          echo "✅ All snake output files generated successfully"
+
+          # Verify static image is embedded as data URI
+          if grep -q "data:image" dist/snake/with-image.svg; then
+            echo "✅ Static image embedded as data URI"
+          else
+            echo "❌ Static image NOT embedded"
+            exit 1
+          fi
+
+          # Verify sprite sheet
+          if grep -q "<image" dist/snake/with-sprite-sheet.svg && grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
+            echo "✅ Sprite sheet with symbols found"
+          else
+            echo "❌ Sprite sheet elements NOT found"
+            exit 1
+          fi
+
+          # Verify hidden progress bar
+          if grep -q "opacity: 0" dist/snake/hidden-progress-bar.svg && grep -q "contrib-counter" dist/snake/hidden-progress-bar.svg; then
+            echo "✅ Hidden progress bar test passed"
+          else
+            echo "❌ Hidden progress bar test failed"
+            exit 1
+          fi
 
           # Verify static image is embedded as data URI
           if grep -q "data:image" dist/snake/with-image.svg; then
