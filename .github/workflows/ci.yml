@@ -373,128 +373,117 @@ jobs:
           test -f dist/snake/hidden-progress-bar.svg
           test -f dist/snake/with-spacing-control.svg
           echo "✅ All snake output files generated successfully"
+          echo ""
 
-          # Verify static image is embedded as data URI
+          # ============================================================
+          # Comprehensive verification - each output checked once
+          # ============================================================
+
+          # with-image.svg - Static image embedding test
+          echo "Verifying with-image.svg..."
           if grep -q "data:image" dist/snake/with-image.svg; then
-            echo "✅ Static image embedded as data URI"
+            echo "✅ with-image.svg: Static image embedded as data URI"
           else
-            echo "❌ Static image NOT embedded"
+            echo "❌ with-image.svg: Static image NOT embedded"
             exit 1
           fi
+          echo ""
 
-          # Verify sprite sheet
-          if grep -q "<image" dist/snake/with-sprite-sheet.svg && grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
-            echo "✅ Sprite sheet with symbols found"
-          else
-            echo "❌ Sprite sheet elements NOT found"
-            exit 1
-          fi
-
-          # Verify hidden progress bar
-          if grep -q "opacity: 0" dist/snake/hidden-progress-bar.svg && grep -q "contrib-counter" dist/snake/hidden-progress-bar.svg; then
-            echo "✅ Hidden progress bar test passed"
-          else
-            echo "❌ Hidden progress bar test failed"
-            exit 1
-          fi
-
-          # Verify static image is embedded as data URI
-          if grep -q "data:image" dist/snake/with-image.svg; then
-            echo "✅ Static image embedded as data URI in with-image.svg"
-          else
-            echo "❌ Static image NOT embedded in with-image.svg"
-            exit 1
-          fi
-
-          # Verify all positions test
+          # with-image-all-positions.svg - All positions test
+          echo "Verifying with-image-all-positions.svg..."
           if grep -q "data:image" dist/snake/with-image-all-positions.svg; then
-            echo "✅ Images embedded in all-positions test"
+            echo "✅ with-image-all-positions.svg: Images embedded as data URIs"
           else
-            echo "❌ Images NOT embedded in all-positions test"
+            echo "❌ with-image-all-positions.svg: Images NOT embedded"
             exit 1
           fi
+          echo ""
 
-          # Verify sprite sheet test
+          # with-sprite-sheet.svg - Sprite sheet test
+          echo "Verifying with-sprite-sheet.svg..."
           if grep -q "<image" dist/snake/with-sprite-sheet.svg; then
-            echo "✅ Sprite sheet image element found"
+            echo "✅ with-sprite-sheet.svg: Image element found"
             if grep -q "href=\"data:image" dist/snake/with-sprite-sheet.svg; then
-              echo "✅ Sprite sheet embedded as data URI"
+              echo "✅ with-sprite-sheet.svg: Sprite sheet embedded as data URI"
             else
-              echo "⚠️  Sprite sheet image element exists but may use external URL"
+              echo "⚠️  with-sprite-sheet.svg: Image element exists but may use external URL"
+            fi
+            if grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
+              echo "✅ with-sprite-sheet.svg: Sprite sheet frames defined as symbols"
+            else
+              echo "❌ with-sprite-sheet.svg: Sprite sheet symbols NOT found"
+              exit 1
             fi
           else
-            echo "❌ Sprite sheet image element NOT found"
+            echo "❌ with-sprite-sheet.svg: Image element NOT found"
             exit 1
           fi
+          echo ""
 
-          # Verify sprite sheet has symbol definitions (for frame clipping)
-          if grep -q "<symbol" dist/snake/with-sprite-sheet.svg; then
-            echo "✅ Sprite sheet frames defined as symbols"
-          else
-            echo "❌ Sprite sheet symbols NOT found"
-            exit 1
-          fi
-
-          # Verify multi-level sprite sheets test
+          # with-multi-level-sprites.svg - Multi-level sprite sheets test
+          echo "Verifying with-multi-level-sprites.svg..."
           if grep -q "<image" dist/snake/with-multi-level-sprites.svg; then
-            echo "✅ Multi-level sprite sheet image elements found"
+            echo "✅ with-multi-level-sprites.svg: Image elements found"
             if grep -q "href=\"data:image" dist/snake/with-multi-level-sprites.svg; then
-              echo "✅ Multi-level sprite sheets embedded as data URIs"
+              echo "✅ with-multi-level-sprites.svg: Sprite sheets embedded as data URIs"
             else
-              echo "⚠️  Multi-level sprite sheet image elements exist but may use external URLs"
+              echo "⚠️  with-multi-level-sprites.svg: Image elements exist but may use external URLs"
+            fi
+            if grep -q "<symbol" dist/snake/with-multi-level-sprites.svg; then
+              echo "✅ with-multi-level-sprites.svg: Multi-level sprite frames defined as symbols"
+            else
+              echo "❌ with-multi-level-sprites.svg: Multi-level sprite symbols NOT found"
+              exit 1
             fi
           else
-            echo "❌ Multi-level sprite sheet image elements NOT found"
+            echo "❌ with-multi-level-sprites.svg: Image elements NOT found"
             exit 1
           fi
+          echo ""
 
-          # Verify multi-level sprites have symbol definitions for all 5 levels
-          if grep -q "<symbol" dist/snake/with-multi-level-sprites.svg; then
-            echo "✅ Multi-level sprite frames defined as symbols"
-          else
-            echo "❌ Multi-level sprite symbols NOT found"
-            exit 1
-          fi
-
-          # Verify empty cell animation test (L0 sprite for empty cells)
+          # with-empty-cell-animation.svg - Empty cell animation test
+          echo "Verifying with-empty-cell-animation.svg..."
           if grep -q "<image" dist/snake/with-empty-cell-animation.svg; then
-            echo "✅ Empty cell animation test has image elements"
+            echo "✅ with-empty-cell-animation.svg: Image elements found (L0 sprite for empty cells)"
           else
-            echo "❌ Empty cell animation test image elements NOT found"
+            echo "❌ with-empty-cell-animation.svg: Image elements NOT found"
             exit 1
           fi
+          echo ""
 
-          # Verify hidden progress bar test
+          # hidden-progress-bar.svg - Hidden progress bar test
+          echo "Verifying hidden-progress-bar.svg..."
           if grep -q "opacity: 0" dist/snake/hidden-progress-bar.svg; then
-            echo "✅ Progress bar hidden with opacity: 0"
+            echo "✅ hidden-progress-bar.svg: Progress bar hidden with opacity: 0"
           else
-            echo "❌ Progress bar NOT hidden in hidden-progress-bar.svg"
+            echo "❌ hidden-progress-bar.svg: Progress bar NOT hidden"
             exit 1
           fi
-
-          # Verify progress bar elements still exist in DOM (for follow mode)
           if grep -q "class=\"u" dist/snake/hidden-progress-bar.svg; then
-            echo "✅ Progress bar elements exist in DOM (for follow mode positioning)"
+            echo "✅ hidden-progress-bar.svg: Progress bar elements exist in DOM (for follow mode)"
           else
-            echo "❌ Progress bar elements missing from DOM"
+            echo "❌ hidden-progress-bar.svg: Progress bar elements missing from DOM"
             exit 1
           fi
-
-          # Verify counter text is NOT hidden
           if grep -q "contrib-counter" dist/snake/hidden-progress-bar.svg; then
-            echo "✅ Counter text elements found in hidden-progress-bar.svg"
+            echo "✅ hidden-progress-bar.svg: Counter text elements found"
           else
-            echo "❌ Counter text elements NOT found"
+            echo "❌ hidden-progress-bar.svg: Counter text elements NOT found"
             exit 1
           fi
+          echo ""
 
-          # Verify spacing control test
+          # with-spacing-control.svg - Spacing control test
+          echo "Verifying with-spacing-control.svg..."
           if grep -q "data:image" dist/snake/with-spacing-control.svg; then
-            echo "✅ Spacing control test has embedded image"
+            echo "✅ with-spacing-control.svg: Image embedded as data URI"
           else
-            echo "❌ Spacing control test image NOT embedded"
+            echo "❌ with-spacing-control.svg: Image NOT embedded"
             exit 1
           fi
+          echo ""
+
+          echo "🎉 All verification checks passed!"
 
       - name: Upload PR preview artifacts
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
