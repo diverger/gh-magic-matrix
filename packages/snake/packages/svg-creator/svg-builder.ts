@@ -16,6 +16,13 @@ import { createProgressStack, ContributionCounterConfig } from "./svg-stack-rend
 import { createElement, isOutsideGrid } from "./svg-utils";
 
 /**
+ * Text padding multiplier for counter displays.
+ * Used to calculate vertical space needed above/below text (1.5x = 0.5x total padding, or 0.25x on each side).
+ * This ensures adequate spacing between counter text and adjacent elements (grid/progress bar).
+ */
+const TEXT_PADDING_MULTIPLIER = 1.5;
+
+/**
  * SVG rendering configuration options.
  */
 export interface SvgRenderOptions {
@@ -70,45 +77,60 @@ export const createSvg = async (
   animationOptions: AnimationOptions,
 ): Promise<string> => {
   // Calculate required space for counter text
-  // Find the maximum font size from all displays (top-left/top-right need space above progress bar)
-  let maxCounterFontSize = 0;
+  // Find the maximum font size from displays above and below the progress bar
+  let maxCounterFontSizeTop = 0;
+  let maxCounterFontSizeBottom = 0;
   if (animationOptions.contributionCounter?.enabled && animationOptions.contributionCounter.displays) {
     for (const display of animationOptions.contributionCounter.displays) {
-      if (display.position !== 'follow') { // follow mode doesn't need extra space
-        const fontSize = display.fontSize || drawOptions.sizeDot;
-        maxCounterFontSize = Math.max(maxCounterFontSize, fontSize);
+      const fontSize = display.fontSize || drawOptions.sizeDot;
+      if (display.position === 'top-left' || display.position === 'top-right') {
+        maxCounterFontSizeTop = Math.max(maxCounterFontSizeTop, fontSize);
+      } else if (display.position === 'bottom-left' || display.position === 'bottom-right') {
+        maxCounterFontSizeBottom = Math.max(maxCounterFontSizeBottom, fontSize);
       }
+      // follow mode doesn't need extra space
     }
   }
 
   // Layout breakdown:
   // - viewBox y offset: -2 cells (top margin)
   // - Grid: grid.height cells
-  // - Gap between grid and progress bar: need to fit counter text
+  // - Gap between grid and progress bar: need to fit counter text above
   // - Progress bar: 1 cell (dotSize)
-  // - Bottom margin: at least 1 cell
+  // - Bottom margin: need to fit counter text below + at least 1 cell
   //
   // Original layout: grid.height + 5 cells total
   //   = grid.height + 2 (gap) + 1 (progress bar) + 2 (bottom margin, adjusted for viewBox)
   //
   // For counter text above progress bar:
   // textY = progressBarY - fontSize * 0.5
-  // Text extends from (progressBarY - fontSize) to progressBarY
-  // Need: gridBottom to progressBarY distance >= fontSize + small padding
+  // For counter text below progress bar:
+  // textY = progressBarY + dotSize + fontSize * 0.5
+  // Text extends from progressBarY to (progressBarY + dotSize + fontSize)
+  // Need: progressBarY to bottom distance >= dotSize + fontSize + small padding
 
-  const textSpaceInCells = maxCounterFontSize > 0
-    ? Math.ceil((maxCounterFontSize * 1.5) / drawOptions.sizeCell) // 1.5x for padding above and below text
+  const textSpaceInCellsTop = maxCounterFontSizeTop > 0
+    ? Math.ceil((maxCounterFontSizeTop * TEXT_PADDING_MULTIPLIER) / drawOptions.sizeCell)
+    : 0;
+
+  const textSpaceInCellsBottom = maxCounterFontSizeBottom > 0
+    ? Math.ceil((maxCounterFontSizeBottom * TEXT_PADDING_MULTIPLIER) / drawOptions.sizeCell)
     : 0;
 
   // Check if progress bar is hidden (only affects visibility, not layout)
   const hideProgressBar = animationOptions.contributionCounter?.hideProgressBar ?? false;
 
-  // Gap between grid and progress bar: max of 2 cells (original) or text space requirement
-  const gapCells = Math.max(2, textSpaceInCells);
+  // Gap between grid and progress bar: max of 2 cells (original) or text space requirement (for top text)
+  const gapCells = Math.max(2, textSpaceInCellsTop);
 
-  // Total extra space after grid: gap + progress bar (1) + bottom margin (2)
+  // Bottom margin: minBottomMarginCells guarantees enough space for bottom counter text and progress bar
+  const minBottomMarginPx = maxCounterFontSizeBottom * TEXT_PADDING_MULTIPLIER + drawOptions.sizeDot;
+  const minBottomMarginCells = Math.ceil(minBottomMarginPx / drawOptions.sizeCell);
+  const bottomMarginCells = Math.max(2, minBottomMarginCells);
+
+  // Total extra space after grid: gap + progress bar (1) + bottom margin
   // Note: hideProgressBar only sets opacity:0, doesn't change layout
-  const extraCells = gapCells + 3;
+  const extraCells = gapCells + 1 + bottomMarginCells;
 
   const width = (grid.width + 2) * drawOptions.sizeCell;
   const height = (grid.height + extraCells) * drawOptions.sizeCell;

@@ -295,7 +295,7 @@ export interface ProgressStackResult {
 /**
  * Text position mode for contribution counter.
  */
-export type CounterPosition = 'top-left' | 'top-right' | 'follow';
+export type CounterPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow';
 
 /**
  * Image configuration for counter display.
@@ -606,7 +606,7 @@ interface CounterState {
  * @param counterConfig - Counter configuration with contribution map
  * @param totalContributions - Total contribution count
  * @param width - Progress bar width (for position calculation)
- * @param position - Counter position mode ('top-left', 'top-right', 'follow')
+ * @param position - Counter position mode ('top-left', 'top-right', 'bottom-left', 'bottom-right', 'follow')
  * @param textOffsetX - Horizontal offset for follow mode
  * @param progressBarCells - Optional: cells used for progress bar (for X position calculation)
  * @returns Array of counter states and repeated cell count
@@ -616,7 +616,7 @@ function buildCounterStates(
   counterConfig: ContributionCounterConfig,
   totalContributions: number,
   width: number,
-  position: 'top-left' | 'top-right' | 'follow',
+  position: CounterPosition,
   textOffsetX: number,
   progressBarCells?: Array<{ x?: number; y?: number; t: number | null }>
 ): { states: CounterState[]; repeatedCellCount: number } {
@@ -647,7 +647,8 @@ function buildCounterStates(
     count: 0,
     percentage: '0.0',
     time: 0,
-    x: position === 'top-left' ? 0 : (position === 'top-right' ? width : 0),
+    x: (position === 'top-left' || position === 'bottom-left') ? 0 :
+       (position === 'top-right' || position === 'bottom-right') ? width : 0,
     currentContribution: 0
   });
 
@@ -701,9 +702,9 @@ function buildCounterStates(
     const percentage = ((cumulativeCount / totalContributions) * 100).toFixed(1);
 
     let x: number;
-    if (position === 'top-left') {
+    if (position === 'top-left' || position === 'bottom-left') {
       x = 0;
-    } else if (position === 'top-right') {
+    } else if (position === 'top-right' || position === 'bottom-right') {
       // Clamp x to width to prevent text overflow when using text-anchor="end"
       x = Math.min(cumulativeWidth, width);
     } else {
@@ -1271,10 +1272,15 @@ export const createProgressStack = async (
       // This is used for layout spacing, not for text baseline positioning
       const lineHeight = calculateLineHeight(fontSize, display.images);
 
-      // follow mode: same line as progress bar; others: above progress bar
+      // Positioning logic:
+      // - follow mode: same line as progress bar
+      // - top-left/top-right: above progress bar
+      // - bottom-left/bottom-right: below progress bar
       // Text baseline is positioned based on fontSize, not lineHeight
       // (lineHeight is only for calculating required vertical space in svg-builder.ts)
-      const textY = position === 'follow' ? (y + dotSize / 2) : (y - fontSize * 0.5);
+      const textY = position === 'follow' ? (y + dotSize / 2) :
+                    (position === 'bottom-left' || position === 'bottom-right') ? (y + dotSize + fontSize * 0.5) :
+                    (y - fontSize * 0.5);
       const textOffsetX = fontSize * 0.5; // Small offset
 
       // Build common text attributes
@@ -1282,7 +1288,7 @@ export const createProgressStack = async (
         "font-size": fontSize.toString(),
         "font-family": fontFamily,
         fill: textColor,
-        "text-anchor": position === 'top-right' ? 'end' : 'start',
+        "text-anchor": (position === 'top-right' || position === 'bottom-right') ? 'end' : 'start',
         "dominant-baseline": "middle",
       };
 
@@ -1302,7 +1308,7 @@ export const createProgressStack = async (
         svgElements.push(
           createElement("text", {
             class: `contrib-counter contrib-fixed-${displayIndex}`,
-            x: position === 'top-right' ? width.toFixed(1) : '0',
+            x: (position === 'top-right' || position === 'bottom-right') ? width.toFixed(1) : '0',
             y: textY.toString(),
             ...textAttrs,
           }).replace("/>", `>${display.text}</text>`)
@@ -1411,7 +1417,7 @@ export const createProgressStack = async (
             // Calculate starting X position based on alignment
             let currentX: number;
 
-            if (position === 'top-right') {
+            if (position === 'top-right' || position === 'bottom-right') {
               // For right-aligned content, calculate total width first
               // then start from (elem.x - totalWidth) so the rightmost element ends at elem.x
               let totalWidth = 0;

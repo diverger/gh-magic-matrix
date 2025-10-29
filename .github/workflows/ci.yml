@@ -43,8 +43,8 @@ jobs:
 
       - name: Build actions
         run: |
-          cd packages/blinking-contrib && bun run build
-          cd ../breathing-contrib && bun run build
+          cd packages/blinking-contrib && bun run build && \
+          cd ../breathing-contrib && bun run build && \
           cd ../snake && bun run build
 
       - name: Generate blinking contribution (dark theme)
@@ -98,7 +98,9 @@ jobs:
           INPUT_COUNTER_DISPLAYS: |
             [
               {"position": "top-left", "text": "GitHub Contributions", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
+              {"position": "bottom-left", "text": "diverger", "color": "#1f883d", "fontSize": 14, "fontWeight": "bold"},
               {"position": "top-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
+              {"position": "bottom-right", "prefix": "Total: ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#bf3989", "fontStyle": "italic"},
               {"position": "follow", "prefix": "🏆 ", "suffix": " commits", "showCount": true, "showPercentage": true, "color": "#d29922", "fontWeight": "bold", "fontStyle": "italic"}
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

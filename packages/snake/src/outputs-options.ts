@@ -50,7 +50,7 @@ export interface AnimationOptions {
     enabled: boolean;
     /** Array of counter displays (for showing multiple counters) */
     displays?: Array<{
-      position: 'top-left' | 'top-right' | 'follow';
+      position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow';
       text?: string; // Fixed text mode (if set, only this text is shown)
       prefix?: string;
       suffix?: string;
