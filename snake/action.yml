@@ -41,7 +41,7 @@ inputs:
     description: |
       JSON array of multiple counter displays. Each display can have different position, text, colors, and images.
 
-      Example with text:
+      Example with multiple positions:
         [{
           "position": "top-left",
           "text": "GitHub Contributions",
@@ -54,10 +54,15 @@ inputs:
           "showPercentage": false,
           "color": "#7ee787"
         }, {
+          "position": "bottom-left",
+          "prefix": "🔥 ",
+          "suffix": " streak",
+          "color": "#ffa657"
+        }, {
           "position": "follow",
           "prefix": "🎯 ",
           "suffix": " commits",
-          "color": "#ffa657"
+          "color": "#39d353"
         }]
 
       Example with image:
@@ -105,10 +110,12 @@ inputs:
         }]
 
       Fields:
-      - position: 'top-left' | 'top-right' | 'follow' (required)
-        - 'top-left': Fixed at left edge
-        - 'top-right': Right-aligned, clamped to canvas width to prevent overflow
-        - 'follow': Follows progress bar head
+      - position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' (required)
+        - 'top-left': Fixed at left edge, above progress bar
+        - 'top-right': Right-aligned, above progress bar, clamped to canvas width to prevent overflow
+        - 'bottom-left': Fixed at left edge, below progress bar
+        - 'bottom-right': Right-aligned, below progress bar, clamped to canvas width to prevent overflow
+        - 'follow': Follows progress bar head (on the same line)
       - text: Fixed text to display (if set, count/percentage are ignored)
       - prefix, suffix: Text around count/percentage
       - showCount, showPercentage: Control what to display (default: both true)

@@ -117,9 +117,11 @@ The `counter_displays` parameter accepts a JSON array. Each display can have:
 
 #### Position Options
 
-- **`top-left`**: Fixed position at the left edge above the grid
-- **`top-right`**: Right-aligned position above the grid (auto-clamped to canvas width)
-- **`follow`**: Follows the progress bar head as it moves
+- **`top-left`**: Fixed position at the left edge above the progress bar
+- **`top-right`**: Right-aligned position above the progress bar (auto-clamped to canvas width)
+- **`bottom-left`**: Fixed position at the left edge below the progress bar
+- **`bottom-right`**: Right-aligned position below the progress bar (auto-clamped to canvas width)
+- **`follow`**: Follows the progress bar head as it moves (on the same line)
 
 #### Text Display Options
 
@@ -199,7 +201,7 @@ The `counter_displays` parameter accepts a JSON array. Each display can have:
 
 | Field | Type | Description | Default |
 |-------|------|-------------|---------|
-| `position` | string | `'top-left'` \| `'top-right'` \| `'follow'` | required |
+| `position` | string | `'top-left'` \| `'top-right'` \| `'bottom-left'` \| `'bottom-right'` \| `'follow'` | required |
 | `text` | string | Static text (ignores count/percentage if set) | - |
 | `prefix` | string | Text before count/percentage | - |
 | `suffix` | string | Text after count/percentage | - |
