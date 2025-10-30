@@ -59,7 +59,7 @@ const counterDisplays = [
 
 // Set environment variables (as the GitHub Action would)
 process.env.INPUT_GITHUB_USER_NAME = "diverger";
-process.env.INPUT_OUTPUTS = `${OUTPUT_PATH}?palette=github-light&frame_duration=50`;  // 50ms每帧（默认100ms）
+process.env.INPUT_OUTPUTS = `${OUTPUT_PATH}?palette=github-light&frame_duration=50`;  // 50ms per frame (default 100ms)
 process.env.INPUT_SHOW_CONTRIBUTION_COUNTER = "true";
 process.env.INPUT_HIDE_PROGRESS_BAR = "true";  // Hide the progress bar
 process.env.INPUT_COUNTER_DEBUG = "true";  // Enable debug mode
