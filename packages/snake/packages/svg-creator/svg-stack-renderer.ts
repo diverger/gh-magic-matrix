@@ -312,7 +312,7 @@ export type CounterPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom
  * 1. Single static image: Just provide `url`
  * 2. Sprite sheet: Provide `url` and `sprite` config
  * 3. Multiple separate images: Provide `urlFolder` with framePattern
- * 4. Contribution-level based images: Use `Lx` placeholder in framePattern
+ * 4. Level-based images: Use `Lx` placeholder in framePattern
  *    - `Lx.png` - All levels use same image (x will be replaced with level 0-4)
  *    - `Lx-{n}.png` - Each level has animated frames (x=level, n=frame number)
  *    - Example files: L0-0.png, L0-1.png, L1.png, L2-0.png, L2-1.png, L2-2.png
@@ -441,11 +441,11 @@ export interface CounterImageConfig {
     /**
      * UNIFIED: Number of frames (works for all modes)
      * - For sync/loop modes: total frame count across all cells
-     * - For contribution-level mode: frames per level (or array for different counts per level)
+     * - For level mode: frames per level (or array for different counts per level)
      *
      * Examples:
      * - `framesPerLevel: 8` with mode 'sync' → 8 frames cycling (run-0.png ~ run-7.png)
-     * - `framesPerLevel: 8` with mode 'contribution-level' → 8 frames per level (L0.png, L1.png, ...)
+     * - `framesPerLevel: 8` with mode 'level' → 8 frames per level (L0.png, L1.png, ...)
      * - `framesPerLevel: [1,2,4,6,8]` → level 0 has 1 frame, level 4 has 8 frames
      */
     framesPerLevel?: number | number[];
@@ -471,22 +471,22 @@ export interface CounterImageConfig {
      * Animation mode:
      * - 'sync': Synced with progress bar (frame changes with progress steps)
      * - 'loop': Independent looping animation (CSS-based)
-     * - 'contribution-level': Images change based on contribution level (0-4)
+     * - 'level': Images change based on contribution level (0-4)
      *   When using this mode:
      *   - With urlFolder + Lx pattern: Each level can have static/animated frames
      *     (Lx.png for static, Lx-{n}.png for frames)
      *   - With urlFolder + Lx pattern + sprite sheet: Each level is a separate sprite sheet
      *     (Lx.png where each file is a sprite sheet with frames inside)
      */
-    mode?: 'sync' | 'loop' | 'contribution-level';
+    mode?: 'sync' | 'loop' | 'level';
     /**
      * Number of contribution levels (default: 5, matching GitHub's contribution grid)
-     * Used when mode is 'contribution-level'
+     * Used when mode is 'level'
      */
     contributionLevels?: number;
     /**
      * Use sprite sheet per contribution level instead of separate frame files
-     * When true with contribution-level mode:
+     * When true with level mode:
      *   - Files: L0.png, L1.png, L2.png, L3.png, L4.png (each is a sprite sheet)
      *   - Each sprite sheet contains frames specified by framesPerLevel
      *   - frameWidth and frameHeight define the dimensions of each frame in the sprite
@@ -504,7 +504,7 @@ export interface CounterImageConfig {
      * - With 5 frames: shows frame 3 (15/20 * 4 = 3)
      *
      * Default: false (cycles through frames sequentially)
-     * Note: Only used when mode is 'sync', not 'contribution-level'
+     * Note: Only used when mode is 'sync', not 'level'
      */
     dynamicSpeed?: boolean;
     /**
@@ -952,7 +952,7 @@ async function preloadCounterImages(
     const levelMap = new Map<number, Map<number, string>>();
     imageDataMap.set(imgIdx, levelMap);
 
-    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+    const isContributionLevel = imageConfig.sprite?.mode === 'level';
     const framesPerLevel = imageConfig.sprite?.framesPerLevel;
     const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
 
@@ -960,7 +960,7 @@ async function preloadCounterImages(
     const frameCount = effectiveFrameCount;
 
     if (isContributionLevel && imageConfig.urlFolder) {
-      // Contribution-level mode: Lx pattern with multiple levels
+      // Level mode: Lx pattern with multiple levels
       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
       const framePattern = imageConfig.framePattern || 'Lx.png';
       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
@@ -1393,7 +1393,7 @@ export const createProgressStack = async (
           sortedCells  // Pass progress bar cells for X position calculation
         );
 
-        // Track level distribution for debugging (contribution-level mode)
+        // Track level distribution for debugging (level mode)
         const levelDistribution = new Map<number, number>();
 
         // Track animation state for smooth level transitions
@@ -1537,14 +1537,14 @@ export const createProgressStack = async (
                     let level = 0;
                     let frameIndex = 0;
 
-                    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+                    const isContributionLevel = imageConfig.sprite?.mode === 'level';
                     const framesPerLevelValue = imageConfig.sprite?.framesPerLevel;
                     const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
                     const isMultiFrame = imageConfig.sprite && totalFrames > 1;
                     const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
 
                     if (isContributionLevel) {
-                      // Contribution-level mode: select level based on contribution value
+                      // Level mode: select level based on contribution value
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
 
                       // Calculate current level from contribution (includes repeated cells with contribution=0 → L0)
@@ -1853,7 +1853,7 @@ export const createProgressStack = async (
             });
           }
 
-          // Log level distribution for contribution-level mode
+          // Log level distribution for level mode
           if (counterConfig.debug && levelDistribution.size > 0) {
             console.log(`📊 Level distribution across ${textElements.length} frames:`);
             for (let i = 0; i < 5; i++) {

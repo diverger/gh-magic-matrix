@@ -334,4 +334,17 @@ const applyAnimationOptions = (animationOptions: AnimationOptions, searchParams:
       animationOptions.frameDuration = frameDuration;
     }
   }
+
+  if (searchParams.has("hideProgressBar")) {
+    const hideProgressBar = searchParams.get("hideProgressBar");
+    const hideValue = hideProgressBar === "true" || hideProgressBar === "1";
+
+    // Ensure contributionCounter exists
+    if (!animationOptions.contributionCounter) {
+      animationOptions.contributionCounter = { enabled: false };
+    }
+
+    // Set hideProgressBar in contributionCounter where rendering code expects it
+    animationOptions.contributionCounter.hideProgressBar = hideValue;
+  }
 };

@@ -7,8 +7,8 @@
  * 2. free-loop-spritesheet - Uniform movement + independent loop (sprite sheet)
  * 3. free-loop-multifile-time - Uniform movement + time-based loop (may skip frames)
  * 4. free-loop-multifile-smooth - Uniform movement + index-based loop (no skipping)
- * 5. free-contribution-level - Uniform movement + L0-L4 level switching
- * 6. follow-contribution-level - Follow progress bar + L0-L4 level switching
+ * 5. free-level - Uniform movement + L0-L4 level switching
+ * 6. follow-level - Follow progress bar + L0-L4 level switching
  * 7. follow-sync - Follow progress bar + sync frame advance (uses contributionCellsEaten)
  * 8. top-left-sync - Fixed position + sync frame advance
  * 9. multi-display-combo - Multiple counter combination display
@@ -165,11 +165,11 @@ const TEST_CONFIGS = [
     }
   },
 
-  // 4. free + contribution-level: uniform movement + level switching based on contribution value (using sprite sheet)
+  // 4. free + level: uniform movement + level switching based on contribution value (using sprite sheet)
   {
-    name: "free-contribution-level",
+    name: "free-level",
     position: "free",
-    timeMode: "contribution-level",
+    timeMode: "level",
     description: "Uniform movement, switch between L0-L4 levels based on contribution value (sprite sheet mode)",
     config: {
       position: "free",
@@ -186,7 +186,7 @@ const TEST_CONFIGS = [
         textAnchorY: 1.0,     // Text baseline align
         spacing: 0,
         sprite: {
-          mode: "contribution-level",
+          mode: "level",
           contributionLevels: 5,
           framesPerLevel: 8,        // 8 frames per level
           frameWidth: 48,           // Frame width in sprite sheet
@@ -198,11 +198,11 @@ const TEST_CONFIGS = [
     }
   },
 
-  // 5. follow + contribution-level: Follow progress bar + level switching (sprite sheet, 8-frame animation)
+  // 5. follow + level: Follow progress bar + level switching (sprite sheet, 8-frame animation)
   {
-    name: "follow-contribution-level",
+    name: "follow-level",
     position: "follow",
-    timeMode: "contribution-level",
+    timeMode: "level",
     description: "Follow progress bar head, switch L0-L4 levels based on contribution value (8 frames per level)",
     config: {
       position: "follow",
@@ -219,7 +219,7 @@ const TEST_CONFIGS = [
         textAnchorY: 1.0,     // Text anchor Y (1.0 = baseline)
         spacing: 0,
         sprite: {
-          mode: "contribution-level",
+          mode: "level",
           contributionLevels: 5,
           framesPerLevel: 8,        // 8 frames per level
           frameWidth: 48,           // Frame width in sprite sheet
@@ -308,7 +308,7 @@ const TEST_CONFIGS = [
           width: 32,
           height: 32,
           sprite: {
-            mode: "contribution-level",
+            mode: "level",
             framesPerLevel: 1,
             contributionLevels: 5
           }
@@ -402,7 +402,7 @@ async function runAllTests() {
   let failed = 0;
 
   // Can test specific configs only (uncomment to enable)
-  // const testsToRun = TEST_CONFIGS.filter(c => c.name === "follow-contribution-level");
+  // const testsToRun = TEST_CONFIGS.filter(c => c.name === "follow-level");
   const testsToRun = TEST_CONFIGS;
 
   for (const config of testsToRun) {

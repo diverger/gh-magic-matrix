@@ -16,8 +16,8 @@ bun scripts/snake/test-all-mode-combinations.ts
 2. `free-loop-spritesheet` - Uniform movement + independent loop (sprite sheet, 8 frames)
 3. `free-loop-multifile-time` - Uniform movement + time-based loop (may skip frames)
 4. `free-loop-multifile-smooth` - Uniform movement + index-based loop (no frame skipping)
-5. `free-contribution-level` - Uniform movement + L0-L4 level switching
-6. `follow-contribution-level` - Follow progress bar + L0-L4 level switching
+5. `free-level` - Uniform movement + L0-L4 level switching
+6. `follow-level` - Follow progress bar + L0-L4 level switching
 7. `follow-sync` - Follow progress bar + sync frame advance (uses `contributionCellsEaten`)
 8. `top-left-sync` - Fixed position + sync frame advance
 9. `multi-display-combo` - Multiple counter combination showcase
@@ -132,7 +132,7 @@ Generated SVG files are in the `test-outputs/` directory and can be opened direc
 - **loop**: Independent loop animation
   - Time-based: Uses `fps` parameter
   - Index-based: Uses `loopSpeed` parameter (recommended)
-- **contribution-level**: Switch between L0-L4 levels based on contribution value
+- **level**: Switch between L0-L4 levels based on contribution value
 
 ### Sliding Phenomenon
 When position moves but frame stays the same, the sprite appears to "slide".
@@ -144,11 +144,11 @@ When position moves but frame stays the same, the sprite appears to "slide".
 
 ## 📈 Test Coverage
 
-| Position Mode | Sync | Loop | Contribution-Level |
-|--------------|------|------|-------------------|
-| Free         | ✅   | ✅   | ✅                |
-| Follow       | ✅   | -    | ✅                |
-| Top-left     | ✅   | -    | -                 |
-| Multi        | ✅   | ✅   | -                 |
+| Position Mode | Sync | Loop | Level |
+|--------------|------|------|-------|
+| Free         | ✅   | ✅   | ✅    |
+| Follow       | ✅   | -    | ✅    |
+| Top-left     | ✅   | -    | -     |
+| Multi        | ✅   | ✅   | -     |
 
 **Total**: 9 test configurations, 100% pass rate 🎉

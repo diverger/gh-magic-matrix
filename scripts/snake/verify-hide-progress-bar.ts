@@ -69,9 +69,12 @@ async function testProgressBarVisible() {
     outputs.forEach(output => {
       if (output) {
         output.animationOptions = output.animationOptions || {};
+        // Preserve hideProgressBar from URL params when setting up counter
+        const urlHideProgressBar = output.animationOptions.contributionCounter?.hideProgressBar;
         output.animationOptions.contributionCounter = {
           enabled: true,
           displays: JSON.parse(process.env.INPUT_COUNTER_DISPLAYS || "[]"),
+          hideProgressBar: urlHideProgressBar, // Preserve from URL
         };
       }
     });
@@ -153,9 +156,12 @@ async function testProgressBarHidden() {
     outputs.forEach(output => {
       if (output) {
         output.animationOptions = output.animationOptions || {};
+        // Preserve hideProgressBar from URL params when setting up counter
+        const urlHideProgressBar = output.animationOptions.contributionCounter?.hideProgressBar;
         output.animationOptions.contributionCounter = {
           enabled: true,
           displays: JSON.parse(process.env.INPUT_COUNTER_DISPLAYS || "[]"),
+          hideProgressBar: urlHideProgressBar, // Preserve from URL
         };
       }
     });

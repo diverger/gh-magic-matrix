@@ -118,6 +118,7 @@ export const createSvg = async (
     : 0;
 
   // Check if progress bar is hidden (only affects visibility, not layout)
+  // Support both top-level and counter-level hideProgressBar
   const hideProgressBar = animationOptions.contributionCounter?.hideProgressBar ?? false;
 
   // Gap between grid and progress bar: max of 2 cells (original) or text space requirement (for top text)

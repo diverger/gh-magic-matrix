@@ -255,7 +255,7 @@ jobs:
                     "textAnchorY": 1.0,
                     "spacing": 0,
                     "sprite": {
-                      "mode": "contribution-level",
+                      "mode": "level",
                       "contributionLevels": 5,
                       "framesPerLevel": 8,
                       "frameWidth": 48,
@@ -293,7 +293,7 @@ jobs:
                     "textAnchorY": 1.0,
                     "spacing": 8,
                     "sprite": {
-                      "mode": "contribution-level",
+                      "mode": "level",
                       "contributionLevels": 5,
                       "framesPerLevel": 8,
                       "frameWidth": 48,
