@@ -86,6 +86,7 @@ const config = {
   counterDisplays: [
     {
       position: "follow",
+      mode: "level",
       prefix: "{img:0} ",
       suffix: "",
       fontSize: 14,
@@ -100,7 +101,6 @@ const config = {
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
-            mode: "level",
             contributionLevels: 5,
             framesPerLevel: 8,
             frameWidth: 48,

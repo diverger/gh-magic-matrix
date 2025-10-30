@@ -82,6 +82,7 @@ inputs:
       Example with sprite sheet (synced with progress):
         [{
           "position": "follow",
+          "mode": "sync",
           "images": [{
             "url": "https://example.com/sprite.png",
             "width": 128,
@@ -89,8 +90,7 @@ inputs:
             "anchor": "center",
             "sprite": {
               "frames": 4,
-              "layout": "horizontal",
-              "mode": "sync"
+              "layout": "horizontal"
             }
           }]
         }]
@@ -98,6 +98,7 @@ inputs:
       Example with sprite sheet (independent loop):
         [{
           "position": "follow",
+          "mode": "loop",
           "images": [{
             "url": "https://example.com/sprite.png",
             "width": 128,
@@ -107,7 +108,6 @@ inputs:
             "sprite": {
               "frames": 4,
               "layout": "horizontal",
-              "mode": "loop",
               "fps": 10
             }
           }]
@@ -116,13 +116,13 @@ inputs:
       Example with level-based sprite switching:
         [{
           "position": "follow",
+          "mode": "level",
           "images": [{
             "urlFolder": "assets",
             "framePattern": "L{n}.png",
             "width": 64,
             "height": 86,
             "sprite": {
-              "mode": "level",
               "contributionLevels": 5,
               "framesPerLevel": 8,
               "frameWidth": 48,
@@ -139,6 +139,10 @@ inputs:
         - 'bottom-left': Fixed at left edge, below progress bar
         - 'bottom-right': Right-aligned, below progress bar, clamped to canvas width to prevent overflow
         - 'follow': Follows progress bar head (on the same line)
+      - mode: 'sync' | 'loop' | 'level' - Animation mode for all images in this display (default: 'sync')
+        - 'sync': Frame changes synchronized with progress bar steps
+        - 'loop': Independent looping animation (continuous)
+        - 'level': Frame changes based on contribution level (0-4)
       - text: Fixed text to display (if set, count/percentage are ignored)
       - prefix, suffix: Text around count/percentage
       - showCount, showPercentage: Control what to display (default: both true)
@@ -184,10 +188,6 @@ inputs:
           - frames: Number of animation frames (required)
           - frameWidth, frameHeight: Frame dimensions (sprite sheet mode only, auto-calculated if not provided)
           - layout: 'horizontal' or 'vertical' (sprite sheet mode only, default: horizontal)
-          - mode: Animation mode (default: 'sync')
-            - 'sync': Frame changes synchronized with progress bar steps
-            - 'loop': Independent looping animation (continuous)
-            - 'level': Frame changes based on contribution level (0-4)
           - fps: Frames per second for loop mode (e.g., 10)
           - duration: Animation duration in ms for loop mode (alternative to fps)
           - contributionLevels: Number of contribution levels for level mode (default: 5)

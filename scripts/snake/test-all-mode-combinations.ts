@@ -56,6 +56,7 @@ const TEST_CONFIGS = [
     description: "Uniform movement, frame advance per step (14-frame walk animation)",
     config: {
       position: "free",
+      mode: "sync",
       prefix: "{img:0} ",
       suffix: " contributions",
       fontSize: 14,
@@ -65,7 +66,6 @@ const TEST_CONFIGS = [
         width: 60,
         height: 48,
         sprite: {
-          mode: "sync",
           framesPerLevel: 14,       // 14-frame animation
           animationSpeed: 1.0       // 1.0 = smooth, no frame skipping
         }
@@ -81,6 +81,7 @@ const TEST_CONFIGS = [
     description: "Uniform movement, independent loop animation (sprite sheet, 8 frames)",
     config: {
       position: "free",
+      mode: "loop",
       showCount: true,
       showPercentage: true,
       prefix: "{img:0}",
@@ -94,7 +95,6 @@ const TEST_CONFIGS = [
         textAnchorY: 1.0,     // Text baseline align
         spacing: 0,
         sprite: {
-          mode: "loop",
           framesPerLevel: 8,  // 8-frame loop animation
           frameWidth: 48,
           frameHeight: 64,
@@ -113,6 +113,7 @@ const TEST_CONFIGS = [
     description: "Uniform movement, independent loop animation (multi-file, 14 frames, time-based, may skip frames)",
     config: {
       position: "free",
+      mode: "loop",
       showCount: true,
       showPercentage: true,
       prefix: "{img:0}",
@@ -127,7 +128,6 @@ const TEST_CONFIGS = [
         textAnchorY: 0.5,
         spacing: 5,
         sprite: {
-          mode: "loop",
           framesPerLevel: 14,  // 14-frame loop animation
           fps: 20  // 20fps (time-based, may skip frames)
         }
@@ -143,6 +143,7 @@ const TEST_CONFIGS = [
     description: "Uniform movement, independent loop animation (multi-file, 14 frames, index-based, no frame skipping)",
     config: {
       position: "free",
+      mode: "loop",
       showCount: true,
       showPercentage: true,
       prefix: "{img:0}",
@@ -157,7 +158,6 @@ const TEST_CONFIGS = [
         textAnchorY: 0.5,
         spacing: 5,
         sprite: {
-          mode: "loop",
           framesPerLevel: 14,  // 14-frame loop animation
           loopSpeed: 1.0  // Index-based, advance 1 frame per step (no skipping)
         }
@@ -173,6 +173,7 @@ const TEST_CONFIGS = [
     description: "Uniform movement, switch between L0-L4 levels based on contribution value (sprite sheet mode)",
     config: {
       position: "free",
+      mode: "level",
       prefix: "{img:0} ",
       suffix: " contributions",
       fontSize: 14,
@@ -186,7 +187,6 @@ const TEST_CONFIGS = [
         textAnchorY: 1.0,     // Text baseline align
         spacing: 0,
         sprite: {
-          mode: "level",
           contributionLevels: 5,
           framesPerLevel: 8,        // 8 frames per level
           frameWidth: 48,           // Frame width in sprite sheet
@@ -206,6 +206,7 @@ const TEST_CONFIGS = [
     description: "Follow progress bar head, switch L0-L4 levels based on contribution value (8 frames per level)",
     config: {
       position: "follow",
+      mode: "level",
       prefix: "{img:0} ",
       suffix: "",
       fontSize: 14,
@@ -219,7 +220,6 @@ const TEST_CONFIGS = [
         textAnchorY: 1.0,     // Text anchor Y (1.0 = baseline)
         spacing: 0,
         sprite: {
-          mode: "level",
           contributionLevels: 5,
           framesPerLevel: 8,        // 8 frames per level
           frameWidth: 48,           // Frame width in sprite sheet
@@ -239,6 +239,7 @@ const TEST_CONFIGS = [
     description: "Follow progress bar, frame advance only when eating colored cells (animation pauses on empty cells)",
     config: {
       position: "follow",
+      mode: "sync",
       prefix: "{img:0} ",
       suffix: " contributions",
       fontSize: 14,
@@ -248,7 +249,6 @@ const TEST_CONFIGS = [
         width: 60,
         height: 48,
         sprite: {
-          mode: "sync",
           framesPerLevel: 14,
           animationSpeed: 1.0
         }
@@ -275,10 +275,11 @@ const TEST_CONFIGS = [
     name: "multi-display-combo",
     position: "multi",
     timeMode: "mixed",
-    description: "Multiple counter combo: free+loop, follow+sync, top-left fixed text",
+    description: "Multiple counter combo: free+loop, follow+level, top-left fixed text",
     multiDisplays: [
       {
         position: "free",
+        mode: "loop",
         showCount: false,
         showPercentage: false,
         prefix: "{img:0}",
@@ -288,7 +289,6 @@ const TEST_CONFIGS = [
           width: 48,
           height: 48,
           sprite: {
-            mode: "loop",
             framesPerLevel: 8,
             frameWidth: 48,
             frameHeight: 48,
@@ -299,6 +299,7 @@ const TEST_CONFIGS = [
       },
       {
         position: "follow",
+        mode: "level",
         prefix: "{img:0} ",
         suffix: "",
         fontSize: 12,
@@ -308,7 +309,6 @@ const TEST_CONFIGS = [
           width: 32,
           height: 32,
           sprite: {
-            mode: "level",
             framesPerLevel: 1,
             contributionLevels: 5
           }

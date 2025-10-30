@@ -468,20 +468,8 @@ export interface CounterImageConfig {
      */
     layout?: 'horizontal' | 'vertical';
     /**
-     * Animation mode:
-     * - 'sync': Synced with progress bar (frame changes with progress steps)
-     * - 'loop': Independent looping animation (CSS-based)
-     * - 'level': Images change based on contribution level (0-4)
-     *   When using this mode:
-     *   - With urlFolder + Lx pattern: Each level can have static/animated frames
-     *     (Lx.png for static, Lx-{n}.png for frames)
-     *   - With urlFolder + Lx pattern + sprite sheet: Each level is a separate sprite sheet
-     *     (Lx.png where each file is a sprite sheet with frames inside)
-     */
-    mode?: 'sync' | 'loop' | 'level';
-    /**
      * Number of contribution levels (default: 5, matching GitHub's contribution grid)
-     * Used when mode is 'level'
+     * Used when display mode is 'level'
      */
     contributionLevels?: number;
     /**
@@ -504,7 +492,7 @@ export interface CounterImageConfig {
      * - With 5 frames: shows frame 3 (15/20 * 4 = 3)
      *
      * Default: false (cycles through frames sequentially)
-     * Note: Only used when mode is 'sync', not 'level'
+     * Note: Only used when display mode is 'sync', not 'level'
      */
     dynamicSpeed?: boolean;
     /**
@@ -577,6 +565,14 @@ export interface CounterDisplayConfig {
   fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
   /** Font style: 'normal' or 'italic' */
   fontStyle?: 'normal' | 'italic';
+  /**
+   * Animation mode for all images in this display:
+   * - 'sync': Frame changes synchronized with progress bar steps
+   * - 'loop': Independent looping animation (continuous)
+   * - 'level': Frame changes based on contribution level (0-4)
+   * Default: 'sync'
+   */
+  mode?: 'sync' | 'loop' | 'level';
   /**
    * Array of images that can be referenced in text using {img:0}, {img:1}, etc.
    * Images will be inserted at the placeholder position in the text.
@@ -952,7 +948,8 @@ async function preloadCounterImages(
     const levelMap = new Map<number, Map<number, string>>();
     imageDataMap.set(imgIdx, levelMap);
 
-    const isContributionLevel = imageConfig.sprite?.mode === 'level';
+    const displayMode = display.mode || 'sync'; // Default to sync mode
+    const isContributionLevel = displayMode === 'level';
     const framesPerLevel = imageConfig.sprite?.framesPerLevel;
     const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
 
@@ -1537,11 +1534,12 @@ export const createProgressStack = async (
                     let level = 0;
                     let frameIndex = 0;
 
-                    const isContributionLevel = imageConfig.sprite?.mode === 'level';
+                    const displayMode = display.mode || 'sync'; // Default to sync mode
+                    const isContributionLevel = displayMode === 'level';
                     const framesPerLevelValue = imageConfig.sprite?.framesPerLevel;
                     const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
                     const isMultiFrame = imageConfig.sprite && totalFrames > 1;
-                    const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
+                    const isDynamicSpeed = isMultiFrame && displayMode === 'sync' && imageConfig.sprite?.dynamicSpeed;
 
                     if (isContributionLevel) {
                       // Level mode: select level based on contribution value
@@ -1742,7 +1740,7 @@ export const createProgressStack = async (
                       // L0 also animates! Use speed factor based on level
                       const speedFactor = currentLevel === 0 ? 1 : Math.pow(2, currentLevel - 1);
                       frameIndex = Math.floor((index * speedFactor) % totalFrames);
-                    } else if (isMultiFrame && imageConfig.sprite?.mode === 'sync') {
+                    } else if (isMultiFrame && displayMode === 'sync') {
                       // Sequential sync mode: cycle through frames with fixed speed
                       // FREE MODE: Use index (all steps) to avoid sliding when position moves but frame doesn't
                       // FOLLOW MODE: Use contributionCellsEaten (colored cells only) so sprite pauses on empty cells
@@ -1753,7 +1751,7 @@ export const createProgressStack = async (
                       if (counterConfig.debug && index < 20) {
                         console.log(`🔄 Sync mode frame ${index}: position=${position}, stepCounter=${stepCounter} (index=${index}, contrib=${contributionCellsEaten}), animSpeed=${animSpeed}, frameIdx=${frameIndex}/${totalFrames}`);
                       }
-                    } else if (isMultiFrame && imageConfig.sprite?.mode === 'loop') {
+                    } else if (isMultiFrame && displayMode === 'loop') {
                       // Loop mode: independent animation cycling
                       const loopSpeed = imageConfig.sprite?.loopSpeed;
 
