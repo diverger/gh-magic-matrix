@@ -10,15 +10,15 @@
  *   2. Replace the placeholder with your GitHub token
  *
  * Usage:
- *   bun scripts/snake/test-multi-sprite-local.ts
+ *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Example:
  *   # Use token from file
- *   bun scripts/snake/test-multi-sprite-local.ts
+ *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Run from repository root:
  *   cd gh-magic-matrix
- *   bun scripts/snake/test-multi-sprite-local.ts
+ *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  */
 
 import * as fs from "fs";
@@ -73,7 +73,7 @@ console.log("");
 const config = {
   // User and output
   githubUserName: "diverger",
-  outputPath: path.join(REPO_ROOT, "test-outputs/multi-sprite-local.svg"),  // Absolute path to output
+  outputPath: path.join(REPO_ROOT, "test-outputs/multi-sprite-sheet-contrib.svg"),  // Absolute path to output
 
   // Animation settings
   frameDuration: "100",
