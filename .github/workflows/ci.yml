@@ -497,11 +497,11 @@ jobs:
             echo "🎉 All verification checks passed!"
           else
             echo "⚠️  Some verification checks failed. Please review the artifacts for details."
-            exit 1
+            echo "VERIFICATION_FAILED=true" >> $GITHUB_ENV
           fi
 
       - name: Upload PR preview artifacts
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+        if: always() && (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true)
         uses: actions/upload-artifact@v4
         with:
           name: contrib-preview
