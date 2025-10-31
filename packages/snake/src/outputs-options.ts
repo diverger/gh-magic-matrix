@@ -337,11 +337,13 @@ const applyAnimationOptions = (animationOptions: AnimationOptions, searchParams:
 
   if (searchParams.has("hideProgressBar")) {
     const hideProgressBar = searchParams.get("hideProgressBar");
-    const hideValue = hideProgressBar === "true" || hideProgressBar === "1";
+    // Treat missing/empty value as true: ?hideProgressBar or ?hideProgressBar= means hide it
+    // Also accept explicit "true" or "1"
+    const hideValue = hideProgressBar === null || hideProgressBar === "" || hideProgressBar === "true" || hideProgressBar === "1";
 
-    // Ensure contributionCounter exists
+    // Ensure contributionCounter exists with enabled:true to preserve intent
     if (!animationOptions.contributionCounter) {
-      animationOptions.contributionCounter = { enabled: false };
+      animationOptions.contributionCounter = { enabled: true };
     }
 
     // Set hideProgressBar in contributionCounter where rendering code expects it

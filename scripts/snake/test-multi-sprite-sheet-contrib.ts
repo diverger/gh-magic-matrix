@@ -24,11 +24,26 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import type { OutputConfig } from "../../packages/snake/src/outputs-options";
 
 // Get the repository root directory (2 levels up from this script)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const REPO_ROOT = path.resolve(__dirname, "../..");
+const REPO_ROOT = path.join(__dirname, "../../");
+
+/**
+ * Type guard to check if an object matches the OutputConfig interface shape
+ */
+function isOutputConfig(o: any): o is OutputConfig {
+  return (
+    typeof o === "object" &&
+    o !== null &&
+    typeof o.filename === "string" &&
+    typeof o.format === "string" &&
+    typeof o.drawOptions === "object" &&
+    typeof o.animationOptions === "object"
+  );
+}
 
 /**
  * Load GitHub token from file or environment
@@ -181,11 +196,10 @@ async function runTest() {
     const fd = Number(process.env.INPUT_FRAME_DURATION || "0");
     if (Number.isFinite(fd) && fd > 0) {
       outputs.forEach(o => {
-        if (!o) return;
+        if (!isOutputConfig(o)) return;
         // Ensure animationOptions exists and set frameDuration
-        const output = o as any;
-        output.animationOptions = output.animationOptions || {};
-        output.animationOptions.frameDuration = fd;
+        o.animationOptions = o.animationOptions || {};
+        o.animationOptions.frameDuration = fd;
       });
     }
 

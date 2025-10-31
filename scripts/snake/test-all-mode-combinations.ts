@@ -25,6 +25,16 @@
 import * as fs from "fs";
 import * as path from "path";
 
+// TypeScript interface for test configuration
+interface TestConfig {
+  name: string;
+  position: string;
+  timeMode: string;
+  description: string;
+  config?: Record<string, unknown>;
+  multiDisplays?: Array<Record<string, unknown>>;
+}
+
 // Get repo root - use __dirname equivalent for bun
 const REPO_ROOT = path.resolve(process.cwd());
 
@@ -41,7 +51,7 @@ function loadGitHubToken(): string {
 }
 
 console.log("🧪 Testing All Position Mode × Time Mode Combinations");
-console.log("=" .repeat(60));
+console.log("=".repeat(60));
 console.log("");
 
 const githubToken = loadGitHubToken();
@@ -325,7 +335,7 @@ const TEST_CONFIGS = [
   }
 ];
 
-async function runTest(testConfig: any) {
+async function runTest(testConfig: TestConfig) {
   const { name, position, timeMode, description, config, multiDisplays } = testConfig;
 
   console.log(`\n🧪 Test: ${name}`);
@@ -335,13 +345,14 @@ async function runTest(testConfig: any) {
 
   const OUTPUT_PATH = path.join(REPO_ROOT, `test-outputs/${name}.svg`);
 
-  const displays = multiDisplays || [config];
+  const displays = (multiDisplays || [config]).filter((d): d is Record<string, unknown> => d !== undefined);
 
   // Configure environment variables
   process.env.INPUT_GITHUB_USER_NAME = "diverger";
   process.env.INPUT_OUTPUTS = `${OUTPUT_PATH}?palette=github-light`;
   process.env.INPUT_SHOW_CONTRIBUTION_COUNTER = "true";
-  process.env.INPUT_HIDE_PROGRESS_BAR = "false";  // Show progress bar
+  const hideProgressBar = false;  // Show progress bar
+  process.env.INPUT_HIDE_PROGRESS_BAR = hideProgressBar ? "true" : "false";
   process.env.INPUT_COUNTER_DISPLAYS = JSON.stringify(displays);
   process.env.GITHUB_TOKEN = githubToken;
 
@@ -351,14 +362,21 @@ async function runTest(testConfig: any) {
 
     const outputs = parseOutputsOption([process.env.INPUT_OUTPUTS || ""]);
 
+    // Validate outputs is a non-empty array
+    if (!Array.isArray(outputs) || outputs.length === 0) {
+      console.warn(`⚠️  Warning: parseOutputsOption returned invalid or empty outputs for displays: ${JSON.stringify(displays)}`);
+      console.warn(`   INPUT_OUTPUTS was: ${process.env.INPUT_OUTPUTS}`);
+      return false;
+    }
+
     // Apply counter configuration
     outputs.forEach(output => {
       if (output) {
         output.animationOptions = output.animationOptions || {};
         output.animationOptions.contributionCounter = {
           enabled: true,
-          displays: displays,
-          hideProgressBar: process.env.INPUT_HIDE_PROGRESS_BAR === "true",  // Use the env var
+          displays: displays as any,
+          hideProgressBar: hideProgressBar,
         };
       }
     });
@@ -372,7 +390,12 @@ async function runTest(testConfig: any) {
     outputs.forEach((out, i) => {
       const result = results[i];
       if (out?.filename && result) {
-        fs.writeFileSync(out.filename, result);
+        try {
+          fs.writeFileSync(out.filename, result);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.warn(`⚠️  Warning: Failed to write file "${out.filename}": ${errorMessage}`);
+        }
       }
     });
 

@@ -13,7 +13,7 @@ inputs:
   github_token:
     description: 'GitHub token used to fetch the contribution calendar. Defaults to the action token if empty.'
     required: false
-    default: ${{ github.token }}
+    default: ''
   outputs:
     description: |
       List of SVG files to generate.

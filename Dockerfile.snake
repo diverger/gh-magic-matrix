@@ -1,24 +1,32 @@
 # Snake GitHub Action Dockerfile
-FROM oven/bun:1-alpine
 
-LABEL maintainer="diverger"
-LABEL description="Snake GitHub contribution graph animation using advanced pathfinding algorithms"
+# Builder stage
+FROM oven/bun:1-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy source and packages
-COPY packages/snake/src ./src/
+# Copy package manifests and workspace packages first for better caching
 COPY packages/snake/packages ./packages/
 COPY packages/snake/package.json ./
 COPY packages/snake/tsconfig.json ./
+RUN bun install
 
-# Install dependencies and build
-RUN bun install && \
-    bun run build && \
+# Copy source last to keep dependency cache warm
+COPY packages/snake/src ./src/
+
+# Build and verify
+RUN bun run build && \
     echo "Build complete. Verifying dist/index.js..." && \
     ls -la dist/ && \
     test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && exit 1)
 
-# Set entry point
-ENTRYPOINT ["bun", "/app/dist/index.js"]
+# Final runtime stage
+FROM oven/bun:1-alpine
+
+LABEL maintainer="diverger"
+LABEL description="Snake GitHub contribution graph animation with redundant animation effects"
+
+WORKDIR /app
+
+# Copy only the built artifact from builder
+COPY --from=builder /app/dist ./dist

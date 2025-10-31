@@ -17,8 +17,6 @@ if [ ! -f "package.json" ] || [ ! -d "packages/breathing-contrib" ]; then
     exit 1
 fi
 
-set +e
-
 BREATHING_DIR="packages/breathing-contrib"
 ERRORS=0
 
@@ -44,7 +42,10 @@ done
 echo ""
 echo "🔧 Checking package configuration..."
 
-cd "$BREATHING_DIR"
+cd "$BREATHING_DIR" || {
+    echo "❌ Error: Failed to change to directory $BREATHING_DIR"
+    exit 1
+}
 
 # Check package.json structure
 if jq -e '.scripts.build' package.json > /dev/null 2>&1; then
@@ -63,6 +64,8 @@ if [ ! -d "node_modules" ]; then
     npm install --silent
 fi
 
+# Temporarily disable exit-on-error for build check
+set +e
 if npm run build --silent; then
     echo "  ✅ Build successful"
 
@@ -77,6 +80,8 @@ else
     echo "  ❌ Build failed"
     ERRORS=$((ERRORS + 1))
 fi
+# Re-enable exit-on-error
+set -e
 
 cd - > /dev/null
 

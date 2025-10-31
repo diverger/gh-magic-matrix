@@ -86,10 +86,12 @@ const runAction = async (): Promise<void> => {
 
         outputs.forEach(output => {
           if (output) {
+            const urlHideValue = output.animationOptions.contributionCounter?.hideProgressBar;
+
             output.animationOptions.contributionCounter = {
               enabled: true,
               // Preserve hideProgressBar from URL params or use INPUT_HIDE_PROGRESS_BAR
-              hideProgressBar: output.animationOptions.contributionCounter?.hideProgressBar ?? hideProgressBar,
+              hideProgressBar: urlHideValue ?? hideProgressBar,
               debug: counterDebug, // Enable debug logging
             };
           }

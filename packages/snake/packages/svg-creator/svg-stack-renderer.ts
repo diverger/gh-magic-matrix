@@ -713,7 +713,7 @@ function buildCounterStates(
     // Calculate cumulative width using uniform mode (each cell contributes equally)
     // CRITICAL: Use cellsForXPosition (progress bar cells) for X calculation
     // This ensures sprite X position matches progress bar position even when sprite uses full chain
-  const progressIndex = timeToProgressIndex.get(Math.round(cell.t! * 10000) / 10000);
+  const progressIndex = timeToProgressIndex.get(Math.round(cell.t * 10000) / 10000);
 
     // Uniform mode: each cell in progress bar contributes equally to width
     // If cell is not in progress bar (e.g., L0 in uniform mode), keep last known position
@@ -732,7 +732,7 @@ function buildCounterStates(
     } else if (position === 'free') {
       // Free mode: move uniformly from left (0) to right (width) based on time
       // time is normalized (0-1), so x = time * width
-      x = cell.t! * width;
+      x = cell.t * width;
     } else {
       // follow mode
       x = cumulativeWidth + textOffsetX;
@@ -741,7 +741,7 @@ function buildCounterStates(
     states.push({
       count: cumulativeCount,
       percentage,
-      time: cell.t!,
+      time: cell.t,
       x,
       currentContribution: count, // Store current cell's contribution for dynamic frame selection
       isRepeatedCell // Mark repeated cells so animation logic can handle them correctly

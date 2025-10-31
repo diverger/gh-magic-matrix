@@ -84,10 +84,19 @@ async function testProgressBar(
         output.animationOptions = output.animationOptions || {};
         // Preserve hideProgressBar from URL params when setting up counter
         const urlHideProgressBar = output.animationOptions.contributionCounter?.hideProgressBar;
+
+        // Validate and coerce hideProgressBar value
+        const hideProgressBar =
+          typeof urlHideProgressBar === 'boolean' ? urlHideProgressBar :
+          urlHideProgressBar === 'true' ? true :
+          urlHideProgressBar === 'false' ? false :
+          urlHideProgressBar !== undefined ? (console.warn(`⚠️  Invalid hideProgressBar value: ${urlHideProgressBar} (expected boolean or "true"/"false"). Setting to false.`), false) :
+          false;
+
         output.animationOptions.contributionCounter = {
           enabled: true,
           displays: JSON.parse(process.env.INPUT_COUNTER_DISPLAYS || "[]"),
-          hideProgressBar: urlHideProgressBar, // Preserve from URL
+          hideProgressBar: hideProgressBar,
         };
       }
     });
