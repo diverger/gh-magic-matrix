@@ -98,24 +98,19 @@ async function testProgressBarVisible() {
     if (fs.existsSync(OUTPUT_PATH)) {
       const svgContent = fs.readFileSync(OUTPUT_PATH, "utf-8");
 
-      // Count colored cells (progress bar is made of colored rectangles)
-      const cellMatches = svgContent.match(/<rect[^>]*fill="(?!#161b22)[^"]*"/g) || [];
-      const coloredCells = cellMatches.length;
-
       console.log(`   ✅ Generated: ${OUTPUT_PATH}`);
-      console.log(`   📊 Colored cells found: ${coloredCells}`);
 
-      // Updated detection logic for progress bar
-      const progressBarMatches = svgContent.match(/<rect[^>]*class="u"[^>]*>/g) || [];
-      const progressBarCount = progressBarMatches.length;
+      // Detect progress bar visibility by checking CSS styles
+      // Progress bar elements have class="u" and are hidden via opacity: 0
+      const progressBarHidden = /\.u\s*\{[^}]*opacity:\s*0/i.test(svgContent);
 
-      console.log(`   📊 Progress bar elements found: ${progressBarCount}`);
+      console.log(`   📊 Progress bar CSS opacity check: ${progressBarHidden ? 'opacity: 0 (HIDDEN)' : 'visible (VISIBLE)'}`);
 
-      if (progressBarCount > 0) {
-        console.log(`   ✅ Progress bar is VISIBLE (detected by stable marker)`);
+      if (!progressBarHidden) {
+        console.log(`   ✅ Progress bar is VISIBLE (detected by CSS styles)`);
         return true;
       } else {
-        console.log(`   ❌ Progress bar is HIDDEN (no elements detected)`);
+        console.log(`   ❌ Progress bar is HIDDEN (opacity: 0)`);
         return false;
       }
     } else {
@@ -191,25 +186,26 @@ async function testProgressBarHidden() {
     if (fs.existsSync(OUTPUT_PATH)) {
       const svgContent = fs.readFileSync(OUTPUT_PATH, "utf-8");
 
-      // Count colored cells (should be minimal when progress bar is hidden)
-      const cellMatches = svgContent.match(/<rect[^>]*fill="(?!#161b22)[^"]*"/g) || [];
-      const coloredCells = cellMatches.length;
-
       // Check if counter sprite is still present
       const hasCounterSprite = svgContent.includes('xlink:href=') || svgContent.includes('<use ');
 
       console.log(`   ✅ Generated: ${OUTPUT_PATH}`);
-      console.log(`   📊 Colored cells found: ${coloredCells}`);
       console.log(`   🎯 Counter sprite present: ${hasCounterSprite ? 'YES' : 'NO'}`);
 
-      if (coloredCells < 50) {
-        console.log(`   ✅ Progress bar is HIDDEN (few/no colored cells)`);
+      // Detect progress bar visibility by checking CSS styles
+      // Progress bar elements have class="u" and are hidden via opacity: 0
+      const progressBarHidden = /\.u\s*\{[^}]*opacity:\s*0/i.test(svgContent);
+
+      console.log(`   📊 Progress bar CSS opacity check: ${progressBarHidden ? 'opacity: 0 (HIDDEN)' : 'visible (VISIBLE)'}`);
+
+      if (progressBarHidden) {
+        console.log(`   ✅ Progress bar is HIDDEN (no progress bar elements visible)`);
         if (hasCounterSprite) {
           console.log(`   ✅ Counter sprite still works (independent of progress bar)`);
         }
         return true;
       } else {
-        console.log(`   ❌ Failed: Progress bar appears to be visible (too many colored cells)`);
+        console.log(`   ❌ Failed: Progress bar is visible (detected via CSS styles)`);
         return false;
       }
     } else {
