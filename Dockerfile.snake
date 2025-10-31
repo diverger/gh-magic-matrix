@@ -30,3 +30,6 @@ WORKDIR /app
 
 # Copy only the built artifact from builder
 COPY --from=builder /app/dist ./dist
+
+# Set entry point
+ENTRYPOINT ["bun", "/app/dist/index.js"]
