@@ -1,104 +1,154 @@
-# Snake Action Scripts
+# Snake Test Scripts
 
-Testing and validation scripts for the snake GitHub action.
+This directory contains test and verification scripts for the Snake contribution graph.
 
-## Scripts
+## 🧪 Main Test Suite
 
-### `test-snake.sh`
-**Main testing script for the snake action**
-
-```bash
-# Basic usage
-./scripts/snake/test-snake.sh              # Dark theme (default)
-./scripts/snake/test-snake.sh light        # Light theme
-./scripts/snake/test-snake.sh dark         # Dark theme
-
-# With custom parameters
-GITHUB_USER=octocat SNAKE_LENGTH=8 ./scripts/snake/test-snake.sh light
-```
-
-**Environment Variables:**
-- `GITHUB_USER` - GitHub username (default: diverger)
-- `SNAKE_LENGTH` - Snake length in segments (default: 6)
-- `ANIMATION_DURATION` - Animation duration in seconds (default: 20)
-- `SVG_WIDTH` - Canvas width (default: 800)
-- `SVG_HEIGHT` - Canvas height (default: 200)
-- `CELL_SIZE` - Cell size in pixels (default: 12)
-- `CELL_GAP` - Gap between cells (default: 2)
-- `CELL_RADIUS` - Cell border radius (default: 2)
-
-**Output:**
-- Generates timestamped SVG files in `test-outputs/`
-- Creates `snake-latest.svg` symlink for quick access
-- Validates SVG structure and animation elements
-
-### `test-snake-units.sh`
-**Unit testing script for snake TypeScript classes**
+### test-all-mode-combinations.ts
+**Complete test suite** with 9 test configurations covering all position mode × time mode combinations.
 
 ```bash
-./scripts/snake/test-snake-units.sh
+bun scripts/snake/test-all-mode-combinations.ts
 ```
 
-Tests the core snake logic:
-- Snake class functionality
-- Grid operations
-- Point calculations
-- Basic solver operations
+**Test Configurations**:
+1. `free-sync` - Uniform movement + frame advance per step (uses `index`, no sliding)
+2. `free-loop-spritesheet` - Uniform movement + independent loop (sprite sheet, 8 frames)
+3. `free-loop-multifile-time` - Uniform movement + time-based loop (may skip frames)
+4. `free-loop-multifile-smooth` - Uniform movement + index-based loop (no frame skipping)
+5. `free-level` - Uniform movement + L0-L4 level switching
+6. `follow-level` - Follow progress bar + L0-L4 level switching
+7. `follow-sync` - Follow progress bar + sync frame advance (uses `contributionCellsEaten`)
+8. `top-left-sync` - Fixed position + sync frame advance
+9. `multi-display-combo` - Multiple counter combination showcase
 
-Uses Bun for fast TypeScript compilation and execution.
+**Output**: `test-outputs/*.svg` (9 files, total size ~8 MB)
 
-### `validate-snake.sh`
-**Comprehensive validation script**
+---
+
+## ✅ Verification Scripts
+
+### verify-sync-logic.ts
+Verifies the frame advance logic for **free-sync mode**.
 
 ```bash
-./scripts/snake/validate-snake.sh
+bun scripts/snake/verify-sync-logic.ts
 ```
 
-Performs complete validation:
-- ✅ File structure checks
-- ✅ TypeScript compilation
-- ✅ Action.yml validation
-- ✅ Docker configuration
-- ✅ Workflow integration
-- ✅ Build artifacts
+**Verification**:
+- Checks if frame advances every step (uses `index`)
+- Detects sliding phenomenon (X position changes but frame stays same)
+- Expected result: 0% sliding rate
 
-## Usage Workflow
+---
 
-1. **Development**: Use `test-snake-units.sh` for quick unit testing
-2. **Integration**: Use `test-snake.sh` to test the full action
-3. **Validation**: Use `validate-snake.sh` before committing
+### verify-follow-sync.ts
+Verifies the frame advance logic for **follow-sync mode**.
 
-## Output Location
-
-All test outputs are saved to `test-outputs/` directory:
-```text
-test-outputs/
-├── snake-20241018_143022.svg    # Timestamped outputs
-├── snake-20241018_143155.svg
-└── snake-latest.svg -> snake-20241018_143155.svg  # Latest symlink
-```
-
-## Troubleshooting
-
-**Common Issues:**
-
-1. **"Snake package directory not found"**
-   - Run scripts from repository root
-   - Ensure `packages/snake/` exists
-
-2. **"Build failed - dist/index.js not found"**
-   - Check Bun build errors
-   - Verify `bun install` completed successfully
-   - Ensure TypeScript source files exist
-
-3. **"Failed to generate SVG"**
-   - Check GitHub token permissions
-   - Verify internet connection for API calls
-   - Check user exists and has public contributions
-
-**Debug Mode:**
 ```bash
-# Enable verbose output
-set -x
-./scripts/snake/test-snake.sh dark
+bun scripts/snake/verify-follow-sync.ts
 ```
+
+**Verification**:
+- Checks if frame advances only on colored cells (uses `contributionCellsEaten`)
+- Verifies frame pauses when progress bar pauses
+- Expected result: 0 sliding instances, perfect sync between progress bar and animation
+
+---
+
+## 📊 Analysis Scripts
+
+### compare-loop-modes.ts
+Compares the performance of two **loop mode** implementations.
+
+```bash
+bun scripts/snake/compare-loop-modes.ts
+```
+
+**Comparison**:
+- **Time-based** (uses `fps` parameter): Time-based calculation, may skip frames
+- **Index-based** (uses `loopSpeed` parameter): Index-based calculation, no frame skipping
+
+**Performance Metrics**:
+- Frame distribution uniformity (standard deviation)
+- Frame usage frequency statistics
+- Recommends index-based (loopSpeed) for smoother animation
+
+---
+
+### check-frame-distribution.ts
+Checks the **frame distribution uniformity** of sprite animation.
+
+```bash
+bun scripts/snake/check-frame-distribution.ts
+```
+
+**Analysis**:
+- Counts usage frequency for each frame
+- Calculates distribution standard deviation and coefficient of variation
+- Detects frame jumping or duplicate usage
+
+---
+
+## 📝 Usage Guide
+
+### Quick Testing
+```bash
+# Run complete test suite
+bun scripts/snake/test-all-mode-combinations.ts
+
+# Verify free-sync mode
+bun scripts/snake/verify-sync-logic.ts
+
+# Verify follow-sync mode
+bun scripts/snake/verify-follow-sync.ts
+```
+
+### Performance Analysis
+```bash
+# Compare loop mode performance
+bun scripts/snake/compare-loop-modes.ts
+
+# Check frame distribution
+bun scripts/snake/check-frame-distribution.ts
+```
+
+### View Results
+Generated SVG files are in the `test-outputs/` directory and can be opened directly in a browser to view the animations.
+
+---
+
+## 🎯 Key Concepts
+
+### Position Modes
+- **free**: Uniform movement from left to right (`x = t * width`)
+- **follow**: Follow progress bar head
+- **top-left/top-right/bottom-left/bottom-right**: Fixed positions
+
+### Time Modes
+- **sync**: Synchronized frame advance
+  - Free mode: Uses `index` (advance every step)
+  - Follow mode: Uses `contributionCellsEaten` (advance only on colored cells)
+- **loop**: Independent loop animation
+  - Time-based: Uses `fps` parameter
+  - Index-based: Uses `loopSpeed` parameter (recommended)
+- **level**: Switch between L0-L4 levels based on contribution value
+
+### Sliding Phenomenon
+When position moves but frame stays the same, the sprite appears to "slide".
+
+- **Free-sync**: Uses `index` to prevent sliding
+- **Follow-sync**: Uses `contributionCellsEaten`, animation pauses when progress bar pauses (correct behavior)
+
+---
+
+## 📈 Test Coverage
+
+| Position Mode | Sync | Loop | Level |
+|--------------|------|------|-------|
+| Free         | ✅   | ✅   | ✅    |
+| Follow       | ✅   | -    | ✅    |
+| Top-left     | ✅   | -    | -     |
+| Multi        | ✅   | ✅   | -     |
+
+**Total**: 9 test configurations, 100% pass rate 🎉

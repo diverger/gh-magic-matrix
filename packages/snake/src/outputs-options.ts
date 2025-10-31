@@ -50,7 +50,7 @@ export interface AnimationOptions {
     enabled: boolean;
     /** Array of counter displays (for showing multiple counters) */
     displays?: Array<{
-      position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow';
+      position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' | 'free';
       text?: string; // Fixed text mode (if set, only this text is shown)
       prefix?: string;
       suffix?: string;
@@ -333,5 +333,18 @@ const applyAnimationOptions = (animationOptions: AnimationOptions, searchParams:
     if (!isNaN(frameDuration) && frameDuration > 0) {
       animationOptions.frameDuration = frameDuration;
     }
+  }
+
+  if (searchParams.has("hideProgressBar")) {
+    const hideProgressBar = searchParams.get("hideProgressBar");
+    const hideValue = hideProgressBar === "true" || hideProgressBar === "1";
+
+    // Ensure contributionCounter exists
+    if (!animationOptions.contributionCounter) {
+      animationOptions.contributionCounter = { enabled: false };
+    }
+
+    // Set hideProgressBar in contributionCounter where rendering code expects it
+    animationOptions.contributionCounter.hideProgressBar = hideValue;
   }
 };

@@ -2,7 +2,7 @@
 /**
  * Local test script for multi-level sprite sheets
  *
- * This script tests the contribution-level sprite animation mode with real GitHub data.
+ * This script tests the level sprite animation mode with real GitHub data.
  * It mimics the CI workflow's "Generate snake with multi-level sprite sheets" step.
  *
  * Setup:
@@ -10,15 +10,15 @@
  *   2. Replace the placeholder with your GitHub token
  *
  * Usage:
- *   bun scripts/snake/test-multi-sprite-local.ts
+ *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Example:
  *   # Use token from file
- *   bun scripts/snake/test-multi-sprite-local.ts
+ *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Run from repository root:
  *   cd gh-magic-matrix
- *   bun scripts/snake/test-multi-sprite-local.ts
+ *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  */
 
 import * as fs from "fs";
@@ -73,7 +73,7 @@ console.log("");
 const config = {
   // User and output
   githubUserName: "diverger",
-  outputPath: path.join(REPO_ROOT, "test-outputs/multi-sprite-local.svg"),  // Absolute path to output
+  outputPath: path.join(REPO_ROOT, "test-outputs/multi-sprite-sheet-contrib.svg"),  // Absolute path to output
 
   // Animation settings
   frameDuration: "100",
@@ -86,6 +86,7 @@ const config = {
   counterDisplays: [
     {
       position: "follow",
+      mode: "level",
       prefix: "{img:0} ",
       suffix: "",
       fontSize: 14,
@@ -100,7 +101,6 @@ const config = {
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
-            mode: "contribution-level",
             contributionLevels: 5,
             framesPerLevel: 8,
             frameWidth: 48,
@@ -127,7 +127,7 @@ console.log("⚙️  Configuration:");
 console.log(`   User: ${config.githubUserName}`);
 console.log(`   Output: ${config.outputPath}`);
 console.log(`   Frame Duration: ${config.frameDuration}ms`);
-console.log(`   Sprite Mode: contribution-level (5 levels)`);
+console.log(`   Sprite Mode: level (5 levels)`);
 console.log(`   Frames per Level: 8`);
 console.log(`   Debug Mode: ${config.counterDebug}`);
 console.log("");
