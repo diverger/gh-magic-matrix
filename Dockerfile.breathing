@@ -5,14 +5,16 @@ FROM oven/bun:1.1.0-alpine AS builder
 
 WORKDIR /app
 
-# Copy source and configuration
-COPY packages/breathing-contrib/src ./src/
+# Copy package manifests first for better caching
 COPY packages/breathing-contrib/package.json ./
 COPY packages/breathing-contrib/tsconfig.json ./
+RUN bun install
 
-# Install dependencies and build
-RUN bun install && \
-    bun run build && \
+# Copy source after dependencies to preserve cache
+COPY packages/breathing-contrib/src ./src/
+
+# Build and verify
+RUN bun run build && \
     echo "Build complete. Verifying dist/index.js..." && \
     ls -la dist/ && \
     test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && exit 1)
@@ -27,6 +29,3 @@ WORKDIR /app
 
 # Copy only the built artifact from builder
 COPY --from=builder /app/dist ./dist
-
-# Set entry point
-ENTRYPOINT ["bun", "/app/dist/index.js"]

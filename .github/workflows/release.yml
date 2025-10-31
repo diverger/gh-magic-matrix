@@ -37,13 +37,17 @@ jobs:
         id: registry
         run: |
           if [[ "${{ github.event.inputs.registry }}" == "dockerhub" ]]; then
-            echo "url=docker.io" >> $GITHUB_OUTPUT
-            echo "prefix=diverger" >> $GITHUB_OUTPUT
-            echo "login_registry=" >> $GITHUB_OUTPUT
+            {
+              echo "url=docker.io"
+              echo "prefix=diverger"
+              echo "login_registry="
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "url=ghcr.io" >> $GITHUB_OUTPUT
-            echo "prefix=ghcr.io/diverger" >> $GITHUB_OUTPUT
-            echo "login_registry=ghcr.io" >> $GITHUB_OUTPUT
+            {
+              echo "url=ghcr.io"
+              echo "prefix=ghcr.io/diverger"
+              echo "login_registry=ghcr.io"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Login to Docker Hub

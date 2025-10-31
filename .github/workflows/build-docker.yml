@@ -40,11 +40,11 @@ jobs:
           fi
 
           if [[ "$REGISTRY" == "dockerhub" ]]; then
-            echo "prefix=diverger" >> $GITHUB_OUTPUT
+            echo "prefix=diverger" >> "$GITHUB_OUTPUT"
           else
-            echo "prefix=ghcr.io/diverger" >> $GITHUB_OUTPUT
+            echo "prefix=ghcr.io/diverger" >> "$GITHUB_OUTPUT"
           fi
-          echo "selected=$REGISTRY" >> $GITHUB_OUTPUT
+          echo "selected=$REGISTRY" >> "$GITHUB_OUTPUT"
 
       - name: Login to Docker Hub
         if: steps.registry.outputs.selected == 'dockerhub'
