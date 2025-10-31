@@ -37,6 +37,10 @@ inputs:
     description: 'Show contribution counter with progress bar (requires counter_displays to be set)'
     required: false
     default: 'false'
+  hide_progress_bar:
+    description: 'Hide the progress bar while keeping counters/sprites visible. Progress bar remains in DOM for positioning reference.'
+    required: false
+    default: 'false'
   counter_displays:
     description: |
       JSON array of multiple counter displays. Each display can have different position, text, colors, and images.
@@ -78,6 +82,7 @@ inputs:
       Example with sprite sheet (synced with progress):
         [{
           "position": "follow",
+          "mode": "sync",
           "images": [{
             "url": "https://example.com/sprite.png",
             "width": 128,
@@ -85,8 +90,7 @@ inputs:
             "anchor": "center",
             "sprite": {
               "frames": 4,
-              "layout": "horizontal",
-              "mode": "sync"
+              "layout": "horizontal"
             }
           }]
         }]
@@ -94,6 +98,7 @@ inputs:
       Example with sprite sheet (independent loop):
         [{
           "position": "follow",
+          "mode": "loop",
           "images": [{
             "url": "https://example.com/sprite.png",
             "width": 128,
@@ -103,19 +108,46 @@ inputs:
             "sprite": {
               "frames": 4,
               "layout": "horizontal",
-              "mode": "loop",
               "fps": 10
             }
           }]
         }]
 
+      Example with level-based sprite switching:
+        [{
+          "position": "follow",
+          "mode": "level",
+          "images": [{
+            "urlFolder": "assets",
+            "framePattern": "L{n}.png",
+            "width": 64,
+            "height": 86,
+            "sprite": {
+              "contributionLevels": 5,
+              "framesPerLevel": 8,
+              "frameWidth": 48,
+              "frameHeight": 64,
+              "useSpriteSheetPerLevel": true
+            }
+          }]
+        }]
+
+      Note: When useSpriteSheetPerLevel is true, each file (L0.png, L1.png, etc.) is itself
+      a sprite sheet containing multiple frames for that contribution level. The frameWidth
+      and frameHeight specify the dimensions of each individual frame within those sprite sheets.
+
       Fields:
-      - position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' (required)
+      - position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' | 'free' (required)
         - 'top-left': Fixed at left edge, above progress bar
         - 'top-right': Right-aligned, above progress bar, clamped to canvas width to prevent overflow
         - 'bottom-left': Fixed at left edge, below progress bar
         - 'bottom-right': Right-aligned, below progress bar, clamped to canvas width to prevent overflow
         - 'follow': Follows progress bar head (on the same line)
+        - 'free': Moves uniformly from left edge to right edge based on progress over time
+      - mode: 'sync' | 'loop' | 'level' - Animation mode for all images in this display (default: 'sync')
+        - 'sync': Frame changes synchronized with progress bar steps
+        - 'loop': Independent looping animation (continuous)
+        - 'level': Frame changes based on contribution level (0-4)
       - text: Fixed text to display (if set, count/percentage are ignored)
       - prefix, suffix: Text around count/percentage
       - showCount, showPercentage: Control what to display (default: both true)
@@ -161,9 +193,11 @@ inputs:
           - frames: Number of animation frames (required)
           - frameWidth, frameHeight: Frame dimensions (sprite sheet mode only, auto-calculated if not provided)
           - layout: 'horizontal' or 'vertical' (sprite sheet mode only, default: horizontal)
-          - mode: 'sync' (with progress bar) or 'loop' (independent, default: sync)
           - fps: Frames per second for loop mode (e.g., 10)
           - duration: Animation duration in ms for loop mode (alternative to fps)
+          - contributionLevels: Number of contribution levels for level mode (default: 5)
+          - framesPerLevel: Frames per level for level mode (default: 1)
+          - useSpriteSheetPerLevel: Use sprite sheet per level instead of separate files (level mode)
     required: false
 
 outputs:

@@ -69,10 +69,13 @@ const runAction = async (): Promise<void> => {
         // Note: contributionMap will be built in generate-contribution-snake.ts
         outputs.forEach(output => {
           if (output) {
+            const urlHideValue = output.animationOptions.contributionCounter?.hideProgressBar;
+
             output.animationOptions.contributionCounter = {
               enabled: true,
               displays: counterDisplays,
-              hideProgressBar, // Apply hide setting
+              // Preserve hideProgressBar from URL params or use INPUT_HIDE_PROGRESS_BAR
+              hideProgressBar: urlHideValue ?? hideProgressBar,
               debug: counterDebug, // Enable debug logging
             };
           }
@@ -85,7 +88,8 @@ const runAction = async (): Promise<void> => {
           if (output) {
             output.animationOptions.contributionCounter = {
               enabled: true,
-              hideProgressBar, // Apply hide setting
+              // Preserve hideProgressBar from URL params or use INPUT_HIDE_PROGRESS_BAR
+              hideProgressBar: output.animationOptions.contributionCounter?.hideProgressBar ?? hideProgressBar,
               debug: counterDebug, // Enable debug logging
             };
           }

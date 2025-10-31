@@ -84,10 +84,47 @@ jobs:
 |--------|-------------|---------|
 | `show_contribution_counter` | Enable contribution counter and progress bar | `false` |
 | `counter_displays` | JSON array of counter display configurations (see below) | - |
+| `hide_progress_bar` | Hide the progress bar (only show counters/sprites) | `false` |
 
 ## Contribution Counter Feature
 
 Display real-time contribution statistics with animated progress bars and customizable counters that update as the snake eats cells.
+
+### Position Modes
+
+Counter displays support three types of positioning:
+
+#### Fixed Positions
+Counter stays at a specific location on the canvas:
+- **`top-left`**: Fixed at the left edge above the progress bar
+- **`top-right`**: Right-aligned above the progress bar (auto-clamped to canvas width)
+- **`bottom-left`**: Fixed at the left edge below the progress bar
+- **`bottom-right`**: Right-aligned below the progress bar (auto-clamped to canvas width)
+
+**Use cases**: Static labels, total counters, corner decorations
+
+#### Follow Position
+- **`follow`**: Moves with the progress bar head horizontally as the snake progresses
+
+**Use cases**: Dynamic counters, walking character sprites, progress-tied elements
+
+**Note**: When using `hide_progress_bar: true`, the progress bar remains in the DOM (invisible) to provide positioning reference for `follow` mode.
+
+#### Free Position
+- **`free`**: Custom positioning with exact `x` and `y` coordinates (in pixels)
+
+**Configuration**:
+```json
+{
+  "position": "free",
+  "x": 100,
+  "y": 50,
+  "prefix": "Custom: ",
+  "suffix": " 🎯"
+}
+```
+
+**Use cases**: Precise positioning anywhere on canvas, custom layouts, overlays
 
 ### Quick Start
 
@@ -201,7 +238,9 @@ The `counter_displays` parameter accepts a JSON array. Each display can have:
 
 | Field | Type | Description | Default |
 |-------|------|-------------|---------|
-| `position` | string | `'top-left'` \| `'top-right'` \| `'bottom-left'` \| `'bottom-right'` \| `'follow'` | required |
+| `position` | string | `'top-left'` \| `'top-right'` \| `'bottom-left'` \| `'bottom-right'` \| `'follow'` \| `'free'` | required |
+| `x` | number | X coordinate in pixels (required for `free` position) | - |
+| `y` | number | Y coordinate in pixels (required for `free` position) | - |
 | `text` | string | Static text (ignores count/percentage if set) | - |
 | `prefix` | string | Text before count/percentage | - |
 | `suffix` | string | Text after count/percentage | - |
@@ -238,9 +277,155 @@ The `counter_displays` parameter accepts a JSON array. Each display can have:
 | `frameWidth` | number | Frame width (sprite sheet only) | auto |
 | `frameHeight` | number | Frame height (sprite sheet only) | auto |
 | `layout` | string | `'horizontal'` or `'vertical'` | `'horizontal'` |
-| `mode` | string | `'sync'` (with progress) or `'loop'` (independent) | `'sync'` |
+| `mode` | string | `'sync'`, `'loop'`, or `'level'` | `'sync'` |
 | `fps` | number | Frames per second (loop mode) | - |
 | `duration` | number | Animation duration in ms (loop mode) | - |
+
+### Animation Modes
+
+The sprite animation mode determines **when and how frames change**. There are three modes, each with distinct behavior:
+
+#### Sync Mode (`mode: "sync"`)
+
+**Frame timing**: Tied to snake progress (contribution count)
+- Frame 0 displays at 0% progress
+- Frame advances proportionally as snake eats cells
+- Final frame displays at 100% progress
+- **Frame changes**: Only when snake eats a cell (discrete steps)
+
+**Use cases**:
+- Progress indicators that evolve with contributions
+- Character growth/transformation tied to achievements
+- Visual feedback that reflects actual progress
+
+**With different positions**:
+- **+ `follow`**: Character walks AND transforms as progress increases (e.g., evolving character)
+- **+ fixed/free**: Transformation indicator stays in place, shows current evolution stage
+
+**Example**:
+```json
+{
+  "position": "follow",
+  "images": [{
+    "url": "https://example.com/evolution.png",
+    "width": 128,
+    "height": 32,
+    "sprite": {
+      "frames": 4,
+      "mode": "sync"
+    }
+  }],
+  "suffix": " evolving..."
+}
+```
+
+#### Loop Mode (`mode: "loop"`)
+
+**Frame timing**: Independent continuous animation
+- Frames cycle at constant speed defined by `fps` or `duration`
+- Animation runs regardless of snake progress
+- Creates smooth, continuous motion
+- **Frame changes**: Based on elapsed time (continuous, smooth)
+
+**Use cases**:
+- Walking/running character animations
+- Idle movements and breathing effects
+- Background decorative animations
+- Loading indicators
+
+**With different positions**:
+- **+ `follow`**: Character walks with constant animation while moving (e.g., walking sprite)
+- **+ fixed/free**: Character animates in place (e.g., idle animation, bouncing icon)
+
+**Example**:
+```json
+{
+  "position": "follow",
+  "images": [{
+    "urlFolder": "assets/walk",
+    "framePattern": "step-{n}.png",
+    "width": 32,
+    "height": 32,
+    "sprite": {
+      "frames": 8,
+      "mode": "loop",
+      "fps": 12
+    }
+  }],
+  "prefix": "🎯 ",
+  "suffix": " commits"
+}
+```
+
+#### Level Mode (`mode: "level"`)
+
+**Frame timing**: Based on current cell's contribution level (0-4)
+- Frame 0: Empty cell (no contributions)
+- Frame 1: Level 1 contributions (low)
+- Frame 2: Level 2 contributions (medium-low)
+- Frame 3: Level 3 contributions (medium-high)
+- Frame 4: Level 4 contributions (high)
+- Requires exactly **5 frames**
+- **Frame changes**: When snake moves to a cell with different contribution level
+
+**Use cases**:
+- Character expressions changing with contribution intensity
+- Color-coded indicators matching GitHub's contribution levels
+- Visual feedback for contribution quality
+- State indicators (idle → active states)
+
+**With different positions**:
+- **+ `follow`**: Character reacts to each cell's intensity while moving (e.g., happy on high contributions, sad on empty)
+- **+ fixed/free**: Shows the current cell's level at a fixed location (e.g., intensity meter)
+
+**Example**:
+```json
+{
+  "position": "follow",
+  "images": [{
+    "urlFolder": "assets/states",
+    "framePattern": "level-{n}.png",
+    "width": 32,
+    "height": 32,
+    "sprite": {
+      "frames": 5,
+      "mode": "level"
+    }
+  }],
+  "prefix": "State: ",
+  "suffix": ""
+}
+```
+
+### Core Differences Summary
+
+| Mode | What Drives Frame Change | Frame Change Frequency | Best For |
+|------|-------------------------|------------------------|----------|
+| `sync` | Total progress (0-100%) | Each cell eaten | Showing overall progress/evolution |
+| `loop` | Time (fps/duration) | Constant, smooth | Continuous animations (walk, idle) |
+| `level` | Current cell's level (0-4) | Each cell transition | Reacting to contribution intensity |
+
+**Visual Example**:
+- **Sync**: Frame 1 → 2 → 3 → 4 (as total progress goes 25% → 50% → 75% → 100%)
+- **Loop**: Frame 1 → 2 → 3 → 4 → 1 → 2... (repeating at 12fps regardless of progress)
+- **Level**: Frame changes based on cell color: Empty(0) → Low(1) → High(4) → Empty(0)
+
+### Mode Combinations
+
+Combining **animation mode** with **position mode** gives distinct behaviors:
+
+| Animation | Position | Frame Behavior | Position Behavior | Real-World Example |
+|-----------|----------|----------------|-------------------|-------------------|
+| `sync` | `follow` | Changes with overall progress | Moves with progress bar | Evolving character that walks and transforms |
+| `sync` | fixed/free | Changes with overall progress | Stays in place | Corner indicator showing evolution stage |
+| `loop` | `follow` | Cycles continuously (time-based) | Moves with progress bar | Walking character with constant stride |
+| `loop` | fixed/free | Cycles continuously (time-based) | Stays in place | Idle bouncing icon in corner |
+| `level` | `follow` | Changes per cell level (0-4) | Moves with progress bar | Character reacting to each cell's intensity |
+| `level` | fixed/free | Changes per cell level (0-4) | Stays in place | Static meter showing current cell level |
+
+**Key Insight**:
+- **Position** controls WHERE the sprite appears (moves vs stays)
+- **Animation Mode** controls WHEN frames change (progress, time, or cell level)
 
 ### Complete Examples
 

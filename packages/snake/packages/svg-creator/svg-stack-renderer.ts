@@ -294,8 +294,16 @@ export interface ProgressStackResult {
 
 /**
  * Text position mode for contribution counter.
+ *
+ * Position modes:
+ * - top-left: Counter at top-left corner of progress bar (fixed position)
+ * - top-right: Counter at top-right corner, follows progress bar growth
+ * - bottom-left: Counter at bottom-left corner of progress bar (fixed position)
+ * - bottom-right: Counter at bottom-right corner, follows progress bar growth
+ * - follow: Counter follows the progress bar head (right side of filled portion)
+ * - free: Counter moves uniformly from left to right, independent of progress bar
  */
-export type CounterPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow';
+export type CounterPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' | 'free';
 
 /**
  * Image configuration for counter display.
@@ -304,7 +312,7 @@ export type CounterPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom
  * 1. Single static image: Just provide `url`
  * 2. Sprite sheet: Provide `url` and `sprite` config
  * 3. Multiple separate images: Provide `urlFolder` with framePattern
- * 4. Contribution-level based images: Use `Lx` placeholder in framePattern
+ * 4. Level-based images: Use `Lx` placeholder in framePattern
  *    - `Lx.png` - All levels use same image (x will be replaced with level 0-4)
  *    - `Lx-{n}.png` - Each level has animated frames (x=level, n=frame number)
  *    - Example files: L0-0.png, L0-1.png, L1.png, L2-0.png, L2-1.png, L2-2.png
@@ -433,11 +441,11 @@ export interface CounterImageConfig {
     /**
      * UNIFIED: Number of frames (works for all modes)
      * - For sync/loop modes: total frame count across all cells
-     * - For contribution-level mode: frames per level (or array for different counts per level)
+     * - For level mode: frames per level (or array for different counts per level)
      *
      * Examples:
      * - `framesPerLevel: 8` with mode 'sync' → 8 frames cycling (run-0.png ~ run-7.png)
-     * - `framesPerLevel: 8` with mode 'contribution-level' → 8 frames per level (L0.png, L1.png, ...)
+     * - `framesPerLevel: 8` with mode 'level' → 8 frames per level (L0.png, L1.png, ...)
      * - `framesPerLevel: [1,2,4,6,8]` → level 0 has 1 frame, level 4 has 8 frames
      */
     framesPerLevel?: number | number[];
@@ -460,25 +468,13 @@ export interface CounterImageConfig {
      */
     layout?: 'horizontal' | 'vertical';
     /**
-     * Animation mode:
-     * - 'sync': Synced with progress bar (frame changes with progress steps)
-     * - 'loop': Independent looping animation (CSS-based)
-     * - 'contribution-level': Images change based on contribution level (0-4)
-     *   When using this mode:
-     *   - With urlFolder + Lx pattern: Each level can have static/animated frames
-     *     (Lx.png for static, Lx-{n}.png for frames)
-     *   - With urlFolder + Lx pattern + sprite sheet: Each level is a separate sprite sheet
-     *     (Lx.png where each file is a sprite sheet with frames inside)
-     */
-    mode?: 'sync' | 'loop' | 'contribution-level';
-    /**
      * Number of contribution levels (default: 5, matching GitHub's contribution grid)
-     * Used when mode is 'contribution-level'
+     * Used when display mode is 'level'
      */
     contributionLevels?: number;
     /**
      * Use sprite sheet per contribution level instead of separate frame files
-     * When true with contribution-level mode:
+     * When true with level mode:
      *   - Files: L0.png, L1.png, L2.png, L3.png, L4.png (each is a sprite sheet)
      *   - Each sprite sheet contains frames specified by framesPerLevel
      *   - frameWidth and frameHeight define the dimensions of each frame in the sprite
@@ -496,7 +492,7 @@ export interface CounterImageConfig {
      * - With 5 frames: shows frame 3 (15/20 * 4 = 3)
      *
      * Default: false (cycles through frames sequentially)
-     * Note: Only used when mode is 'sync', not 'contribution-level'
+     * Note: Only used when display mode is 'sync', not 'level'
      */
     dynamicSpeed?: boolean;
     /**
@@ -514,13 +510,30 @@ export interface CounterImageConfig {
      */
     animationSpeed?: number;
     /**
-     * Animation duration in milliseconds (for loop mode only)
+     * Loop speed multiplier (for loop mode only)
+     * Controls how many frames advance per animation step
+     *
+     * When true or > 0: Index-based cycling (no frame skipping, smooth playback)
+     * - loopSpeed: 1.0 -> 1 frame per step (smooth, all frames shown)
+     * - loopSpeed: 2.0 -> 2 frames per step (faster)
+     * - loopSpeed: 0.5 -> 1 frame per 2 steps (slower)
+     *
+     * When false or undefined: Time-based cycling (uses fps, may skip frames)
+     *
+     * Default: undefined (uses time-based fps)
+     */
+    loopSpeed?: number | boolean;
+    /**
+     * Animation duration in milliseconds (for loop mode only, time-based)
+     * Only used when loopSpeed is not set
      * Default: same as progress bar duration
      */
     duration?: number;
     /**
-     * Frames per second (for loop mode only, alternative to duration)
+     * Frames per second (for loop mode only, time-based)
+     * Only used when loopSpeed is not set
      * If both fps and duration are set, fps takes precedence
+     * Default: 8
      */
     fps?: number;
   };
@@ -552,6 +565,14 @@ export interface CounterDisplayConfig {
   fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
   /** Font style: 'normal' or 'italic' */
   fontStyle?: 'normal' | 'italic';
+  /**
+   * Animation mode for all images in this display:
+   * - 'sync': Frame changes synchronized with progress bar steps
+   * - 'loop': Independent looping animation (continuous)
+   * - 'level': Frame changes based on contribution level (0-4)
+   * Default: 'sync'
+   */
+  mode?: 'sync' | 'loop' | 'level';
   /**
    * Array of images that can be referenced in text using {img:0}, {img:1}, etc.
    * Images will be inserted at the placeholder position in the text.
@@ -606,7 +627,7 @@ interface CounterState {
  * @param counterConfig - Counter configuration with contribution map
  * @param totalContributions - Total contribution count
  * @param width - Progress bar width (for position calculation)
- * @param position - Counter position mode ('top-left', 'top-right', 'bottom-left', 'bottom-right', 'follow')
+ * @param position - Counter position mode ('top-left', 'top-right', 'bottom-left', 'bottom-right', 'follow', 'free')
  * @param textOffsetX - Horizontal offset for follow mode
  * @param progressBarCells - Optional: cells used for progress bar (for X position calculation)
  * @returns Array of counter states and repeated cell count
@@ -648,7 +669,8 @@ function buildCounterStates(
     percentage: '0.0',
     time: 0,
     x: (position === 'top-left' || position === 'bottom-left') ? 0 :
-       (position === 'top-right' || position === 'bottom-right') ? width : 0,
+       (position === 'top-right' || position === 'bottom-right') ? width :
+       (position === 'free') ? 0 : 0, // free mode starts at left
     currentContribution: 0
   });
 
@@ -707,6 +729,10 @@ function buildCounterStates(
     } else if (position === 'top-right' || position === 'bottom-right') {
       // Clamp x to width to prevent text overflow when using text-anchor="end"
       x = Math.min(cumulativeWidth, width);
+    } else if (position === 'free') {
+      // Free mode: move uniformly from left (0) to right (width) based on time
+      // time is normalized (0-1), so x = time * width
+      x = cell.t! * width;
     } else {
       // follow mode
       x = cumulativeWidth + textOffsetX;
@@ -731,6 +757,162 @@ function buildCounterStates(
   }
 
   return { states, repeatedCellCount };
+}
+
+/**
+ * Renders the progress bar with colored blocks.
+ * Each block represents a sequence of cells with the same color.
+ *
+ * @param sortedCells - Array of cells sorted by animation time
+ * @param dotSize - Height of the progress bar
+ * @param width - Total width of the progress bar
+ * @param y - Y position of the progress bar
+ * @param duration - Animation duration in milliseconds
+ * @param counterConfig - Optional counter configuration (for contribution map)
+ * @param isHidden - Whether the progress bar should be hidden (opacity: 0)
+ * @returns SVG elements and CSS styles for the progress bar
+ */
+function renderProgressBar(
+  sortedCells: Array<{ t: number; color: Color; x?: number; y?: number }>,
+  dotSize: number,
+  width: number,
+  y: number,
+  duration: number,
+  counterConfig?: ContributionCounterConfig,
+  isHidden: boolean = false
+): { svgElements: string[]; styles: string[] } {
+  const svgElements: string[] = [];
+  const styles: string[] = [];
+
+  if (sortedCells.length === 0) {
+    return { svgElements, styles };
+  }
+
+  // Build cell data with contributions
+  const cellsWithContributions = sortedCells.map(cell => {
+    let contribution = 1;
+    if (counterConfig?.contributionMap && hasValidCoordinates(cell)) {
+      const key = `${cell.x},${cell.y}`;
+      contribution = counterConfig.contributionMap.get(key) ?? 0;
+    }
+
+    return {
+      time: cell.t,
+      color: cell.color,
+      contribution,
+    };
+  });
+
+  // Group blocks by color
+  interface ProgressBlock {
+    color: Color;
+    times: number[];
+    contributions: number[];
+  }
+
+  const blocks: ProgressBlock[] = [];
+  const cellsToShow = cellsWithContributions;
+
+  for (const cell of cellsToShow) {
+    const latestBlock = blocks[blocks.length - 1];
+
+    if (latestBlock && latestBlock.color === cell.color) {
+      // Same color - add to existing block
+      latestBlock.times.push(cell.time);
+      latestBlock.contributions.push(cell.contribution);
+    } else {
+      // Different color - create new block
+      blocks.push({
+        color: cell.color,
+        times: [cell.time],
+        contributions: [cell.contribution],
+      });
+    }
+  }
+
+  // Render each block
+  let blockIndex = 0;
+  let cumulativeCellCount = 0;
+
+  for (const block of blocks) {
+    const blockCellCount = block.times.length;
+
+    // Generate unique ID for this block
+    const blockId = "u" + blockIndex.toString(36);
+    const animationName = blockId;
+
+    // Use solid block color (CSS variable)
+    const fillAttr = `var(--c${block.color})`;
+
+    svgElements.push(
+      createElement("rect", {
+        class: `u ${blockId}`,
+        fill: fillAttr,
+        height: dotSize.toString(),
+        width: width.toString(),
+        x: "0",
+        y: y.toString(),
+      }),
+    );
+
+    // Create animation keyframes
+    const blockStartX = cumulativeCellCount / sortedCells.length;
+    const blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
+
+    const keyframes: AnimationKeyframe[] = [];
+    let blockCumulativeCellCount = 0;
+
+    // Initial state - block starts completely hidden
+    const leftClip = (blockStartX * 100).toFixed(1);
+    keyframes.push({
+      t: 0,
+      style: `clip-path:inset(0 100% 0 ${leftClip}%)`,
+    });
+
+    block.times.forEach((t, i) => {
+      const prevCellCount = blockCumulativeCellCount;
+      blockCumulativeCellCount += 1;
+
+      const t1 = Math.max(0, t - 0.0001);
+      const t2 = Math.min(1, t + 0.0001);
+
+      // Calculate current right edge of the visible progress
+      const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
+      const currentRightEdge = currentTotalCells / sortedCells.length;
+
+      const prevTotalCells = cumulativeCellCount + prevCellCount;
+      const prevRightEdge = prevTotalCells / sortedCells.length;
+
+      // Clip path: left edge is where this block starts, right edge grows with progress
+      const prevRight = ((1 - Math.min(prevRightEdge, blockEndX)) * 100).toFixed(1);
+      const currRight = ((1 - Math.min(currentRightEdge, blockEndX)) * 100).toFixed(1);
+
+      keyframes.push(
+        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${leftClip}%)` },
+        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${leftClip}%)` },
+      );
+    });
+
+    // Add final keyframe - this block is fully visible within its range
+    const finalRight = ((1 - blockEndX) * 100).toFixed(1);
+    keyframes.push({
+      t: 1,
+      style: `clip-path:inset(0 ${finalRight}% 0 ${leftClip}%)`,
+    });
+
+    // Generate CSS animation and styles
+    const cssStyle = `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
+
+    styles.push(
+      createKeyframeAnimation(animationName, keyframes),
+      cssStyle,
+    );
+
+    cumulativeCellCount += blockCellCount;
+    blockIndex++;
+  }
+
+  return { svgElements, styles };
 }
 
 /**
@@ -766,7 +948,8 @@ async function preloadCounterImages(
     const levelMap = new Map<number, Map<number, string>>();
     imageDataMap.set(imgIdx, levelMap);
 
-    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+    const displayMode = display.mode || 'sync'; // Default to sync mode
+    const isContributionLevel = displayMode === 'level';
     const framesPerLevel = imageConfig.sprite?.framesPerLevel;
     const effectiveFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 1;
 
@@ -774,7 +957,7 @@ async function preloadCounterImages(
     const frameCount = effectiveFrameCount;
 
     if (isContributionLevel && imageConfig.urlFolder) {
-      // Contribution-level mode: Lx pattern with multiple levels
+      // Level mode: Lx pattern with multiple levels
       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
       const framePattern = imageConfig.framePattern || 'Lx.png';
       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
@@ -1080,152 +1263,19 @@ export const createProgressStack = async (
     ? Array.from(counterConfig.contributionMap.values()).reduce((sum, count) => sum + count, 0)
     : sortedCells.length;
 
-  // Build cell data with contributions
-  const cellsWithContributions = sortedCells.map(cell => {
-    let contribution = 1;
-    if (counterConfig?.contributionMap) {
-      const key = `${cell.x},${cell.y}`;
-      contribution = counterConfig.contributionMap.get(key) ?? 0;
-    }
+  // Render progress bar using extracted function
+  const progressBarResult = renderProgressBar(
+    sortedCells.map(cell => ({ t: cell.t!, color: cell.color as Color, x: cell.x, y: cell.y })),
+    dotSize,
+    width,
+    y,
+    duration,
+    counterConfig,
+    isHidden
+  );
 
-    return {
-      time: cell.t!,
-      color: cell.color as Color,
-      contribution,
-    };
-  });
-
-  // Group blocks differently based on mode
-  interface ProgressBlock {
-    color: Color;
-    times: number[];
-    contributions: number[];
-  }
-
-  const blocks: ProgressBlock[] = [];
-
-  // REFACTOR (Goal 3): Group cells by color to show block colors (SNK-style)
-  // CRITICAL DIFFERENCE between modes:
-  // - Uniform mode (SNK): L0 and outside cells already filtered out above
-  // - Contribution mode: Show ALL cells including L0 (empty cells snake passes through)
-  // Note: In uniform mode, cellsWithContributions already excludes L0, so no need to filter again
-  const cellsToShow = cellsWithContributions;
-
-  for (const cell of cellsToShow) {
-    const latestBlock = blocks[blocks.length - 1];
-
-    if (latestBlock && latestBlock.color === cell.color) {
-      // Same color - add to existing block
-      latestBlock.times.push(cell.time);
-      latestBlock.contributions.push(cell.contribution);
-    } else {
-      // Different color - create new block
-      blocks.push({
-        color: cell.color,
-        times: [cell.time],
-        contributions: [cell.contribution],
-      });
-    }
-  }
-
-  // In uniform mode, each cell occupies equal width
-  const cellWidth = width / sortedCells.length;
-
-  let blockIndex = 0;
-  let cumulativeCellCount = 0;
-
-  for (const block of blocks) {
-    const blockCellCount = block.times.length;
-
-    // Generate unique ID for this block
-    const blockId = "u" + blockIndex.toString(36);
-    const animationName = blockId;
-    // const gradientId = `gradient-${blockId}`; // REMOVED: No longer using gradients
-
-    // REFACTOR (Goal 3): Use solid block color instead of gradients
-    // Each block uses its base color (var(--cX))
-    // Note: Progress bar only shows cells eaten by snake, so color is always 1-4 (never empty/0)
-
-    // ALL blocks start at x=0 and have full width
-    // They will be clipped/scaled to show only their portion
-    const fillAttr = `var(--c${block.color})`;  // Always use CSS variable, no gradients
-
-    svgElements.push(
-      createElement("rect", {
-        class: `u ${blockId}`,
-        fill: fillAttr,
-        height: dotSize.toString(),
-        width: width.toString(),
-        x: "0",
-        y: y.toString(),
-      }),
-    );
-
-    // Create animation keyframes for uniform mode
-    // Each block is clipped to show only its range: [startX, endX]
-    // Uniform mode: allocate equal space per cell
-    const blockStartX = cumulativeCellCount / sortedCells.length;
-    const blockEndX = (cumulativeCellCount + blockCellCount) / sortedCells.length;
-
-    const keyframes: AnimationKeyframe[] = [];
-    let blockCumulativeCellCount = 0;
-
-    // CRITICAL FIX: Add initial state - block starts completely hidden
-    // This prevents the progress bar from being visible before animation starts
-    const leftClip = (blockStartX * 100).toFixed(1);
-    keyframes.push({
-      t: 0,
-      style: `clip-path:inset(0 100% 0 ${leftClip}%)`,  // 100% from right = completely hidden
-    });
-
-    block.times.forEach((t, i) => {
-      const prevCellCount = blockCumulativeCellCount;
-      blockCumulativeCellCount += 1;
-
-      const t1 = Math.max(0, t - 0.0001);
-      const t2 = Math.min(1, t + 0.0001);
-
-      // Calculate current right edge of the visible progress (uniform mode)
-      // Uniform mode: position based on cell count
-      const currentTotalCells = cumulativeCellCount + blockCumulativeCellCount;
-      const currentRightEdge = currentTotalCells / sortedCells.length;
-
-      const prevTotalCells = cumulativeCellCount + prevCellCount;
-      const prevRightEdge = prevTotalCells / sortedCells.length;
-
-      // Clip path: left edge is where this block starts, right edge grows with progress
-      // Format: inset(top right bottom left)
-      // right = (1 - rightEdge) * 100% (how much to cut from right)
-      // left = startX * 100% (how much to cut from left)
-      const prevRight = ((1 - Math.min(prevRightEdge, blockEndX)) * 100).toFixed(1);
-      const currRight = ((1 - Math.min(currentRightEdge, blockEndX)) * 100).toFixed(1);
-
-      keyframes.push(
-        { t: t1, style: `clip-path:inset(0 ${prevRight}% 0 ${leftClip}%)` },
-        { t: t2, style: `clip-path:inset(0 ${currRight}% 0 ${leftClip}%)` },
-      );
-    });
-
-    // Add final keyframe - this block is fully visible within its range
-    const finalRight = ((1 - blockEndX) * 100).toFixed(1);
-    keyframes.push({
-      t: 1,
-      style: `clip-path:inset(0 ${finalRight}% 0 ${leftClip}%)`,
-    });
-
-    // Generate CSS animation and styles
-    // CRITICAL: transform-origin must be 0 for all blocks to grow from left
-    // In uniform mode, set fill color on each block
-    const cssStyle = `.u.${blockId} { fill: var(--c${block.color}); animation-name: ${animationName}; }`;
-
-    styles.push(
-      createKeyframeAnimation(animationName, keyframes),
-      cssStyle,
-    );
-
-    cumulativeCellCount += blockCellCount;
-    blockIndex++;
-  }
+  svgElements.push(...progressBarResult.svgElements);
+  styles.push(...progressBarResult.styles);
 
   // ============================================================================
   // CONTRIBUTION COUNTER RENDERING
@@ -1273,12 +1323,12 @@ export const createProgressStack = async (
       const lineHeight = calculateLineHeight(fontSize, display.images);
 
       // Positioning logic:
-      // - follow mode: same line as progress bar
+      // - follow/free modes: same line as progress bar
       // - top-left/top-right: above progress bar
       // - bottom-left/bottom-right: below progress bar
       // Text baseline is positioned based on fontSize, not lineHeight
       // (lineHeight is only for calculating required vertical space in svg-builder.ts)
-      const textY = position === 'follow' ? (y + dotSize / 2) :
+      const textY = (position === 'follow' || position === 'free') ? (y + dotSize / 2) :
                     (position === 'bottom-left' || position === 'bottom-right') ? (y + dotSize + fontSize * 0.5) :
                     (y - fontSize * 0.5);
       const textOffsetX = fontSize * 0.5; // Small offset
@@ -1340,7 +1390,7 @@ export const createProgressStack = async (
           sortedCells  // Pass progress bar cells for X position calculation
         );
 
-        // Track level distribution for debugging (contribution-level mode)
+        // Track level distribution for debugging (level mode)
         const levelDistribution = new Map<number, number>();
 
         // Track animation state for smooth level transitions
@@ -1379,9 +1429,18 @@ export const createProgressStack = async (
 
         // --- Render Counter Frames ---
         // Create text elements with position and opacity animations
+        // Track contribution cells eaten (for sync mode frame counting)
+        let contributionCellsEaten = 0;
+
         for (let index = 0; index < textElements.length; index++) {
           const elem = textElements[index];
           const textId = `contrib-text-${displayIndex}-${index}`;
+
+          // Count cells with contribution (for sync mode)
+          // Only count when currentContribution > 0 (eating a colored cell)
+          if (elem.currentContribution > 0) {
+            contributionCellsEaten++;
+          }
 
           // Build display text based on showCount and showPercentage flags
           let displayText = prefix;
@@ -1475,14 +1534,15 @@ export const createProgressStack = async (
                     let level = 0;
                     let frameIndex = 0;
 
-                    const isContributionLevel = imageConfig.sprite?.mode === 'contribution-level';
+                    const displayMode = display.mode || 'sync'; // Default to sync mode
+                    const isContributionLevel = displayMode === 'level';
                     const framesPerLevelValue = imageConfig.sprite?.framesPerLevel;
                     const totalFrames = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
                     const isMultiFrame = imageConfig.sprite && totalFrames > 1;
-                    const isDynamicSpeed = isMultiFrame && imageConfig.sprite?.mode === 'sync' && imageConfig.sprite?.dynamicSpeed;
+                    const isDynamicSpeed = isMultiFrame && displayMode === 'sync' && imageConfig.sprite?.dynamicSpeed;
 
                     if (isContributionLevel) {
-                      // Contribution-level mode: select level based on contribution value
+                      // Level mode: select level based on contribution value
                       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
 
                       // Calculate current level from contribution (includes repeated cells with contribution=0 → L0)
@@ -1680,12 +1740,44 @@ export const createProgressStack = async (
                       // L0 also animates! Use speed factor based on level
                       const speedFactor = currentLevel === 0 ? 1 : Math.pow(2, currentLevel - 1);
                       frameIndex = Math.floor((index * speedFactor) % totalFrames);
-                    } else if (isMultiFrame && imageConfig.sprite?.mode === 'sync') {
+                    } else if (isMultiFrame && displayMode === 'sync') {
                       // Sequential sync mode: cycle through frames with fixed speed
+                      // FREE MODE: Use index (all steps) to avoid sliding when position moves but frame doesn't
+                      // FOLLOW MODE: Use contributionCellsEaten (colored cells only) so sprite pauses on empty cells
                       const animSpeed = imageConfig.sprite?.animationSpeed ?? 1;
-                      frameIndex = Math.floor((index * animSpeed) % totalFrames);
+                      const stepCounter = position === 'free' ? index : contributionCellsEaten;
+                      frameIndex = Math.floor((stepCounter * animSpeed) % totalFrames);
+
+                      if (counterConfig.debug && index < 20) {
+                        console.log(`🔄 Sync mode frame ${index}: position=${position}, stepCounter=${stepCounter} (index=${index}, contrib=${contributionCellsEaten}), animSpeed=${animSpeed}, frameIdx=${frameIndex}/${totalFrames}`);
+                      }
+                    } else if (isMultiFrame && displayMode === 'loop') {
+                      // Loop mode: independent animation cycling
+                      const loopSpeed = imageConfig.sprite?.loopSpeed;
+
+                      if (loopSpeed !== undefined && loopSpeed !== false) {
+                        // Index-based loop (no frame skipping, smooth)
+                        // loopSpeed controls how many frames advance per step
+                        const speed = typeof loopSpeed === 'boolean' ? 1.0 : loopSpeed;
+                        frameIndex = Math.floor((index * speed) % totalFrames);
+
+                        if (counterConfig.debug && index < 10) {
+                          console.log(`🔁 Loop mode (index-based) frame ${index}: loopSpeed=${speed}, frameIdx=${frameIndex}/${totalFrames}`);
+                        }
+                      } else {
+                        // Time-based loop (may skip frames based on fps)
+                        // Calculate frame index based on absolute time and fps
+                        const fps = imageConfig.sprite?.fps || 8; // Default 8 fps
+                        const absoluteTime = elem.time * duration; // Convert normalized time to milliseconds
+                        const frameDuration = 1000 / fps; // Duration per frame in ms
+                        frameIndex = Math.floor(absoluteTime / frameDuration) % totalFrames;
+
+                        if (counterConfig.debug && index < 10) {
+                          console.log(`🔁 Loop mode (time-based) frame ${index}: time=${elem.time.toFixed(4)}, absTime=${absoluteTime.toFixed(2)}ms, fps=${fps}, frameIdx=${frameIndex}/${totalFrames}`);
+                        }
+                      }
                     }
-                    // For static images or loop mode, level=0, frameIndex=0
+                    // For static images, level=0, frameIndex=0
 
                     const frameMap = levelMap.get(level);
                     let defId = frameMap?.get(frameIndex);
@@ -1759,7 +1851,7 @@ export const createProgressStack = async (
             });
           }
 
-          // Log level distribution for contribution-level mode
+          // Log level distribution for level mode
           if (counterConfig.debug && levelDistribution.size > 0) {
             console.log(`📊 Level distribution across ${textElements.length} frames:`);
             for (let i = 0; i < 5; i++) {
