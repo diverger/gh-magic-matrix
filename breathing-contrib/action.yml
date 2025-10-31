@@ -45,4 +45,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/diverger/gh-magic-matrix-breathing@sha256:d948e5ce49b3a7b223b1e49dc6ca3863f24f0b1f16e269f525cd9f8787423cef'
+  image: 'docker://ghcr.io/diverger/gh-magic-matrix-breathing@sha256:fe134bccfa5c3a3c17e077962c191d02ab74baa899e54387153511224206f7cf'
