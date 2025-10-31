@@ -1,10 +1,8 @@
 # Breathing GitHub Action Dockerfile
-FROM oven/bun:1-alpine
 
-LABEL maintainer="diverger"
-LABEL description="Breathing GitHub contribution graph animation"
+# Builder stage
+FROM oven/bun:1.1.0-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
 # Copy source and configuration
@@ -18,6 +16,17 @@ RUN bun install && \
     echo "Build complete. Verifying dist/index.js..." && \
     ls -la dist/ && \
     test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && exit 1)
+
+# Final runtime stage
+FROM oven/bun:1.1.0-alpine
+
+LABEL maintainer="diverger"
+LABEL description="Breathing GitHub contribution graph animation"
+
+WORKDIR /app
+
+# Copy only the built artifact from builder
+COPY --from=builder /app/dist ./dist
 
 # Set entry point
 ENTRYPOINT ["bun", "/app/dist/index.js"]

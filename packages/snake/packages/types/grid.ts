@@ -46,8 +46,7 @@ export class Grid {
         } else {
           const r = randomFn();
           const idx = Math.min(colors.length - 1, Math.max(0, Math.floor(r * colors.length)));
-          const colorIndex = idx;
-          this.setColor(x, y, colors[colorIndex]);
+          this.setColor(x, y, colors[idx]);
         }
       }
   }
@@ -90,7 +89,10 @@ export class Grid {
    * @returns true if (x, y) is within the expanded area, false otherwise
    */
   isInsideLarge(m: number, x: number, y: number): boolean {
-    const mm = Number.isFinite(m) ? Math.max(0, Math.floor(m)) : 0;
+    if (!Number.isFinite(m) || m < 0) {
+      throw new RangeError(`Invalid margin: ${m}. Must be a finite non-negative number.`);
+    }
+    const mm = Math.floor(m);
     return x >= -mm && y >= -mm && x < this.width + mm && y < this.height + mm;
   }
 

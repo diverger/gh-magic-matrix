@@ -57,7 +57,7 @@ jobs:
         if: github.event.inputs.registry != 'dockerhub'
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ steps.registry.outputs.login_registry }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -99,9 +99,9 @@ jobs:
 
       - name: Update action.yml files with new image digests
         run: |
-          sed -i "s|image: 'docker://.*gh-magic-matrix-breathing.*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}'|" breathing-contrib/action.yml
-          sed -i "s|image: 'docker://.*gh-magic-matrix-blinking.*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}'|" blinking-contrib/action.yml
-          sed -i "s|image: 'docker://.*gh-magic-matrix-snake.*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}'|" snake/action.yml
+          sed -i "s|image: 'docker://[^']*gh-magic-matrix-breathing[^']*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing@${{ steps.docker-build-breathing.outputs.digest }}'|" breathing-contrib/action.yml
+          sed -i "s|image: 'docker://[^']*gh-magic-matrix-blinking[^']*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}'|" blinking-contrib/action.yml
+          sed -i "s|image: 'docker://[^']*gh-magic-matrix-snake[^']*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}'|" snake/action.yml
 
       - uses: oven-sh/setup-bun@v1
 

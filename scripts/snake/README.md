@@ -22,7 +22,9 @@ bun scripts/snake/test-all-mode-combinations.ts
 8. `top-left-sync` - Fixed position + sync frame advance
 9. `multi-display-combo` - Multiple counter combination showcase
 
-**Output**: `test-outputs/*.svg` (9 files, total size ~8 MB)
+**Output**: `test-outputs/*.svg` (9 files, ~8 MB estimated; measured on 2025-11-01)
+
+> ⚠️ **Note**: Size is an estimate and may vary. Run tests to verify current disk usage.
 
 ---
 
@@ -141,14 +143,3 @@ When position moves but frame stays the same, the sprite appears to "slide".
 - **Follow-sync**: Uses `contributionCellsEaten`, animation pauses when progress bar pauses (correct behavior)
 
 ---
-
-## 📈 Test Coverage
-
-| Position Mode | Sync | Loop | Level |
-|--------------|------|------|-------|
-| Free         | ✅   | ✅   | ✅    |
-| Follow       | ✅   | -    | ✅    |
-| Top-left     | ✅   | -    | -     |
-| Multi        | ✅   | ✅   | -     |
-
-**Total**: 9 test configurations, 100% pass rate 🎉

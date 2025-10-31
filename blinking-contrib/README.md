@@ -182,7 +182,7 @@ The colors represent:
 
 Add the generated SVG to your profile README:
 
-```markdown
+```html
 <!-- Blinking animation with theme support -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/USERNAME/REPO/output/blinking-contrib/dark.svg" />

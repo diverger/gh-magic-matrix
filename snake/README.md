@@ -273,13 +273,15 @@ The `counter_displays` parameter accepts a JSON array. Each display can have:
 
 | Field | Type | Description | Required |
 |-------|------|-------------|----------|
-| `frames` | number | Number of animation frames | ✅ |
+| `frames` | number | Number of animation frames¹ | ✅ |
 | `frameWidth` | number | Frame width (sprite sheet only) | auto |
 | `frameHeight` | number | Frame height (sprite sheet only) | auto |
 | `layout` | string | `'horizontal'` or `'vertical'` | `'horizontal'` |
 | `mode` | string | `'sync'`, `'loop'`, or `'level'` | `'sync'` |
 | `fps` | number | Frames per second (loop mode) | - |
 | `duration` | number | Animation duration in ms (loop mode) | - |
+
+¹ **Level mode constraint**: When `mode: 'level'`, exactly 5 frames are required (mapped to contribution levels 0-4).
 
 ### Animation Modes
 
