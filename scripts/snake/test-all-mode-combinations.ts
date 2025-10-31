@@ -358,6 +358,7 @@ async function runTest(testConfig: any) {
         output.animationOptions.contributionCounter = {
           enabled: true,
           displays: displays,
+          hideProgressBar: process.env.INPUT_HIDE_PROGRESS_BAR === "true",  // Use the env var
         };
       }
     });
