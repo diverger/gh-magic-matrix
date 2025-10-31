@@ -132,13 +132,18 @@ inputs:
           }]
         }]
 
+      Note: When useSpriteSheetPerLevel is true, each file (L0.png, L1.png, etc.) is itself
+      a sprite sheet containing multiple frames for that contribution level. The frameWidth
+      and frameHeight specify the dimensions of each individual frame within those sprite sheets.
+
       Fields:
-      - position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' (required)
+      - position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'follow' | 'free' (required)
         - 'top-left': Fixed at left edge, above progress bar
         - 'top-right': Right-aligned, above progress bar, clamped to canvas width to prevent overflow
         - 'bottom-left': Fixed at left edge, below progress bar
         - 'bottom-right': Right-aligned, below progress bar, clamped to canvas width to prevent overflow
         - 'follow': Follows progress bar head (on the same line)
+        - 'free': Moves uniformly from left edge to right edge based on progress over time
       - mode: 'sync' | 'loop' | 'level' - Animation mode for all images in this display (default: 'sync')
         - 'sync': Frame changes synchronized with progress bar steps
         - 'loop': Independent looping animation (continuous)
