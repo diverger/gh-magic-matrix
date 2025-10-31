@@ -210,4 +210,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/diverger/gh-magic-matrix-snake@sha256:f4bd6cb08c478f2d4946a6aefe2888db65c49dc0ee779fdd9a7ebcf193a55e61'
+  image: 'docker://ghcr.io/diverger/gh-magic-matrix-snake@sha256:34e8a144018f6f8614384a737f4ef767a5bf799b5544b1347b5fb43c59124c18'
