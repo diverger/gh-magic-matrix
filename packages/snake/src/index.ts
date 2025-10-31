@@ -52,7 +52,7 @@ const runAction = async (): Promise<void> => {
     }
 
     if (!githubToken) {
-      throw new Error("github_token input is required");
+      throw new Error("github_token input is required. Please provide it via the github_token input or ensure GITHUB_TOKEN is available in the environment.");
     }
 
     console.log(`🐍 Starting snake generation for user: ${userName}`);
