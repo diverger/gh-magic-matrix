@@ -9,6 +9,9 @@
  * Verification method:
  * - Check if SVG contains progress bar elements (rect with specific classes/attributes)
  * - Progress bar is rendered as colored cells in the snake grid
+ *
+ * Use token from file
+ * bun scripts/snake/verify-hide-progress-bar.ts
  */
 
 import * as fs from "fs";
@@ -102,11 +105,17 @@ async function testProgressBarVisible() {
       console.log(`   ✅ Generated: ${OUTPUT_PATH}`);
       console.log(`   📊 Colored cells found: ${coloredCells}`);
 
-      if (coloredCells > 100) {
-        console.log(`   ✅ Progress bar is VISIBLE (many colored cells)`);
+      // Updated detection logic for progress bar
+      const progressBarMatches = svgContent.match(/<rect[^>]*class="u"[^>]*>/g) || [];
+      const progressBarCount = progressBarMatches.length;
+
+      console.log(`   📊 Progress bar elements found: ${progressBarCount}`);
+
+      if (progressBarCount > 0) {
+        console.log(`   ✅ Progress bar is VISIBLE (detected by stable marker)`);
         return true;
       } else {
-        console.log(`   ⚠️  Warning: Expected more colored cells for visible progress bar`);
+        console.log(`   ❌ Progress bar is HIDDEN (no elements detected)`);
         return false;
       }
     } else {
