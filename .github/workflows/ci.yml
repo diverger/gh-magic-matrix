@@ -502,7 +502,7 @@ jobs:
 
       - name: Upload PR preview artifacts
         if: always() && (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: contrib-preview
           path: |
