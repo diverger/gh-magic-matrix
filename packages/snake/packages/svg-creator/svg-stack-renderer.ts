@@ -312,9 +312,9 @@ export type CounterPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom
  * 1. Single static image: Just provide `url`
  * 2. Sprite sheet: Provide `url` and `sprite` config
  * 3. Multiple separate images: Provide `urlFolder` with framePattern
- * 4. Level-based images: Use `Lx` placeholder in framePattern
- *    - `Lx.png` - All levels use same image (x will be replaced with level 0-4)
- *    - `Lx-{n}.png` - Each level has animated frames (x=level, n=frame number)
+ * 4. Level-based images: Use `L{n}` placeholder in framePattern
+ *    - `L{n}.png` - Each level uses separate image (n will be replaced with level 0-4)
+ *    - `L{n}-{n}.png` - Each level has animated frames (first {n}=level, second {n}=frame number)
  *    - Example files: L0-0.png, L0-1.png, L1.png, L2-0.png, L2-1.png, L2-2.png
  */
 export interface CounterImageConfig {
@@ -337,7 +337,7 @@ export interface CounterImageConfig {
    * Images should be named according to framePattern.
    * This path will be resolved relative to the workspace in GitHub Actions.
    *
-   * Example: 'images/character' with framePattern 'Lx-{n}.png' will look for:
+   * Example: 'images/character' with framePattern 'L{n}-{n}.png' will look for:
    *   - images/character/L0-0.png, L0-1.png, L0-2.png (level 0 frames)
    *   - images/character/L1-0.png, L1-1.png (level 1 frames)
    *   - images/character/L2.png (level 2 static)
@@ -354,13 +354,13 @@ export interface CounterImageConfig {
    *
    * Placeholders:
    *   - {n} - Frame number (0-indexed)
-   *   - Lx - Contribution level (x will be replaced with 0-4)
+   *   - L{n} - Contribution level (n will be replaced with 0-4)
    *
    * Examples:
    *   - 'frame-{n}.png' -> frame-0.png, frame-1.png, ...
-   *   - 'Lx-{n}.png' -> L0-0.png, L0-1.png, L1-0.png, L1-1.png, ...
-   *   - 'Lx.png' -> L0.png, L1.png, L2.png, L3.png, L4.png (static per level)
-   *   - 'level-x-frame-{n}.gif' -> level-0-frame-0.gif, level-1-frame-0.gif, ...
+   *   - 'L{n}-{n}.png' -> L0-0.png, L0-1.png, L1-0.png, L1-1.png, ...
+   *   - 'L{n}.png' -> L0.png, L1.png, L2.png, L3.png, L4.png (static per level)
+   *   - 'level-{n}-frame-{n}.gif' -> level-0-frame-0.gif, level-1-frame-0.gif, ...
    */
   framePattern?: string;
 
@@ -479,7 +479,7 @@ export interface CounterImageConfig {
      *   - Each sprite sheet contains frames specified by framesPerLevel
      *   - frameWidth and frameHeight define the dimensions of each frame in the sprite
      *
-     * Default: false (uses separate files Lx-{n}.png)
+     * Default: false (uses separate files L{n}-{n}.png)
      */
     useSpriteSheetPerLevel?: boolean;
     /**
@@ -957,9 +957,9 @@ async function preloadCounterImages(
     const frameCount = effectiveFrameCount;
 
     if (isContributionLevel && imageConfig.urlFolder) {
-      // Level mode: Lx pattern with multiple levels
+      // Level mode: L{n} pattern with multiple levels
       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
-      const framePattern = imageConfig.framePattern || 'Lx.png';
+      const framePattern = imageConfig.framePattern || 'L{n}.png';
       const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
       const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
 
@@ -1995,10 +1995,10 @@ export const getContributionLevel = (
 };
 
 /**
- * Generate frame URL with Lx placeholder replacement.
+ * Generate frame URL with L{n} placeholder replacement.
  *
  * @param urlFolder - Base folder path
- * @param framePattern - Pattern with {n} and/or Lx placeholders
+ * @param framePattern - Pattern with {n} and/or L{n} placeholders
  * @param level - Contribution level (0-4)
  * @param frameIndex - Frame number within the level
  * @returns Full URL path
@@ -2011,10 +2011,10 @@ export const generateLevelFrameUrl = (
 ): string => {
   const normalizedFolder = urlFolder.replace(/\/$/, '');
 
-  // Replace Lx with actual level number
-  let filename = framePattern.replace(/Lx/g, `L${level}`);
+  // Replace L{n} with actual level number
+  let filename = framePattern.replace(/L\{n\}/g, `L${level}`);
 
-  // Replace {n} with frame number
+  // Replace {n} with frame number (for frame index within level)
   filename = filename.replace('{n}', frameIndex.toString());
 
   return `${normalizedFolder}/${filename}`;
