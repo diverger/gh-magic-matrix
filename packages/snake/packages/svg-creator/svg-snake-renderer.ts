@@ -256,10 +256,13 @@ export const renderAnimatedSvgSnake = async (
     if (positions.length > 1) {
       const animationName = `snake-segment-${i}`;
 
-      // Get animation timing function (smoother for emoji)
+      // Get animation timing function
+      // IMPORTANT: Must use 'linear' to avoid "spring effect" between keyframes
+      // With optimized keyframes (only turns preserved), non-linear timing causes
+      // acceleration/deceleration between waypoints, creating jerky movement
       const timingFunction = config.useEmoji && config.emojiConfig?.animationTiming
         ? config.emojiConfig.animationTiming
-        : (config.useEmoji ? 'ease-out' : 'linear'); // Default to ease-out for emoji
+        : 'linear'; // Always default to linear for smooth movement
 
       // Create keyframes for movement - match SNK's timing exactly
       // SNK uses i / length (not i / (length - 1)), so keyframes end before 100%
