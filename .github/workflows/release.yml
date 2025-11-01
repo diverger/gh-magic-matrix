@@ -20,6 +20,10 @@ on:
           - dockerhub
         default: ghcr
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
