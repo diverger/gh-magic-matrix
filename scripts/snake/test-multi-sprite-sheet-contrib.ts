@@ -213,7 +213,7 @@ async function runTest() {
       try {
         counterDisplays = JSON.parse(process.env.INPUT_COUNTER_DISPLAYS);
       } catch (e) {
-        console.warn(`⚠️  Failed to parse INPUT_COUNTER_DISPLAYS: ${e}`);
+        throw new Error(`Failed to parse INPUT_COUNTER_DISPLAYS: ${e}`);
       }
     }
 
