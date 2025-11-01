@@ -310,6 +310,7 @@ export class Tunnel {
 
     const openList: SearchNode[] = [{ snake, parent: null, cost: 0 }];
     const visited = new Set<string>();
+    visited.add(snake.getRawData().join(',')); // Add initial state to prevent revisiting
 
     while (openList.length > 0) {
       const current = openList.shift()!;

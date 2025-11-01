@@ -484,6 +484,7 @@ export class SnakeSolver {
     }
 
     const closed = new Set<string>();
+    closed.add(snake.getRawData().join(','));
     const openList: SearchNode[] = [{ snake, parent: null }];
 
     while (openList.length > 0) {
