@@ -126,8 +126,11 @@ async function testProgressBar(
 
       // Detect progress bar visibility by checking CSS styles
       // Progress bar elements have class="u" and are hidden via opacity: 0
-      // Regex handles edge cases: opacity: 0, opacity: 0.0, opacity:0, etc.
-      const progressBarHidden = /\.u\s*\{[^}]*opacity:\s*0(?:\.0)?(?:[;\s}]|$)/i.test(svgContent);
+      // Regex matches various zero opacity formats:
+      // - Basic: 0, 0.0, .0
+      // - Signed: +0, -0, +0.0, -0.0
+      // - Percentage: 0%, 0.0%, .0%, +0%, -0%
+      const progressBarHidden = /\.u\s*\{[^}]*opacity:\s*[+-]?(?:0(?:\.\d*)?|\.\d+)%?(?:[;\s}]|$)/i.test(svgContent);
 
       console.log(`   📊 Progress bar CSS opacity check: ${progressBarHidden ? 'opacity: 0 (HIDDEN)' : 'visible (VISIBLE)'}`);
 
