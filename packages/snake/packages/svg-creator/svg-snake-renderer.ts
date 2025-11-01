@@ -205,7 +205,8 @@ export const renderAnimatedSvgSnake = async (
 
       if (isImage) {
         // Create image element for images
-        const imageSize = s * 0.9; // Slightly smaller than cell
+        // Use full segment size to make segments appear more connected
+        const imageSize = s;
         const imageOffset = (config.cellSize - imageSize) / 2;
 
         segmentElement = createElement("image", {
@@ -220,7 +221,8 @@ export const renderAnimatedSvgSnake = async (
         });
       } else {
         // Create text element for emoji/characters
-        const fontSize = s * 0.85; // Slightly smaller than the cell to fit nicely
+        // Use full segment size to make segments appear more connected
+        const fontSize = s;
 
         segmentElement = createTextElement({
           class: `snake-segment snake-segment-${i}`,
