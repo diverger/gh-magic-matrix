@@ -1,6 +1,7 @@
 import type { Snake } from "../types/snake";
 import { createKeyframeAnimation, type AnimationKeyframe } from "./css-utils";
-import { createElement } from "./svg-utils";
+import { createElement, createTextElement } from "./svg-utils";
+import { processImageContent } from "./image-utils";
 
 export interface SvgSnakeConfig {
   /** Size of each grid cell in pixels */
@@ -15,6 +16,25 @@ export interface SvgSnakeConfig {
     body: string;
     /** Optional border color */
     bodyBorder?: string;
+  };
+  /** Use emoji characters instead of rectangles */
+  useEmoji?: boolean;
+  /** Emoji configuration (only used when useEmoji is true) */
+  emojiConfig?: {
+    /**
+     * Array of emojis for each segment (index 0 = head, 1 = second segment, etc.)
+     * If array is shorter than snake length, remaining segments use the last emoji
+     * Example: ['🐍', '🟢', '🟡', '🔵'] or a function: (index, length) => emoji
+     */
+    segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /** Default emoji for segments not specified (default: 🟢) */
+    defaultEmoji?: string;
+    /**
+     * Animation timing function for smoother movement
+     * Options: 'linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out'
+     * Default: 'ease-out' for smoother emoji movement
+     */
+    animationTiming?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
   };
 }
 
@@ -45,15 +65,15 @@ export interface SvgSnakeResult {
  *   styling: { head: '#4CAF50', body: '#8BC34A' }
  * };
  *
- * const result = renderAnimatedSvgSnake(snakeMovement, config, 12);
+ * const result = await renderAnimatedSvgSnake(snakeMovement, config, 12);
  * document.body.appendChild(result.elements[0]);
  * ```
  */
-export const renderAnimatedSvgSnake = (
+export const renderAnimatedSvgSnake = async (
   snakeChain: Snake[],
   config: SvgSnakeConfig,
   dotSize: number
-): SvgSnakeResult => {
+): Promise<SvgSnakeResult> => {
   const elements: string[] = [];
   const animationStyles: string[] = [];
 
@@ -68,6 +88,7 @@ export const renderAnimatedSvgSnake = (
   const snakeParts: Array<Array<{ x: number, y: number }>> = Array.from({ length: snakeLength }, () => []);
 
   // Collect positions for each segment across all frames
+  // Each segment follows its natural position in the snake for each frame
   for (const snake of snakeChain) {
     const cells = snake.toCells();
     for (let i = 0; i < cells.length && i < snakeLength; i++) {
@@ -78,6 +99,59 @@ export const renderAnimatedSvgSnake = (
   // Helper function to create transform style
   const transform = (point: { x: number, y: number }) =>
     `transform:translate(${point.x * config.cellSize}px,${point.y * config.cellSize}px)`;
+
+  // Helper function to get emoji for a segment
+  const getEmojiForSegment = (segmentIndex: number): string => {
+    if (!config.emojiConfig) {
+      return segmentIndex === 0 ? '🐍' : '🟢';
+    }
+
+    const { segments, defaultEmoji = '🟢' } = config.emojiConfig;
+
+    if (!segments) {
+      return segmentIndex === 0 ? '🐍' : defaultEmoji;
+    }
+
+    if (typeof segments === 'function') {
+      return segments(segmentIndex, snakeLength);
+    }
+
+    // Array of emojis: use emoji at index, or last emoji, or default
+    if (segmentIndex < segments.length) {
+      return segments[segmentIndex];
+    }
+    return segments[segments.length - 1] || defaultEmoji;
+  };
+
+  // Pre-process all image URLs to Base64 for GitHub compatibility
+  const imageContentsToProcess: string[] = [];
+  if (config.useEmoji) {
+    for (let i = 0; i < snakeLength; i++) {
+      const content = getEmojiForSegment(i);
+      if (content.startsWith('http://') || content.startsWith('https://')) {
+        imageContentsToProcess.push(content);
+      }
+    }
+  }
+
+  // Convert all external URLs to Base64 in parallel
+  const convertedImages = new Map<string, string>();
+  if (imageContentsToProcess.length > 0) {
+    console.log(`🔄 Converting ${imageContentsToProcess.length} external image URLs to Base64...`);
+    const converted = await Promise.all(
+      imageContentsToProcess.map(url => processImageContent(url))
+    );
+    imageContentsToProcess.forEach((url, index) => {
+      convertedImages.set(url, converted[index]);
+    });
+    console.log(`✅ All images converted to Base64`);
+  }
+
+  // Helper to get processed content (with URL -> Base64 conversion)
+  const getProcessedContent = (segmentIndex: number): string => {
+    const original = getEmojiForSegment(segmentIndex);
+    return convertedImages.get(original) || original;
+  };
 
   // Create SVG elements for each snake segment
   snakeParts.forEach((positions, i) => {
@@ -93,25 +167,73 @@ export const renderAnimatedSvgSnake = (
     const margin = (config.cellSize - s) / 2;
     const radius = Math.min(4.5, (4 * s) / dotSize); // SNK's radius formula
 
-    // Create rectangle element
-    const rectElement = createElement("rect", {
-      class: `snake-segment snake-segment-${i}`,
-      x: margin.toFixed(1),
-      y: margin.toFixed(1),
-      width: s.toFixed(1),
-      height: s.toFixed(1),
-      rx: radius.toFixed(1),
-      ry: radius.toFixed(1),
-      fill: i === 0 ? config.styling.head : config.styling.body,
-      stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
-      "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
-    });
+    let segmentElement: string;
 
-    elements.push(rectElement);
+    if (config.useEmoji) {
+      const content = getProcessedContent(i); // Use processed content (URLs converted to Base64)
+
+      // Check if content is an image (data URI or remaining external URL)
+      const isImage = content.startsWith('http://') ||
+                     content.startsWith('https://') ||
+                     content.startsWith('data:');
+
+      if (isImage) {
+        // Create image element for images
+        const imageSize = s * 0.9; // Slightly smaller than cell
+        const imageOffset = (config.cellSize - imageSize) / 2;
+
+        segmentElement = createElement("image", {
+          class: `snake-segment snake-segment-${i}`,
+          x: imageOffset.toFixed(1),
+          y: imageOffset.toFixed(1),
+          width: imageSize.toFixed(1),
+          height: imageSize.toFixed(1),
+          href: content,
+          // Add transform-origin to match rectangle behavior
+          style: "transform-box: fill-box; transform-origin: center center;",
+        });
+      } else {
+        // Create text element for emoji/characters
+        const fontSize = s * 0.85; // Slightly smaller than the cell to fit nicely
+
+        segmentElement = createTextElement({
+          class: `snake-segment snake-segment-${i}`,
+          x: (config.cellSize / 2).toFixed(1),
+          y: (config.cellSize / 2).toFixed(1),
+          "font-size": fontSize.toFixed(1),
+          "text-anchor": "middle",
+          "dominant-baseline": "central",
+          "user-select": "none",
+          // Add transform-origin to match rectangle behavior
+          style: "transform-box: fill-box; transform-origin: center center;",
+        }, content);
+      }
+    } else {
+      // Create rectangle element
+      segmentElement = createElement("rect", {
+        class: `snake-segment snake-segment-${i}`,
+        x: margin.toFixed(1),
+        y: margin.toFixed(1),
+        width: s.toFixed(1),
+        height: s.toFixed(1),
+        rx: radius.toFixed(1),
+        ry: radius.toFixed(1),
+        fill: i === 0 ? config.styling.head : config.styling.body,
+        stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
+        "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
+      });
+    }
+
+    elements.push(segmentElement);
 
     // Create animation if there are multiple positions
     if (positions.length > 1) {
       const animationName = `snake-segment-${i}`;
+
+      // Get animation timing function (smoother for emoji)
+      const timingFunction = config.useEmoji && config.emojiConfig?.animationTiming
+        ? config.emojiConfig.animationTiming
+        : (config.useEmoji ? 'ease-out' : 'linear'); // Default to ease-out for emoji
 
       // Create keyframes for movement - match SNK's timing exactly
       // SNK uses i / length (not i / (length - 1)), so keyframes end before 100%
@@ -125,7 +247,7 @@ export const renderAnimatedSvgSnake = (
       animationStyles.push(`
         .snake-segment-${i} {
           ${transform(positions[0])};
-          animation: ${animationName} ${config.animationDuration}ms linear infinite;
+          animation: ${animationName} ${config.animationDuration}ms ${timingFunction} infinite;
         }
         ${css}
       `);
@@ -157,10 +279,10 @@ export const renderAnimatedSvgSnake = (
 /**
  * Creates a static SVG representation of a snake without animations.
  */
-export const renderStaticSvgSnake = (
+export const renderStaticSvgSnake = async (
   snake: Snake,
   config: SvgSnakeConfig,
   dotSize: number
-): SvgSnakeResult => {
+): Promise<SvgSnakeResult> => {
   return renderAnimatedSvgSnake([snake], config, dotSize);
 };

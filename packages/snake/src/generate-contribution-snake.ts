@@ -219,6 +219,9 @@ export const generateContributionSnake = async (
                   colorDotBorder: drawOptions.dark.colorDotBorder,
                   colorSnake: drawOptions.dark.colorSnake,
                 } : undefined,
+                // Add emoji configuration if available
+                useEmojiSnake: drawOptions.useEmojiSnake,
+                emojiSnakeConfig: drawOptions.emojiSnakeConfig,
               },
               {
                 frameDuration: animationOptions.frameDuration,

@@ -48,6 +48,62 @@ jobs:
   uses: diverger/gh-magic-matrix/snake@main
   with:
     github_user_name: ${{ github.repository_owner }}
+    ## Emoji Snake (GitHub README compatible)
+
+    You can render the snake using Unicode emoji for each segment. This mode uses SVG `<text>` elements so emoji render correctly in GitHub README files and modern browsers.
+
+    How to enable
+    - Programmatic: pass `useEmojiSnake: true` in the draw options passed to `createSvg()` and provide `emojiSnakeConfig`.
+    - Action inputs: the action maps draw options from inputs; set the equivalent option in your workflow configuration or modify the generated draw options.
+
+    Configuration examples
+
+    Array-based (simple):
+
+    ```yaml
+    useEmojiSnake: true
+    emojiSnakeConfig:
+      segments: ['🐍', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣']
+      defaultEmoji: '⚪'
+    ```
+
+    Function-based (dynamic):
+
+    ```js
+    emojiSnakeConfig: {
+      segments: (index, total) => {
+        if (index === 0) return '🐍';
+        if (index === total - 1) return '🔸';
+        const colors = ['🟢','🟡','🟠'];
+        return colors[Math.floor((index / total) * colors.length)];
+      },
+      defaultEmoji: '🟢'
+    }
+    ```
+
+    Quick test commands
+
+    ```bash
+    # Full emoji test suite (generates multiple SVGs)
+    bun scripts/snake/test-emoji-snake.ts
+
+    # Quick single-config test (edit EMOJI_CONFIG in the script first)
+    bun scripts/snake/quick-emoji-test.ts
+    ```
+
+    Outputs from the test scripts are written to `test-outputs/emoji-snake/`.
+
+    Docs & examples
+
+    - `packages/snake/packages/svg-creator/EMOJI_SNAKE_README.md` — detailed user guide
+    - `packages/snake/packages/svg-creator/EMOJI_SNAKE_USAGE.md` — examples and usage
+    - `packages/snake/packages/svg-creator/emoji-config-examples.ts` — preset configurations
+
+    Notes
+    - Emoji size is calculated from the configured `cell_size` and adjusted to fit the cell.
+    - Emoji appearance varies across platforms; the character will still render in the SVG.
+    - To use the original rectangle rendering, set `useEmojiSnake: false`.
+
     github_token: ${{ secrets.GITHUB_TOKEN }}
     output_path: snake.svg
     svg_width: "900"
@@ -77,6 +133,170 @@ jobs:
 | `snake_length` | Length of the snake in segments | `6` |
 | `animation_duration` | Total animation duration in seconds | `20` |
 | `colors` | Comma-separated color levels (empty, L1, L2, L3, L4) | GitHub default colors |
+
+### Custom Snake Options (Emoji/Letters/Images)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `use_custom_snake` | Enable custom visual rendering for snake segments (emoji/letters/images) | `false` |
+| `custom_snake_config` | JSON configuration for custom snake visuals (see examples below) | - |
+
+**Note:** Supports Unicode emojis (🐍), letters (A-Z), numbers (0-9), and images (PNG/JPEG/GIF). External image URLs are automatically converted to Base64 for GitHub compatibility.
+
+## Custom Snake Feature
+
+Render snake segments as emojis, letters, numbers, or images instead of colored rectangles.
+
+### Quick Start
+
+**Basic Emoji Snake:**
+
+```yaml
+- uses: diverger/gh-magic-matrix/snake@emoji-snake
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    outputs: emoji-snake.svg
+    use_custom_snake: true
+    custom_snake_config: |
+      {
+        "segments": ["🐍", "🟢", "🟡", "🔴"],
+        "defaultEmoji": "🟢"
+      }
+```
+
+**Letter Snake:**
+
+```yaml
+- uses: diverger/gh-magic-matrix/snake@emoji-snake
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    outputs: letter-snake.svg
+    use_custom_snake: true
+    custom_snake_config: |
+      {
+        "segments": ["S", "N", "A", "K", "E"],
+        "defaultEmoji": "·"
+      }
+```
+
+**Image Snake (External URLs - Auto-converts to Base64):**
+
+```yaml
+- uses: diverger/gh-magic-matrix/snake@emoji-snake
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    outputs: avatar-snake.svg
+    use_custom_snake: true
+    custom_snake_config: |
+      {
+        "segments": [
+          "https://avatars.githubusercontent.com/u/1?s=16",
+          "https://avatars.githubusercontent.com/u/2?s=16",
+          "https://avatars.githubusercontent.com/u/3?s=16",
+          "https://avatars.githubusercontent.com/u/4?s=16"
+        ],
+        "defaultEmoji": "🟢"
+      }
+```
+
+### Configuration Fields
+
+- **`segments`**: Array of emoji/letters/image URLs. The snake cycles through this array for each segment.
+  - Emojis: `["🐍", "🟢", "🟡"]`
+  - Letters: `["A", "B", "C"]`
+  - Images: `["https://example.com/img.png", "data:image/png;base64,..."]`
+
+- **`defaultEmoji`**: Fallback character/image for segments not defined in the array (default: `"🟢"`)
+
+### Supported Content Types
+
+1. **Emojis**: Any Unicode emoji (🐍, 🟢, 🎨, etc.)
+2. **Letters**: A-Z, a-z, 0-9, special characters
+3. **Images**:
+   - External URLs (automatically converted to Base64)
+   - Data URIs (Base64 PNG/JPEG/GIF)
+   - Supports PNG, JPEG, GIF formats
+
+### Automatic Base64 Conversion
+
+External image URLs (starting with `http://` or `https://`) are **automatically converted to Base64 data URIs** during generation. This ensures:
+
+- ✅ **GitHub CSP compatibility** (Content Security Policy)
+- ✅ **No external dependencies** in README
+- ✅ **Images display correctly** on GitHub
+- ✅ **Self-contained SVG files**
+
+**Performance:**
+- External images are fetched and converted in parallel
+- Conversion results are cached during generation
+- Typical conversion time: ~1-2 seconds for 4 images
+- Final SVG file size increases by ~3-5KB per embedded image
+
+### Advanced Examples
+
+**Mixed Content (Emoji + Images):**
+
+```yaml
+custom_snake_config: |
+  {
+    "segments": [
+      "🐍",
+      "https://avatars.githubusercontent.com/u/123?s=16",
+      "🟢",
+      "data:image/png;base64,iVBORw0KGgo..."
+    ],
+    "defaultEmoji": "·"
+  }
+```
+
+**Gradient Pattern (Auto-cycles):**
+
+```yaml
+custom_snake_config: |
+  {
+    "segments": ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣"],
+    "defaultEmoji": "⚪"
+  }
+```
+
+The system will cycle through: `🔴, 🟠, 🟡, 🟢, 🔵, 🟣, 🔴, 🟠, ...`
+
+### Complete Workflow Example
+
+```yaml
+name: Generate Snake
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate custom snake
+        uses: diverger/gh-magic-matrix/snake@emoji-snake
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/custom-snake.svg
+            dist/github-snake.svg?palette=github-dark&color_snake=blue
+          use_custom_snake: true
+          custom_snake_config: |
+            {
+              "segments": ["🐍", "🟢", "🟡", "🔴", "🔵"],
+              "defaultEmoji": "🟢"
+            }
+
+      - name: Publish to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v3
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
 
 ### Contribution Counter Options
 

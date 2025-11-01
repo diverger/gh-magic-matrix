@@ -35,6 +35,18 @@ export interface SvgDrawOptions {
     colorSnake: string;
     colorDots: string[];
   };
+  /** Use emoji for snake segments instead of rectangles */
+  useEmojiSnake?: boolean;
+  /** Emoji configuration for snake (only used when useEmojiSnake is true) */
+  emojiSnakeConfig?: {
+    /**
+     * Array of emojis for each segment or a function to generate them
+     * Example: ['🐍', '🟢', '🟡'] or (index, total) => emoji
+     */
+    segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /** Default emoji for unspecified segments (default: 🟢) */
+    defaultEmoji?: string;
+  };
 }
 
 /**

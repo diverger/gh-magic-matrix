@@ -48,6 +48,18 @@ export interface SvgRenderOptions {
     colorDotBorder?: string;
     colorSnake?: string;
   };
+  /** Use emoji for snake segments instead of rectangles */
+  useEmojiSnake?: boolean;
+  /** Emoji configuration for snake (only used when useEmojiSnake is true) */
+  emojiSnakeConfig?: {
+    /**
+     * Array of emojis for each segment or a function to generate them
+     * Example: ['🐍', '🟢', '🟡'] or (index, total) => emoji
+     */
+    segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /** Default emoji for unspecified segments (default: 🟢) */
+    defaultEmoji?: string;
+  };
 }
 
 /**
@@ -170,14 +182,16 @@ export const createSvg = async (
     showEmptyCells, // Pass the flag to control L0 rendering
   }, duration);
 
-  // Render the animated snake
-  const snakeResult = renderAnimatedSvgSnake(chain, {
+  // Render the animated snake (auto-converts external URLs to Base64)
+  const snakeResult = await renderAnimatedSvgSnake(chain, {
     styling: {
       body: drawOptions.colorSnake,
       head: drawOptions.colorSnake,
     },
     cellSize: drawOptions.sizeCell,
     animationDuration: duration, // Keep in milliseconds
+    useEmoji: drawOptions.useEmojiSnake,
+    emojiConfig: drawOptions.emojiSnakeConfig,
   }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
 
   // Calculate progress bar Y position (leaving space for counter text above if needed)

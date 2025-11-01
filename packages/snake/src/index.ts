@@ -38,6 +38,17 @@ const runAction = async (): Promise<void> => {
     const forceAnimations = process.env.INPUT_FORCE_ANIMATIONS !== "false";
     const counterDebug = process.env.INPUT_COUNTER_DEBUG === "true";
 
+    // Parse custom snake configuration (emoji/letters/images)
+    const useCustomSnake = process.env.INPUT_USE_CUSTOM_SNAKE === "true";
+    let customSnakeConfig: any | undefined;
+    if (process.env.INPUT_CUSTOM_SNAKE_CONFIG) {
+      try {
+        customSnakeConfig = JSON.parse(process.env.INPUT_CUSTOM_SNAKE_CONFIG);
+      } catch (e) {
+        throw new Error(`Failed to parse INPUT_CUSTOM_SNAKE_CONFIG: ${e}`);
+      }
+    }
+
     // Parse multiple displays configuration
     let counterDisplays: any[] | undefined;
     if (process.env.INPUT_COUNTER_DISPLAYS) {
@@ -58,6 +69,23 @@ const runAction = async (): Promise<void> => {
 
     console.log(`🐍 Starting snake generation for user: ${userName}`);
     console.log(`📝 Processing ${outputs.length} output(s)`);
+
+    // Add custom snake configuration to all outputs if enabled
+    if (useCustomSnake) {
+      console.log(`🎨 Custom snake rendering enabled (emoji/letters/images)`);
+      if (customSnakeConfig) {
+        console.log(`📦 Using custom visual configuration`);
+      }
+
+      outputs.forEach(output => {
+        if (output) {
+          output.drawOptions.useEmojiSnake = true;
+          if (customSnakeConfig) {
+            output.drawOptions.emojiSnakeConfig = customSnakeConfig;
+          }
+        }
+      });
+    }
 
     // Add contribution counter configuration to all outputs if enabled
     if (showContributionCounter) {
