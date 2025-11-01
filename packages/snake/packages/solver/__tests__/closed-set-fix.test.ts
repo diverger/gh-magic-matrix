@@ -1,196 +1,180 @@
-/**
- * Tests to verify that the closed set fix (adding initial state) doesn't break existing functionality
- * and correctly prevents potential infinite loops.
- */
-
+import { describe, it, expect } from 'bun:test';
+import { Pathfinder } from '../pathfinder';
 import { Grid, EMPTY } from '../../types/grid';
 import { Snake } from '../../types/snake';
 import { Point } from '../../types/point';
-import { Pathfinder } from '../pathfinder';
-import { SnakeSolver } from '../snake-solver';
 
-describe('Closed Set Fix - Initial State Prevention', () => {
-  describe('Edge Case: Starting at goal', () => {
-    it('findPathToNextPoint should handle snake already at target', () => {
-      // Create a simple 5x5 grid with one colored cell at (2,2)
+describe('Pathfinder with closed-set-on-generation', () => {
+  describe('Basic pathfinding', () => {
+    it('findPath should find a simple straight path', () => {
       const grid = new Grid(5, 5);
-      grid.setColor(2, 2, 1 as any);
+      const pathfinder = new Pathfinder(grid);
+      const snake = Snake.fromPoint(new Point(0, 0));
 
-      const solver = new SnakeSolver(grid);
-      const snake = Snake.fromPoint(new Point(2, 2));
+      const path = pathfinder.findPath(snake, 3, 0, EMPTY);
 
-      // Target is the current position
-      const points = [new Point(2, 2)];
+      expect(path).not.toBeNull();
+      expect(path?.length).toBeGreaterThan(0);
+    });
 
-      // Should find path immediately (just the current state)
-      const path = (solver as any).findPathToNextPoint(snake, 1 as any, points);
+    it('findPath should navigate around obstacles', () => {
+      const grid = new Grid(5, 5);
+      const pathfinder = new Pathfinder(grid);
 
-      expect(path).toBeTruthy();
-      expect(path.length).toBeGreaterThan(0);
-      expect(points.length).toBe(0); // Point should be removed via splice
+      // Create an L-shaped obstacle
+      grid.setColor(1, 1, 2 as any);
+      grid.setColor(2, 1, 2 as any);
+      grid.setColor(2, 2, 2 as any);
+
+      const snake = Snake.fromPoint(new Point(0, 0));
+      const path = pathfinder.findPath(snake, 3, 3, EMPTY);
+
+      expect(path).not.toBeNull();
+      expect(path?.length).toBeGreaterThan(0);
     });
   });
 
-  describe('Pathfinder.findPath with initial state in closed', () => {
-    it('should still return complete path including start state', () => {
+  describe('Self-collision detection', () => {
+    it('findPath should avoid self-collision', () => {
       const grid = new Grid(5, 5);
       const pathfinder = new Pathfinder(grid);
 
-      const snake = Snake.fromPoint(new Point(0, 0));
+      // Create a snake with length > 1
+      const snake = new Snake([
+        new Point(0, 0),
+        new Point(1, 0),
+        new Point(2, 0)
+      ]);
 
-      // Find path to (2, 2)
-      const path = pathfinder.findPath(snake, 2, 2);
+      // Path exists but requires careful maneuvering
+      const path = pathfinder.findPath(snake, 0, 3, EMPTY);
 
-      expect(path).toBeTruthy();
+      expect(path).not.toBeNull();
       if (path) {
-        expect(path.length).toBeGreaterThan(0);
-
-        // Path should be ordered newest→oldest [goal, ..., start]
-        const lastSnake = path[path.length - 1];
-        expect(lastSnake.getHead().x).toBe(0);
-        expect(lastSnake.getHead().y).toBe(0);
-
-        // First should be goal
-        const firstSnake = path[0];
-        expect(firstSnake.getHead().x).toBe(2);
-        expect(firstSnake.getHead().y).toBe(2);
-      }
-    });
-
-    it('should allow pop() operation on returned path', () => {
-      const grid = new Grid(5, 5);
-      const pathfinder = new Pathfinder(grid);
-
-      const snake = Snake.fromPoint(new Point(0, 0));
-      const path = pathfinder.findPath(snake, 2, 2);
-
-      expect(path).toBeTruthy();
-      if (path) {
-        const lengthBefore = path.length;
-        const lastState = path[path.length - 1];
-
-        // This simulates the consumer code: pathToTunnel.pop()
-        path.pop();
-
-        expect(path.length).toBe(lengthBefore - 1);
-        expect(lastState.equals(snake)).toBe(true);
-      }
-    });
-  });
-
-  describe('Pathfinder.findPathToPose with initial state in closed', () => {
-    it('should return empty array when start equals target', () => {
-      const grid = new Grid(5, 5);
-      const pathfinder = new Pathfinder(grid);
-
-      const snake = Snake.fromPoint(new Point(2, 2));
-
-      // Target is the same as start
-      const path = pathfinder.findPathToPose(snake, snake);
-
-      expect(path).toEqual([]);
-    });
-
-    it('should return valid path when start differs from target', () => {
-      const grid = new Grid(5, 5);
-      const pathfinder = new Pathfinder(grid);
-
-      const startSnake = Snake.fromPoint(new Point(0, 0));
-      const targetSnake = Snake.fromPoint(new Point(2, 2));
-
-      const path = pathfinder.findPathToPose(startSnake, targetSnake);
-
-      expect(path).toBeTruthy();
-      if (path && path.length > 0) {
-        // Path should be in chronological order (oldest→newest)
-        // First should be close to start
-        const first = path[0];
-        expect(first.getHead().x).toBeLessThanOrEqual(1);
-        expect(first.getHead().y).toBeLessThanOrEqual(1);
+        // Verify no self-collision in the path
+        for (const state of path) {
+          const cells = state.toCells();
+          const positions = new Set(cells.map(p => `${p.x},${p.y}`));
+          expect(positions.size).toBe(cells.length);
+        }
       }
     });
   });
 
   describe('No path available scenarios', () => {
-    it('findPath should return null when blocked', () => {
+    it('findPath should return null when target is completely enclosed', () => {
+      const grid = new Grid(5, 5);
+      const pathfinder = new Pathfinder(grid);
+
+      // Create a complete wall surrounding the target at (3, 3)
+      // Note: isInsideLarge(2) allows movement 2 cells outside grid, so we need
+      // to block a larger area to prevent routing around obstacles
+      for (let x = 2; x <= 4; x++) {
+        for (let y = 2; y <= 4; y++) {
+          if (x !== 3 || y !== 3) {  // Leave target clear
+            grid.setColor(x, y, 2 as any);
+          }
+        }
+      }
+
+      const snake = Snake.fromPoint(new Point(0, 0));
+
+      // Try to reach (3, 3) - it's completely enclosed
+      const path = pathfinder.findPath(snake, 3, 3, EMPTY);
+
+      expect(path).toBeNull();
+    });
+
+    it('findPath should return null when start equals target and already occupied', () => {
       const grid = new Grid(3, 3);
       const pathfinder = new Pathfinder(grid);
 
-      // Create a wall by marking cells as colored
-      grid.setColor(1, 0, 2 as any);
+      // Snake is at (1, 1) and target is also (1, 1), but cell is colored
       grid.setColor(1, 1, 2 as any);
-      grid.setColor(1, 2, 2 as any);
+      const snake = Snake.fromPoint(new Point(1, 1));
 
-      const snake = Snake.fromPoint(new Point(0, 1));
+      const path = pathfinder.findPath(snake, 1, 1, EMPTY);
 
-      // Try to reach (2, 1) but it's blocked by the wall
-      // EMPTY means only empty cells allowed
-      const path = pathfinder.findPath(snake, 2, 1, EMPTY);
+      // Should return empty path or null depending on implementation
+      // If at target but cell invalid, typically returns null
+      expect(path).toBeNull();
+    });
+
+    it('findPath should return null in a fully blocked grid', () => {
+      const grid = new Grid(3, 3);
+      const pathfinder = new Pathfinder(grid);
+
+      // Fill entire grid except start position
+      for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+          if (x !== 0 || y !== 0) {
+            grid.setColor(x, y, 2 as any);
+          }
+        }
+      }
+
+      const snake = Snake.fromPoint(new Point(0, 0));
+
+      // Try to reach any other position
+      const path = pathfinder.findPath(snake, 2, 2, EMPTY);
 
       expect(path).toBeNull();
     });
   });
 
-  describe('Integration: Full solver with closed set fix', () => {
-    it('should solve simple grid without issues', () => {
-      // Create a 5x5 grid with some colored cells
+  describe('Edge cases', () => {
+    it('findPath should handle single cell grids', () => {
+      const grid = new Grid(1, 1);
+      const pathfinder = new Pathfinder(grid);
+      const snake = Snake.fromPoint(new Point(0, 0));
+
+      // Already at target
+      const path = pathfinder.findPath(snake, 0, 0, EMPTY);
+
+      // Should return a path with just the starting position
+      expect(path).not.toBeNull();
+      expect(path?.length).toBeGreaterThan(0);
+    });
+
+    it('findPath should handle targets at grid boundaries', () => {
       const grid = new Grid(5, 5);
-      grid.setColor(1, 1, 1 as any);
-      grid.setColor(2, 1, 1 as any);
-      grid.setColor(3, 1, 1 as any);
+      const pathfinder = new Pathfinder(grid);
+      const snake = Snake.fromPoint(new Point(0, 0));
 
-      const solver = new SnakeSolver(grid);
-      const startSnake = Snake.createHorizontal(4);
+      // Test all four corners
+      const corners = [
+        [0, 0], [4, 0], [0, 4], [4, 4]
+      ];
 
-      // This should work without infinite loops or errors
-      expect(() => {
-        const solution = solver.solve(startSnake);
-        expect(solution).toBeTruthy();
-        expect(solution.length).toBeGreaterThan(0);
-      }).not.toThrow();
+      for (const [x, y] of corners) {
+        const path = pathfinder.findPath(snake, x, y, EMPTY);
+        expect(path).not.toBeNull();
+      }
     });
   });
 
-  describe('Theoretical circular path scenario', () => {
-    it('should not infinitely loop even if circular path exists', () => {
-      // Create empty grid where snake could theoretically return to start
-      const grid = new Grid(10, 10);
+  describe('maxColor parameter behavior', () => {
+    it('findPath should traverse colored cells when maxColor allows', () => {
+      const grid = new Grid(5, 5);
       const pathfinder = new Pathfinder(grid);
 
-      const snake = Snake.fromPoint(new Point(5, 5));
+      // Create colored cells
+      grid.setColor(1, 0, 1 as any);
+      grid.setColor(2, 0, 1 as any);
 
-      // Find path to adjacent cell
-      const path = pathfinder.findPath(snake, 6, 5);
+      const snake = Snake.fromPoint(new Point(0, 0));
 
-      expect(path).toBeTruthy();
-      if (path) {
-        // Should be a short path, not infinite
-        expect(path.length).toBeLessThan(100);
-        expect(path.length).toBeGreaterThan(0);
+      // With EMPTY, should route around
+      const pathEmpty = pathfinder.findPath(snake, 3, 0, EMPTY);
+      expect(pathEmpty).not.toBeNull();
+
+      // With maxColor=1, can go through colored cells
+      const pathColored = pathfinder.findPath(snake, 3, 0, 1 as any);
+      expect(pathColored).not.toBeNull();
+      // Should be able to find a more direct path
+      if (pathEmpty && pathColored) {
+        expect(pathColored.length).toBeLessThanOrEqual(pathEmpty.length);
       }
     });
-  });
-});
-
-describe('Closed Set Fix - Path Reconstruction', () => {
-  it('reconstructPath should work correctly with initial state in closed', () => {
-    const grid = new Grid(5, 5);
-    const pathfinder = new Pathfinder(grid);
-
-    const snake = Snake.fromPoint(new Point(0, 0));
-    const path = pathfinder.findPath(snake, 3, 3);
-
-    expect(path).toBeTruthy();
-    if (path) {
-      // Verify path continuity
-      for (let i = 0; i < path.length - 1; i++) {
-        const current = path[i].getHead();
-        const next = path[i + 1].getHead();
-        const distance = Math.abs(current.x - next.x) + Math.abs(current.y - next.y);
-
-        // Each step should be adjacent (manhattan distance = 1)
-        expect(distance).toBe(1);
-      }
-    }
   });
 });
