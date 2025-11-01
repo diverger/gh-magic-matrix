@@ -119,7 +119,7 @@ const config = {
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: [7, 12, 9, 6, 5],  // Variable frames per level
+            framesPerLevel: [6, 12, 12, 12, 12],  // Variable frames per level
             frameWidth: 140,
             frameHeight: 46,
             layout: "horizontal",
