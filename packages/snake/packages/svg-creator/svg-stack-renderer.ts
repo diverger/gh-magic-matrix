@@ -605,6 +605,23 @@ export interface ContributionCounterConfig {
    * Default: false
    */
   debug?: boolean;
+  /**
+   * Force animations to play regardless of user's prefers-reduced-motion setting
+   *
+   * ⚠️ ACCESSIBILITY WARNING:
+   * When true, animations will play even for users who have enabled "reduce motion"
+   * in their OS/browser settings. This overrides an important accessibility preference.
+   *
+   * Use cases for enabling:
+   * - Static images (e.g., GitHub README badges) where animation is the core feature
+   * - Decorative content where motion reduction doesn't apply
+   *
+   * Recommendation: Keep this false (default) to respect user preferences.
+   * Only enable if you have a specific, justified reason.
+   *
+   * Default: false
+   */
+  forceAnimations?: boolean;
 }
 
 /**
@@ -1193,8 +1210,27 @@ export const createProgressStack = async (
     }`;
 
   const styles: string[] = [baseStyle];
-  // DISABLED: Force animations to play regardless of user preferences
-  // styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
+
+  // Handle prefers-reduced-motion accessibility setting
+  // This applies to ALL animated elements: progress bar (.u), snake (.snake-segment),
+  // grid cells (.grid-cell), and contribution counters (.contrib-counter, .contrib-image)
+  if (counterConfig?.forceAnimations) {
+    // When forceAnimations is true: override user's motion preference and keep animations running
+    // ⚠️ This should only be used for justified reasons (e.g., static README images)
+    styles.push(
+      `@media (prefers-reduced-motion: reduce){` +
+      `\n  .u, .snake-segment, .grid-cell, .contrib-counter, .contrib-image { animation: revert !important; }` +
+      `\n}`
+    );
+  } else {
+    // Default behavior: respect user's motion preference and disable animations when requested
+    // This is the accessible default that respects user settings
+    styles.push(
+      `@media (prefers-reduced-motion: reduce){` +
+      `\n  .u, .snake-segment, .grid-cell, .contrib-counter, .contrib-image { animation: none !important; }` +
+      `\n}`
+    );
+  }
 
   if (isHidden && counterConfig?.debug) {
     console.log(`📊 Progress Bar: Hidden (hideProgressBar = true, bars invisible but counter text visible)`);
@@ -1907,8 +1943,6 @@ export const createProgressStack = async (
               opacity: 0;
             }`
           );
-          // DISABLED: Force animations to play regardless of user preferences
-          // styles.push(`@media (prefers-reduced-motion: reduce){\n  .u, .snake-segment, .grid-cell { animation: none !important; }\n}`);
         } // End for loop
       } // End if (display.text) else
     } // End displays loop

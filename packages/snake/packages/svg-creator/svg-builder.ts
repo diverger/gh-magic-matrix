@@ -126,13 +126,14 @@ export const createSvg = async (
   const gapCells = Math.max(2, textSpaceInCellsTop);
 
   // Bottom margin: minBottomMarginCells guarantees enough space for bottom counter text and progress bar
-  const minBottomMarginPx = maxCounterFontSizeBottom * TEXT_PADDING_MULTIPLIER + drawOptions.sizeDot;
+  const minBottomMarginPx = maxCounterFontSizeBottom * TEXT_PADDING_MULTIPLIER;
   const minBottomMarginCells = Math.ceil(minBottomMarginPx / drawOptions.sizeCell);
-  const bottomMarginCells = Math.max(2, minBottomMarginCells);
+  const bottomMarginCells = Math.max(1, minBottomMarginCells);
+  const topMarginCells = 2; // 1 for snake, 1 for margin
 
-  // Total extra space after grid: gap + progress bar (1) + bottom margin
+  // Total extra space after grid: gap + progress bar (1) + top margin + bottom margin
   // Note: hideProgressBar only sets opacity:0, doesn't change layout
-  const extraCells = gapCells + 1 + bottomMarginCells;
+  const extraCells = gapCells + 1 + topMarginCells + bottomMarginCells;
 
   const width = (grid.width + 2) * drawOptions.sizeCell;
   const height = (grid.height + extraCells) * drawOptions.sizeCell;

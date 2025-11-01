@@ -85,6 +85,24 @@ jobs:
 | `show_contribution_counter` | Enable contribution counter and progress bar | `false` |
 | `counter_displays` | JSON array of counter display configurations (see below) | - |
 | `hide_progress_bar` | Hide the progress bar (only show counters/sprites) | `false` |
+| `force_animations` | ⚠️ Force animations even when user prefers reduced motion (see Accessibility) | `false` |
+
+### ⚠️ Accessibility: Motion Preferences
+
+By default, this action forces animations to play since it's typically used for static README images where animation is the primary purpose.
+
+**`force_animations` option:**
+- When set to `true` (default), animations will play regardless of user motion preferences
+- When set to `false`, respects the user's `prefers-reduced-motion` system setting
+- **Default is `true`** since this is primarily used for static GitHub README badges
+- Set to `false` if you want to respect user motion preferences (recommended for interactive web pages)
+
+Example:
+```yaml
+with:
+  show_contribution_counter: true
+  force_animations: true  # Only if you have a justified reason
+```
 
 ## Contribution Counter Feature
 

@@ -35,6 +35,7 @@ const runAction = async (): Promise<void> => {
     // Parse contribution counter configuration
     const showContributionCounter = process.env.INPUT_SHOW_CONTRIBUTION_COUNTER === "true";
     const hideProgressBar = process.env.INPUT_HIDE_PROGRESS_BAR === "true";
+    const forceAnimations = process.env.INPUT_FORCE_ANIMATIONS !== "false";
     const counterDebug = process.env.INPUT_COUNTER_DEBUG === "true";
 
     // Parse multiple displays configuration
@@ -76,6 +77,7 @@ const runAction = async (): Promise<void> => {
               displays: counterDisplays,
               // Preserve hideProgressBar from URL params or use INPUT_HIDE_PROGRESS_BAR
               hideProgressBar: urlHideValue ?? hideProgressBar,
+              forceAnimations: forceAnimations,
               debug: counterDebug, // Enable debug logging
             };
           }
@@ -92,6 +94,7 @@ const runAction = async (): Promise<void> => {
               enabled: true,
               // Preserve hideProgressBar from URL params or use INPUT_HIDE_PROGRESS_BAR
               hideProgressBar: urlHideValue ?? hideProgressBar,
+              forceAnimations: forceAnimations,
               debug: counterDebug, // Enable debug logging
             };
           }

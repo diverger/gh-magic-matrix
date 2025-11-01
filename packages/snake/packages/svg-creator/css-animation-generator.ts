@@ -268,7 +268,6 @@ const generateProgressBarAnimations = (
     styles.push(
       `.pb.${className} {
         fill: var(--c${block.colorLevel});
-        transform-origin: ${block.x.toFixed(1)}px 0;
         --pb-max-scale: ${finalScale.toFixed(3)};
         animation-play-state: running;
         animation-delay: -${delayMs}ms;
