@@ -100,8 +100,8 @@ export const renderAnimatedSvgSnake = async (
   const transform = (point: { x: number, y: number }) =>
     `transform:translate(${point.x * config.cellSize}px,${point.y * config.cellSize}px)`;
 
-  // Helper function to get emoji for a segment
-  const getEmojiForSegment = (segmentIndex: number): string => {
+  // Helper function to get content for a segment (emoji/letter/image)
+  const getContentForSegment = (segmentIndex: number): string => {
     if (!config.emojiConfig) {
       return segmentIndex === 0 ? '🐍' : '🟢';
     }
@@ -127,7 +127,7 @@ export const renderAnimatedSvgSnake = async (
   const imageContentsToProcess: string[] = [];
   if (config.useEmoji) {
     for (let i = 0; i < snakeLength; i++) {
-      const content = getEmojiForSegment(i);
+      const content = getContentForSegment(i);
       if (content.startsWith('http://') || content.startsWith('https://')) {
         imageContentsToProcess.push(content);
       }
@@ -149,7 +149,7 @@ export const renderAnimatedSvgSnake = async (
 
   // Helper to get processed content (with URL -> Base64 conversion)
   const getProcessedContent = (segmentIndex: number): string => {
-    const original = getEmojiForSegment(segmentIndex);
+    const original = getContentForSegment(segmentIndex);
     return convertedImages.get(original) || original;
   };
 
