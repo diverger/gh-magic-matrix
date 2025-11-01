@@ -1611,8 +1611,8 @@ export const createProgressStack = async (
                       if (levelFrameCount > 1) {
                         // Time-based animation using actual animation time
                         // CRITICAL: elem.time is normalized (0-1), duration is total animation time
-                        // Sprite frame duration is fixed at 100ms per frame
-                        const spriteFrameDuration = 100; // ms per sprite frame
+                        // Sprite frame duration uses the same frameDuration as snake movement for perfect sync
+                        const spriteFrameDuration = frameDuration; // Synced with snake's movement speed
                         const absoluteTime = elem.time * duration; // Current absolute time in ms
 
                         const imageKey = `${displayIndex}-${imageIndex}`; // Unique key per image

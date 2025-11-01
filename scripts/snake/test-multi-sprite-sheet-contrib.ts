@@ -95,7 +95,7 @@ const config = {
 
   // Contribution counter settings
   showContributionCounter: "true",
-  counterDebug: "true",
+  counterDebug: "false",
 
   // Display configuration (matching ci.yml exactly)
   counterDisplays: [
@@ -105,23 +105,26 @@ const config = {
       prefix: "{img:0} ",
       suffix: "",
       fontSize: 14,
+      // Note: hide_progress_bar is NOT a property of display objects
+      // It should be set via INPUT_HIDE_PROGRESS_BAR environment variable
       images: [
         {
-          urlFolder: path.join(REPO_ROOT, ".github/assets"),  // Absolute path to assets
+          urlFolder: path.join(REPO_ROOT, ".github/assets/glitch-samurai"),  // Absolute path to assets
           framePattern: "L{n}.png",
-          width: 64,
-          height: 86,
-          anchorY: 0.6875,
-          anchorX: 0.3,
+          width: 140,
+          height: 46,
+          anchorY: 1,
+          anchorX: 0.5,
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: 8,
-            frameWidth: 48,
-            frameHeight: 64,
+            framesPerLevel: [7, 12, 9, 6, 5],  // Variable frames per level
+            frameWidth: 140,
+            frameHeight: 46,
             layout: "horizontal",
             useSpriteSheetPerLevel: true
+            // Note: sprite speed is automatically synced with frameDuration (100ms)
           }
         }
       ]
@@ -135,6 +138,7 @@ process.env.INPUT_OUTPUTS = `${config.outputPath}?palette=github-light`;
 process.env.INPUT_FRAME_DURATION = config.frameDuration;
 process.env.INPUT_SHOW_CONTRIBUTION_COUNTER = config.showContributionCounter;
 process.env.INPUT_COUNTER_DEBUG = config.counterDebug;
+process.env.INPUT_HIDE_PROGRESS_BAR = "true";  // Hide the progress bar
 process.env.INPUT_COUNTER_DISPLAYS = JSON.stringify(config.counterDisplays);
 process.env.GITHUB_TOKEN = githubToken;
 
@@ -143,7 +147,7 @@ console.log(`   User: ${config.githubUserName}`);
 console.log(`   Output: ${config.outputPath}`);
 console.log(`   Frame Duration: ${config.frameDuration}ms`);
 console.log(`   Sprite Mode: level (5 levels)`);
-console.log(`   Frames per Level: 8`);
+console.log(`   Frames per Level: [11, 12, 12, 12, 12] (L0=11, L1-L4=12)`);
 console.log(`   Debug Mode: ${config.counterDebug}`);
 console.log("");
 
