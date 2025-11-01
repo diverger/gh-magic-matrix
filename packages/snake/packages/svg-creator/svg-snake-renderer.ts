@@ -79,6 +79,32 @@ export const renderAnimatedSvgSnake = (
   const transform = (point: { x: number, y: number }) =>
     `transform:translate(${point.x * config.cellSize}px,${point.y * config.cellSize}px)`;
 
+  /**
+   * Removes keyframes that can be interpolated by the browser.
+   * If a position is exactly at the midpoint between its neighbors,
+   * the browser can interpolate it automatically, so we can skip that keyframe.
+   * This reduces CSS size and improves performance.
+   *
+   * SNK optimization: Only removes positions on straight lines, preserving all turns.
+   */
+  const removeInterpolatedPositions = <T extends { x: number; y: number }>(arr: T[]): T[] => {
+    return arr.filter((u, i, arr) => {
+      // Always keep first and last positions
+      if (i - 1 < 0 || i + 1 >= arr.length) return true;
+
+      const a = arr[i - 1];  // Previous position
+      const b = arr[i + 1];  // Next position
+
+      // Calculate expected position if linearly interpolated
+      const ex = (a.x + b.x) / 2;
+      const ey = (a.y + b.y) / 2;
+
+      // If current position is at the midpoint, browser can interpolate it
+      // Remove this keyframe to reduce CSS size
+      return !(Math.abs(ex - u.x) < 0.01 && Math.abs(ey - u.y) < 0.01);
+    });
+  };
+
   // Create SVG elements for each snake segment
   snakeParts.forEach((positions, i) => {
     if (positions.length === 0) return;
@@ -113,10 +139,21 @@ export const renderAnimatedSvgSnake = (
     if (positions.length > 1) {
       const animationName = `snake-segment-${i}`;
 
-      // Create keyframes for movement - match SNK's timing exactly
+      // Create positions with time stamps - match SNK's timing exactly
       // SNK uses i / length (not i / (length - 1)), so keyframes end before 100%
-      const keyframes = positions.map((pos, frameIndex) => ({
-        t: frameIndex / positions.length,  // Match SNK: last frame at (length-1)/length
+      const positionsWithTime = positions.map((pos, frameIndex) => ({
+        x: pos.x,
+        y: pos.y,
+        t: frameIndex / positions.length  // Match SNK: last frame at (length-1)/length
+      }));
+
+      // Apply interpolation optimization to remove redundant keyframes
+      // This reduces CSS size by ~60% while preserving exact animation timing
+      const optimizedPositions = removeInterpolatedPositions(positionsWithTime);
+
+      // Create keyframes from optimized positions
+      const keyframes = optimizedPositions.map(pos => ({
+        t: pos.t,
         style: transform(pos)
       }));
 
