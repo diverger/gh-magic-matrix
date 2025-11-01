@@ -62,7 +62,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push breathing-contrib Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         id: docker-build-breathing
         with:
           context: .
@@ -78,7 +78,7 @@ jobs:
           cache-to: type=inline
 
       - name: Build and push blinking-contrib Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         id: docker-build-blinking
         with:
           context: .
@@ -94,7 +94,7 @@ jobs:
           cache-to: type=inline
 
       - name: Build and push snake Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         id: docker-build-snake
         with:
           context: .
