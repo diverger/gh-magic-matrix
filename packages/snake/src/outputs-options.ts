@@ -40,9 +40,12 @@ export interface SvgDrawOptions {
   /** Custom snake configuration (supports emoji, images, and text) */
   customSnakeConfig?: {
     /**
-     * Array of content for each segment or a function to generate them
+     * Array of content for each segment
      * Supports: emoji ('🐍'), text ('A'), or image URLs ('https://...')
-     * Example: ['🐍', '🟢', '🟡'] or (index, total) => content
+     * Example: ['🐍', '🟢', '🟡']
+     *
+     * Note: Function variant ((index, total) => content) is only available programmatically
+     * and cannot be configured via query parameters or JSON config.
      */
     segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
     /** Default content for unspecified segments (default: 🟢) */
@@ -215,6 +218,9 @@ export const parseEntry = (entry: string): OutputConfig | null => {
   // Apply animation options
   applyAnimationOptions(animationOptions, searchParams);
 
+  // Apply custom snake options
+  applyCustomSnakeOptions(drawOptions, searchParams);
+
   // Snake action only supports SVG format
   return {
     filename,
@@ -361,5 +367,57 @@ const applyAnimationOptions = (animationOptions: AnimationOptions, searchParams:
 
     // Set hideProgressBar in contributionCounter where rendering code expects it
     animationOptions.contributionCounter.hideProgressBar = hideValue;
+  }
+};
+/**
+ * Applies custom snake options from search parameters.
+ *
+ * Supported parameters:
+ * - `use_custom_snake`: Enable custom snake mode (true/false or 1/0)
+ * - `custom_snake_segments`: Comma-separated list of content (emoji/text/URLs)
+ * - `custom_snake_default`: Default content for unspecified segments
+ *
+ * @param drawOptions - The drawing options to modify.
+ * @param searchParams - URL search parameters containing custom snake config.
+ *
+ * @example
+ * ```
+ * ?use_custom_snake=true&custom_snake_segments=,,,
+ * ?use_custom_snake=1&custom_snake_segments=A,B,C&custom_snake_default=X
+ * ```
+ */
+const applyCustomSnakeOptions = (drawOptions: SvgDrawOptions, searchParams: URLSearchParams): void => {
+  // Check if custom snake mode is enabled
+  if (searchParams.has("use_custom_snake")) {
+    const useCustomSnake = searchParams.get("use_custom_snake")!;
+    // Treat empty string, "true", or "1" as true; otherwise false
+    const isEnabled = useCustomSnake === "" || useCustomSnake === "true" || useCustomSnake === "1";
+
+    if (isEnabled) {
+      drawOptions.useCustomSnake = true;
+
+      // Initialize customSnakeConfig if not already set
+      if (!drawOptions.customSnakeConfig) {
+        drawOptions.customSnakeConfig = {};
+      }
+
+      // Parse segments from comma-separated string
+      if (searchParams.has("custom_snake_segments")) {
+        const segmentsParam = searchParams.get("custom_snake_segments")!;
+        // Split by comma and trim whitespace from each segment
+        const segments = segmentsParam.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        if (segments.length > 0) {
+          drawOptions.customSnakeConfig.segments = segments;
+        }
+      }
+
+      // Set default content
+      if (searchParams.has("custom_snake_default")) {
+        drawOptions.customSnakeConfig.defaultContent = searchParams.get("custom_snake_default")!;
+      } else if (!drawOptions.customSnakeConfig.defaultContent) {
+        // Default to green circle if not specified
+        drawOptions.customSnakeConfig.defaultContent = "🟢";
+      }
+    }
   }
 };

@@ -124,7 +124,9 @@ for (const config of LETTER_CONFIGS) {
 
     // Apply letter configuration to draw options
     outputs.forEach(output => {
-      if (output && output.drawOptions) {
+      if (output) {
+        // Ensure drawOptions exists
+        output.drawOptions = output.drawOptions || {};
         output.drawOptions.useCustomSnake = true;
         output.drawOptions.customSnakeConfig = {
           segments: config.segments,

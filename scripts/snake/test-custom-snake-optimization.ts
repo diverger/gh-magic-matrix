@@ -89,14 +89,16 @@ async function testOptimization() {
   console.log(`   🐍 Snake segments: ${snakeSegments}`);
   console.log(`   🎬 @keyframes animations: ${keyframeCount}`);
   console.log(`   📍 Total keyframe rules: ${totalKeyframeRules}`);
-  console.log(`   📦 Average keyframes per segment: ${(totalKeyframeRules / keyframeCount).toFixed(1)}`);
+  console.log(`   📦 Average keyframes per segment: ${keyframeCount > 0 ? (totalKeyframeRules / keyframeCount).toFixed(1) : 'N/A'}`);
   console.log(`   💾 File size: ${fileSizeKB} KB`);
   console.log();
 
   // Calculate theoretical unoptimized size
   // If snake has 834 frames and 4 segments, that would be 834 keyframes per segment
   const theoreticalUnoptimizedKeyframes = 834 * snakeSegments;
-  const theoreticalReduction = ((1 - totalKeyframeRules / theoreticalUnoptimizedKeyframes) * 100).toFixed(1);
+  const theoreticalReduction = theoreticalUnoptimizedKeyframes === 0
+    ? "0.0"
+    : ((1 - totalKeyframeRules / theoreticalUnoptimizedKeyframes) * 100).toFixed(1);
 
   console.log("🔍 Optimization Analysis:");
   console.log("-".repeat(60));
@@ -104,6 +106,15 @@ async function testOptimization() {
   console.log(`   ✨ Actual keyframes (optimized): ${totalKeyframeRules}`);
   console.log(`   🎯 Reduction: ${theoreticalReduction}% fewer keyframes`);
   console.log();
+
+  // Guard against division by zero
+  if (keyframeCount === 0) {
+    console.warn("⚠️  Warning: No keyframes found in SVG");
+    console.log();
+    console.log("✅ Test completed!");
+    console.log();
+    return;
+  }
 
   // Analyze keyframe distribution
   const keyframeRulesPerAnimation = totalKeyframeRules / keyframeCount;

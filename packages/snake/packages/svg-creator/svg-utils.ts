@@ -33,7 +33,8 @@ export const createElement = (tagName: string, attributes: Record<string, any>):
  * ```
  */
 export const createTextElement = (attributes: Record<string, any>, textContent: string): string => {
-  return `<text ${convertToAttributes(attributes)}>${textContent}</text>`;
+  const escapedContent = escapeXml(String(textContent ?? ''));
+  return `<text ${convertToAttributes(attributes)}>${escapedContent}</text>`;
 };
 
 /**

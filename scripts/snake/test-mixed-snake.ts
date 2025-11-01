@@ -179,7 +179,6 @@ async function main() {
 
       // Result is an array of output strings
       if (result.length > 0 && result[0]) {
-        const outputPath = path.join(OUTPUT_DIR, `${config.name}.svg`);
         fs.writeFileSync(outputPath, result[0]);
 
         const stats = fs.statSync(outputPath);

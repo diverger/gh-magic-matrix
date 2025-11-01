@@ -57,8 +57,8 @@ export interface SvgRenderOptions {
      * Example: ['🐍', '🟢', '🟡'] or (index, total) => content
      */
     segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
-    /** Default content for unspecified segments (default: 🟢) */
-    defaultEmoji?: string;
+    /** Default content for unspecified segments (emoji/image/text, default: 🟢) */
+    defaultContent?: string;
   };
 }
 
@@ -190,8 +190,9 @@ export const createSvg = async (
     },
     cellSize: drawOptions.sizeCell,
     animationDuration: duration, // Keep in milliseconds
-    useEmoji: drawOptions.useCustomSnake,
-    emojiConfig: drawOptions.customSnakeConfig,
+    useCustomContent: drawOptions.useCustomSnake,
+    customContentConfig: drawOptions.customSnakeConfig,
+    logger: animationOptions.contributionCounter?.debug ? console : undefined,
   }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
 
   // Calculate progress bar Y position (leaving space for counter text above if needed)

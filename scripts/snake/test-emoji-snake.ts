@@ -133,6 +133,10 @@ const EMOJI_TEST_CONFIGS: EmojiTestConfig[] = [
     emojiConfig: {
       segments: (index: number, total: number) => {
         if (index === 0) return '🐍';
+
+        // Guard against division by zero when total <= 1
+        if (total <= 1) return '💜';
+
         if (index === total - 1) return '💜';
 
         const hearts = ['❤️', '🧡', '💛', '💚', '💙', '💜'];
@@ -160,6 +164,9 @@ const EMOJI_TEST_CONFIGS: EmojiTestConfig[] = [
     emojiConfig: {
       segments: (index: number, total: number) => {
         if (index === 0) return '🐍';
+
+        // Guard against division by zero when total <= 1
+        if (total <= 1) return '🟢';
 
         const ratio = index / (total - 1);
         if (ratio < 0.33) return '🟢';

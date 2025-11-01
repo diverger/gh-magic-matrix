@@ -10,8 +10,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as core from "@actions/core";
-import { parseOutputsOption } from "./outputs-options";
+import { parseOutputsOption, type SvgDrawOptions } from "./outputs-options";
 import { generateContributionSnake } from "./generate-contribution-snake";
+import type { CounterDisplayConfig } from "../packages/svg-creator/svg-stack-renderer";
 
 /**
  * Main action execution function.
@@ -40,22 +41,22 @@ const runAction = async (): Promise<void> => {
 
     // Parse custom snake configuration (emoji/letters/images)
     const useCustomSnake = process.env.INPUT_USE_CUSTOM_SNAKE === "true";
-    let customSnakeConfig: any | undefined;
+    let customSnakeConfig: SvgDrawOptions['customSnakeConfig'] | undefined;
     if (process.env.INPUT_CUSTOM_SNAKE_CONFIG) {
       try {
         customSnakeConfig = JSON.parse(process.env.INPUT_CUSTOM_SNAKE_CONFIG);
       } catch (e) {
-        throw new Error(`Failed to parse INPUT_CUSTOM_SNAKE_CONFIG: ${e}`);
+        throw new Error(`Failed to parse INPUT_CUSTOM_SNAKE_CONFIG: ${(e as Error).message || String(e)}`);
       }
     }
 
     // Parse multiple displays configuration
-    let counterDisplays: any[] | undefined;
+    let counterDisplays: CounterDisplayConfig[] | undefined;
     if (process.env.INPUT_COUNTER_DISPLAYS) {
       try {
         counterDisplays = JSON.parse(process.env.INPUT_COUNTER_DISPLAYS);
       } catch (e) {
-        throw new Error(`Failed to parse INPUT_COUNTER_DISPLAYS: ${e}`);
+        throw new Error(`Failed to parse INPUT_COUNTER_DISPLAYS: ${(e as Error).message || String(e)}`);
       }
     }
 
