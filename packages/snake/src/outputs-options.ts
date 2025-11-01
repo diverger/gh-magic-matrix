@@ -335,13 +335,13 @@ const applyAnimationOptions = (animationOptions: AnimationOptions, searchParams:
     }
   }
 
-  if (searchParams.has("hideProgressBar")) {
-    const hideProgressBar = searchParams.get("hideProgressBar");
-    // Treat missing/empty value as true: ?hideProgressBar or ?hideProgressBar= means hide it
-    // Also accept explicit "true" or "1"
-    const hideValue = hideProgressBar === null || hideProgressBar === "" || hideProgressBar === "true" || hideProgressBar === "1";
+  if (searchParams.has("hide_progress_bar")) {
+    const hide_progress_bar = searchParams.get("hide_progress_bar")!;
+    // Treat empty string, "true", or "1" as true; otherwise false
+    // Empty string handles: ?hide_progress_bar or ?hide_progress_bar=
+    const hideValue = hide_progress_bar === "" || hide_progress_bar === "true" || hide_progress_bar === "1";
 
-    // Ensure contributionCounter exists with enabled:true to preserve intent
+    // Ensure contributionCounter exists
     if (!animationOptions.contributionCounter) {
       animationOptions.contributionCounter = { enabled: true };
     }

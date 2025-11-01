@@ -41,6 +41,17 @@ inputs:
     description: 'Hide the progress bar while keeping counters/sprites visible. Progress bar remains in DOM for positioning reference.'
     required: false
     default: 'false'
+  force_animations:
+    description: |
+      ⚠️ ACCESSIBILITY WARNING: Force animations to play even for users with "prefers-reduced-motion" enabled.
+
+      When false, respects user motion preferences - animations will be paused/disabled for users
+      who have enabled "reduce motion" in their OS/browser settings.
+
+      Default is true since this is typically used for static README badges where animation is the core feature.
+      Set to false if you want to respect user motion preferences (recommended for interactive web pages).
+    required: false
+    default: 'true'
   counter_displays:
     description: |
       JSON array of multiple counter displays. Each display can have different position, text, colors, and images.
