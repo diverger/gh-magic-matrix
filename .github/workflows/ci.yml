@@ -248,7 +248,7 @@ jobs:
                 "images": [
                   {
                     "urlFolder": ".github/assets",
-                    "framePattern": "Lx.png",
+                    "framePattern": "L{n}.png",
                     "width": 64,
                     "height": 86,
                     "anchorY": 0.6875,
@@ -285,7 +285,7 @@ jobs:
                 "images": [
                   {
                     "urlFolder": ".github/assets",
-                    "framePattern": "Lx.png",
+                    "framePattern": "L{n}.png",
                     "width": 64,
                     "height": 86,
                     "anchorY": 0.6875,
@@ -520,3 +520,13 @@ jobs:
           commit_message: "Update output [skip ci]"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check verification status
+        if: always()
+        run: |
+          if [ "${VERIFICATION_FAILED}" = "true" ]; then
+            echo "❌ CI verification failed! Please review the verification output above."
+            exit 1
+          else
+            echo "✅ All CI checks passed successfully!"
+          fi

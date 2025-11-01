@@ -108,7 +108,7 @@ const config = {
       images: [
         {
           urlFolder: path.join(REPO_ROOT, ".github/assets"),  // Absolute path to assets
-          framePattern: "Lx.png",
+          framePattern: "L{n}.png",
           width: 64,
           height: 86,
           anchorY: 0.6875,
@@ -225,7 +225,7 @@ async function runTest() {
         }
 
         outputs.forEach(output => {
-          if (output) {
+          if (output && isOutputConfig(output)) {
             output.animationOptions.contributionCounter = {
               enabled: true,
               displays: counterDisplays,
@@ -238,100 +238,99 @@ async function runTest() {
         console.log(`📊 Contribution counter enabled (no displays, progress bar only)`);
 
         outputs.forEach(output => {
-          if (output) {
-            output.animationOptions.contributionCounter = {
-              enabled: true,
-              hideProgressBar,
-              debug: counterDebug,
-            };
-          }
-        });
-      }
-    }
+          outputs.forEach(output => {
+            if (output && isOutputConfig(output)) {
+              output.animationOptions.contributionCounter = {
+                enabled: true,
+                hideProgressBar,
+                debug: counterDebug,
+              };
+            }
+          });
+        }
 
     // Generate the snake
     const results = await generateContributionSnake(
-      config.githubUserName,
-      outputs,
-      { githubToken }
-    );
+          config.githubUserName,
+          outputs,
+          { githubToken }
+        );
 
-    // Write results to file
-    outputs.forEach((out, i) => {
-      const result = results[i];
-      if (out?.filename && result) {
-        console.log(`💾 Writing to ${out.filename}`);
-        fs.writeFileSync(out.filename, result);
+        // Write results to file
+        outputs.forEach((out, i) => {
+          outputs.forEach((out, i) => {
+            const result = results[i];
+            if (out?.filename && result && typeof result === 'string' && result.length > 0) {
+              console.log(`💾 Writing to ${out.filename}`);
+              fs.writeFileSync(out.filename, result);
+            }
+          }); console.log("");
+          console.log("✅ SVG generation completed!");
+          console.log("");
+
+          // Verify output
+          if (fs.existsSync(config.outputPath)) {
+            const stats = fs.statSync(config.outputPath);
+            const sizeKB = (stats.size / 1024).toFixed(1);
+
+            console.log("📊 Output File:");
+            console.log(`   Path: ${config.outputPath}`);
+            console.log(`   Size: ${sizeKB} KB`);
+
+            // Read and analyze the SVG
+            const svgContent = fs.readFileSync(config.outputPath, "utf8");
+
+            // Check for sprite elements
+            const hasImages = svgContent.includes("<image");
+            const hasSymbols = svgContent.includes("<symbol");
+            const hasDataURIs = svgContent.includes("data:image");
+            const hasCounter = svgContent.includes("contrib-counter");
+
+            console.log("");
+            console.log("🔍 SVG Analysis:");
+            console.log(`   ${hasImages ? "✅" : "❌"} Image elements found`);
+            console.log(`   ${hasSymbols ? "✅" : "❌"} Symbol definitions found`);
+            console.log(`   ${hasDataURIs ? "✅" : "❌"} Data URIs embedded`);
+            console.log(`   ${hasCounter ? "✅" : "❌"} Contribution counter found`);
+
+            // Count sprite frames
+            const symbolMatches = svgContent.match(/<symbol id="sprite-/g);
+            if (symbolMatches) {
+              console.log(`   📋 Sprite frames: ${symbolMatches.length}`);
+            }
+
+            // Count animation classes
+            const snakeSegments = svgContent.match(/snake-segment-\d+/g);
+            if (snakeSegments) {
+              const uniqueSegments = new Set(snakeSegments);
+              console.log(`   🐍 Snake segments: ${uniqueSegments.size}`);
+            }
+
+            console.log("");
+            console.log("🎉 Test completed successfully!");
+            console.log("");
+            console.log("💡 Next steps:");
+            console.log(`   1. Open ${config.outputPath} in a browser`);
+            console.log("   2. Verify the sprite animations change based on contribution levels");
+            console.log("   3. Check that L0 (empty cells) shows different animation than L1-L4");
+
+          } else {
+            console.error("❌ Error: Output file was not created");
+            process.exit(1);
+          }
+
+        } catch (error: unknown) {
+          console.error("");
+          console.error("❌ Error generating SVG:");
+          console.error(error instanceof Error ? error.message : String(error));
+          if (error instanceof Error && error.stack) {
+            console.error("");
+            console.error("Stack trace:");
+            console.error(error.stack);
+          }
+          process.exit(1);
+        }
       }
-    });
 
-    console.log("");
-    console.log("✅ SVG generation completed!");
-    console.log("");
-
-    // Verify output
-    if (fs.existsSync(config.outputPath)) {
-      const stats = fs.statSync(config.outputPath);
-      const sizeKB = (stats.size / 1024).toFixed(1);
-
-      console.log("📊 Output File:");
-      console.log(`   Path: ${config.outputPath}`);
-      console.log(`   Size: ${sizeKB} KB`);
-
-      // Read and analyze the SVG
-      const svgContent = fs.readFileSync(config.outputPath, "utf8");
-
-      // Check for sprite elements
-      const hasImages = svgContent.includes("<image");
-      const hasSymbols = svgContent.includes("<symbol");
-      const hasDataURIs = svgContent.includes("data:image");
-      const hasCounter = svgContent.includes("contrib-counter");
-
-      console.log("");
-      console.log("🔍 SVG Analysis:");
-      console.log(`   ${hasImages ? "✅" : "❌"} Image elements found`);
-      console.log(`   ${hasSymbols ? "✅" : "❌"} Symbol definitions found`);
-      console.log(`   ${hasDataURIs ? "✅" : "❌"} Data URIs embedded`);
-      console.log(`   ${hasCounter ? "✅" : "❌"} Contribution counter found`);
-
-      // Count sprite frames
-      const symbolMatches = svgContent.match(/<symbol id="sprite-/g);
-      if (symbolMatches) {
-        console.log(`   📋 Sprite frames: ${symbolMatches.length}`);
-      }
-
-      // Count animation classes
-      const snakeSegments = svgContent.match(/snake-segment-\d+/g);
-      if (snakeSegments) {
-        const uniqueSegments = new Set(snakeSegments);
-        console.log(`   🐍 Snake segments: ${uniqueSegments.size}`);
-      }
-
-      console.log("");
-      console.log("🎉 Test completed successfully!");
-      console.log("");
-      console.log("💡 Next steps:");
-      console.log(`   1. Open ${config.outputPath} in a browser`);
-      console.log("   2. Verify the sprite animations change based on contribution levels");
-      console.log("   3. Check that L0 (empty cells) shows different animation than L1-L4");
-
-    } else {
-      console.error("❌ Error: Output file was not created");
-      process.exit(1);
-    }
-
-  } catch (error: unknown) {
-    console.error("");
-    console.error("❌ Error generating SVG:");
-    console.error(error instanceof Error ? error.message : String(error));
-    if (error instanceof Error && error.stack) {
-      console.error("");
-      console.error("Stack trace:");
-      console.error(error.stack);
-    }
-    process.exit(1);
-  }
-}
-
-// Run the test
-runTest();
+      // Run the test
+      runTest();
