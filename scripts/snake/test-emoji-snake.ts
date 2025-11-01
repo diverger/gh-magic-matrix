@@ -207,9 +207,9 @@ async function runEmojiTest(config: EmojiTestConfig): Promise<boolean> {
     // Apply emoji configuration to draw options
     outputs.forEach(output => {
       if (output && output.drawOptions) {
-        output.drawOptions.useEmojiSnake = config.useEmoji;
+        output.drawOptions.useCustomSnake = config.useEmoji;
         if (config.emojiConfig) {
-          output.drawOptions.emojiSnakeConfig = config.emojiConfig;
+          output.drawOptions.customSnakeConfig = config.emojiConfig;
         }
       }
     });

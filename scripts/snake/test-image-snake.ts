@@ -112,8 +112,8 @@ for (const test of tests) {
   // Apply configuration
   outputs.forEach(output => {
     if (output && output.drawOptions) {
-      output.drawOptions.useEmojiSnake = true;
-      output.drawOptions.emojiSnakeConfig = {
+      output.drawOptions.useCustomSnake = true;
+      output.drawOptions.customSnakeConfig = {
         segments: test.segments,
       };
     }

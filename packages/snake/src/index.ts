@@ -79,9 +79,9 @@ const runAction = async (): Promise<void> => {
 
       outputs.forEach(output => {
         if (output) {
-          output.drawOptions.useEmojiSnake = true;
+          output.drawOptions.useCustomSnake = true;
           if (customSnakeConfig) {
-            output.drawOptions.emojiSnakeConfig = customSnakeConfig;
+            output.drawOptions.customSnakeConfig = customSnakeConfig;
           }
         }
       });

@@ -37,13 +37,13 @@ async function testOptimization() {
 
   const outputs = parseOutputsOption([`${OUTPUT_PATH}?palette=github-light`]);
 
-  // Apply emoji configuration
+  // Apply custom content configuration
   outputs.forEach(output => {
     if (output && output.drawOptions) {
-      output.drawOptions.useEmojiSnake = true;
-      output.drawOptions.emojiSnakeConfig = {
+      output.drawOptions.useCustomSnake = true;
+      output.drawOptions.customSnakeConfig = {
         segments: ["🐍", "🟢", "🔵", "🟡"],
-        defaultEmoji: "⚪",
+        defaultContent: "⚪",
       };
     }
   });

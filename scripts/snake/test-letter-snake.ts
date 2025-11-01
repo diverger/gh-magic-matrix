@@ -125,8 +125,8 @@ for (const config of LETTER_CONFIGS) {
     // Apply letter configuration to draw options
     outputs.forEach(output => {
       if (output && output.drawOptions) {
-        output.drawOptions.useEmojiSnake = true;
-        output.drawOptions.emojiSnakeConfig = {
+        output.drawOptions.useCustomSnake = true;
+        output.drawOptions.customSnakeConfig = {
           segments: config.segments,
         };
       }

@@ -97,11 +97,11 @@ async function quickTest() {
     // Apply emoji configuration
     outputs.forEach(output => {
       if (output && output.drawOptions) {
-        output.drawOptions.useEmojiSnake = EMOJI_CONFIG.useEmoji;
+        output.drawOptions.useCustomSnake = EMOJI_CONFIG.useEmoji;
         if (EMOJI_CONFIG.useEmoji) {
-          output.drawOptions.emojiSnakeConfig = {
+          output.drawOptions.customSnakeConfig = {
             segments: EMOJI_CONFIG.segments,
-            defaultEmoji: EMOJI_CONFIG.defaultEmoji,
+            defaultContent: EMOJI_CONFIG.defaultEmoji,
           };
         }
       }
