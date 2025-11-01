@@ -58,7 +58,7 @@ export class Pathfinder {
   findPath(snake: Snake, targetX: number, targetY: number, maxColor: Color | typeof EMPTY = EMPTY): Snake[] | null {
     this.currentMaxColor = maxColor;
     const openList: PathNode[] = [new PathNode(snake)];
-    const closedList: Snake[] = [];
+    const closedList: Snake[] = [snake]; // Add initial state to prevent revisiting
 
     while (openList.length > 0) {
       // Get node with lowest f-cost
@@ -150,7 +150,7 @@ export class Pathfinder {
     const forbidden = targetCells.slice(1, 4); // Next few segments after tail to avoid
 
     const openList: PathNode[] = [new PathNode(snake)];
-    const closedList: Snake[] = [];
+    const closedList: Snake[] = [snake]; // Add initial state to prevent revisiting
 
     while (openList.length > 0) {
       const current = openList.shift()!;
