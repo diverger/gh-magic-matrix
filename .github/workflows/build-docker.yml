@@ -72,7 +72,9 @@ jobs:
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:${{ github.sha }}
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:${{ github.ref_name }}
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:latest
-          cache-from: type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:${{ github.ref_name }},type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:latest
+          cache-from: |
+            type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:${{ github.ref_name }}
+            type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-breathing:latest
           cache-to: type=inline
 
       - name: Build and push blinking-contrib Docker image
@@ -86,7 +88,9 @@ jobs:
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:${{ github.sha }}
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:${{ github.ref_name }}
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:latest
-          cache-from: type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:${{ github.ref_name }},type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:latest
+          cache-from: |
+            type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:${{ github.ref_name }}
+            type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking:latest
           cache-to: type=inline
 
       - name: Build and push snake Docker image
@@ -100,7 +104,9 @@ jobs:
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:${{ github.sha }}
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:${{ github.ref_name }}
             ${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:latest
-          cache-from: type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:${{ github.ref_name }},type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:latest
+          cache-from: |
+            type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:${{ github.ref_name }}
+            type=registry,ref=${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake:latest
           cache-to: type=inline
 
       - name: Image digests
