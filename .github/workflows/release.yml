@@ -108,7 +108,7 @@ jobs:
           sed -i "s|image: 'docker://[^']*gh-magic-matrix-blinking[^']*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-blinking@${{ steps.docker-build-blinking.outputs.digest }}'|" blinking-contrib/action.yml
           sed -i "s|image: 'docker://[^']*gh-magic-matrix-snake[^']*'|image: 'docker://${{ steps.registry.outputs.prefix }}/gh-magic-matrix-snake@${{ steps.docker-build-snake.outputs.digest }}'|" snake/action.yml
 
-      - uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
