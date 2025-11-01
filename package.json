@@ -1,7 +1,7 @@
 {
   "name": "gh-magic-matrix",
   "private": true,
-  "version": "1.2.4",
+  "version": "1.2.6",
   "workspaces": [
     "packages/*",
     "packages/snake/packages/*"

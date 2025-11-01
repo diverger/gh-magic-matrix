@@ -1,6 +1,6 @@
 {
   "name": "@snake/action",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "description": "Snake GitHub contribution graph animation using advanced pathfinding algorithms",
   "main": "dist/index.js",
   "scripts": {
