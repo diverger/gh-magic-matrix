@@ -24,6 +24,21 @@ export function loadEnvFile(repoRoot: string): void {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     const lines = envContent.split('\n');
 
+    const stripQuotesIfSafe = (raw: string): string => {
+      if (!raw.length) return raw;
+      const quote = raw[0];
+      if ((quote === '"' || quote === "'") && raw.endsWith(quote)) {
+        let backslashCount = 0;
+        for (let i = raw.length - 2; i >= 0 && raw[i] === '\\'; i--) {
+          backslashCount++;
+        }
+        if (backslashCount % 2 === 0) {
+          return raw.slice(1, -1);
+        }
+      }
+      return raw;
+    };
+
     for (const line of lines) {
       // Skip empty lines and comments
       const trimmed = line.trim();
@@ -37,14 +52,7 @@ export function loadEnvFile(repoRoot: string): void {
         const [, key, value] = match;
         // Only set if not already defined in environment
         if (!process.env[key]) {
-          // Remove surrounding quotes only if they match and are not escaped
-          if ((value.startsWith('"') && value.endsWith('"') && value[value.length - 2] !== '\\') ||
-              (value.startsWith("'") && value.endsWith("'") && value[value.length - 2] !== '\\')) {
-            const cleanValue = value.slice(1, -1);
-            process.env[key] = cleanValue;
-          } else {
-            process.env[key] = value;
-          }
+          process.env[key] = stripQuotesIfSafe(value);
         }
       }
     }
