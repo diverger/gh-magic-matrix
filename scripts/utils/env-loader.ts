@@ -37,9 +37,14 @@ export function loadEnvFile(repoRoot: string): void {
         const [, key, value] = match;
         // Only set if not already defined in environment
         if (!process.env[key]) {
-          // Remove surrounding quotes if present
-          const cleanValue = value.replace(/^["']|["']$/g, '');
-          process.env[key] = cleanValue;
+          // Remove surrounding quotes only if they match and are not escaped
+          if ((value.startsWith('"') && value.endsWith('"') && value[value.length - 2] !== '\\') ||
+              (value.startsWith("'") && value.endsWith("'") && value[value.length - 2] !== '\\')) {
+            const cleanValue = value.slice(1, -1);
+            process.env[key] = cleanValue;
+          } else {
+            process.env[key] = value;
+          }
         }
       }
     }
@@ -108,5 +113,14 @@ export function getEnv(key: string, defaultValue: string = ''): string {
  * Check if running in CI environment
  */
 export function isCI(): boolean {
-  return process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+  const ciEnv = process.env.CI;
+  const githubActionsEnv = process.env.GITHUB_ACTIONS;
+
+  const isTruthy = (value: string | undefined): boolean => {
+    if (!value) return false;
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+  };
+
+  return isTruthy(ciEnv) || isTruthy(githubActionsEnv);
 }

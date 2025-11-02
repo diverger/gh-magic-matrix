@@ -1095,8 +1095,12 @@ const resolveFrameCount = async (
       if (detected !== null && detected > 0) {
         return detected;
       }
+      // Auto-detection failed (image loaded but couldn't determine frame count)
+      console.warn(`  ⚠️  Failed to auto-detect frame count from sprite sheet, falling back to default: ${defaultValue}`);
+    } else {
+      // No data URI available for detection
+      console.warn(`  ⚠️  Cannot auto-detect frames (no image data available), using default: ${defaultValue}`);
     }
-    // Auto-detection failed, use default
     return defaultValue;
   }
 

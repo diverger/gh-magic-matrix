@@ -68,11 +68,10 @@ if (!foundToken) {
   console.log("Test 5: Loading GitHub token via loadGitHubToken()...");
   try {
     const token = loadGitHubToken(REPO_ROOT);
-    console.log(`   ✅ Token loaded successfully (${token.substring(0, 7)}...)`);
+    console.log(`   ✅ Token loaded successfully (${token.slice(0, 7)}...)`);
   } catch (error) {
     console.log(`   ❌ Failed to load token: ${error}`);
-  }
-}
+  }}
 
 console.log("");
 console.log("=".repeat(60));

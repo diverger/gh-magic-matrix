@@ -130,8 +130,7 @@ console.log("");
 
 // Check if sprite assets exist
 console.log("🔍 Checking sprite assets...");
-const assetsPath = path.join(REPO_ROOT, ".github/assets/sci-fi-samurai");
-
+const assetsPath = path.join(REPO_ROOT, ".github/assets/glitch-samurai");
 // Check if the assets folder exists
 if (!fs.existsSync(assetsPath)) {
   console.warn(`⚠️  Warning: Assets folder not found: ${assetsPath}`);

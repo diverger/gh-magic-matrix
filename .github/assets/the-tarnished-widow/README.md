@@ -2,7 +2,7 @@ The files are copyrighted by the original authors.
 
 The recommended settings for these sprite sheet are:
 
-```json
+```javascript
 images: [
   {
     urlFolder: path.join(REPO_ROOT, ".github/assets/the-tarnished-widow"),  // Absolute path to assets

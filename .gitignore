@@ -60,7 +60,6 @@ jspm_packages/
 
 # GitHub tokens and sensitive credentials (never commit!)
 .github/token.txt
-.github/token.txt.example
 *.token
 *_token.txt
 .secrets
