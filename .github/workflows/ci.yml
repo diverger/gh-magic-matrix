@@ -241,7 +241,7 @@ jobs:
           INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
           INPUT_HIDE_PROGRESS_BAR: "true"
-          INPUT_COUNTER_DEBUG: "true"
+          INPUT_COUNTER_DEBUG: "false"
           INPUT_COUNTER_DISPLAYS: |
             [
               {
