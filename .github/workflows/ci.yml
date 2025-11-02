@@ -261,7 +261,7 @@ jobs:
                     "spacing": 0,
                     "sprite": {
                       "contributionLevels": 5,
-                      "framesPerLevel": ['*', '*', '*', '*', '*'],
+                      "framesPerLevel": ["*", "*", "*", "*", "*"],
                       "frameWidth": 128,
                       "frameHeight": 32,
                       "layout": "horizontal",
