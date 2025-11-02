@@ -1,6 +1,6 @@
 {
   "name": "@gh-magic-matrix/blinking-contrib",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "GitHub Action to create blinking contribution visualization - displays each year's contributions with fade transitions",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
