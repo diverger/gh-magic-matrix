@@ -974,11 +974,64 @@ async function preloadCounterImages(
     const frameCount = effectiveFrameCount;
 
     if (isContributionLevel && imageConfig.urlFolder) {
-      // Level mode: L{n} pattern with multiple levels
+      // Level mode: multiple formats supported
+      // 1. Individual frames per level: prefix_{level}-{frame}.ext (e.g., sprite_0-0.png)
+      // 2. Sprite sheet per level: prefix_{level}.ext (e.g., sprite_0.png)
       const contributionLevels = imageConfig.sprite?.contributionLevels || 5;
-      const framePattern = imageConfig.framePattern || 'L{n}.png';
-      const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
       const useSpriteSheetPerLevel = imageConfig.sprite?.useSpriteSheetPerLevel || false;
+      const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
+
+      // Choose appropriate default pattern based on mode
+      const defaultPattern = useSpriteSheetPerLevel ? 'sprite_{n}.png' : 'sprite_{n}-{n}.png';
+      const framePattern = imageConfig.framePattern || defaultPattern;
+
+      // Validate frame pattern format
+      if (!validateFramePattern(framePattern, true, useSpriteSheetPerLevel)) {
+        if (useSpriteSheetPerLevel) {
+          throw new Error(
+            `Invalid framePattern for sprite sheet per level mode: "${framePattern}". ` +
+            `Pattern MUST end with _{n}.ext (e.g., "sprite_{n}.png"). ` +
+            `Format: prefix_{level}.ext`
+          );
+        } else {
+          throw new Error(
+            `Invalid framePattern for level mode: "${framePattern}". ` +
+            `Pattern MUST end with _{n}-{n}.ext (e.g., "sprite_{n}-{n}.png"). ` +
+            `Format: prefix_{level}-{frame}.ext`
+          );
+        }
+      }
+
+      // Try wildcard scanning if pattern contains '*'
+      let wildcardFiles: Map<number, Map<number, string>> | null = null;
+      let wildcardSpriteSheets: Map<number, string> | null = null;
+
+      if (framePattern.includes('*')) {
+        if (useSpriteSheetPerLevel) {
+          // Scan for sprite sheet files: *_{n}.png
+          wildcardSpriteSheets = await scanWildcardSpriteSheetPerLevel(
+            imageConfig.urlFolder,
+            framePattern,
+            contributionLevels
+          );
+
+          if (wildcardSpriteSheets && counterConfig.debug) {
+            console.log(`🎲 Wildcard sprite sheet scan completed: found ${wildcardSpriteSheets.size} levels`);
+          }
+        } else {
+          // Scan for individual frame files: *_{n}-{n}.png
+          wildcardFiles = await scanWildcardLevelFrames(
+            imageConfig.urlFolder,
+            framePattern,
+            contributionLevels,
+            framesPerLevel
+          );
+
+          if (wildcardFiles && counterConfig.debug) {
+            console.log(`🎲 Wildcard level scan completed: found frames for ${wildcardFiles.size} levels`);
+          }
+        }
+      }
 
       for (let level = 0; level < contributionLevels; level++) {
         const frameMap = new Map<number, string>();
@@ -987,8 +1040,25 @@ async function preloadCounterImages(
         const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
 
         if (useSpriteSheetPerLevel) {
-          // Each level is a sprite sheet file: L0.png, L1.png, etc.
-          const spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
+          // Each level is a sprite sheet file
+          let spriteUrl: string;
+
+          if (wildcardSpriteSheets) {
+            // Wildcard mode: use randomly selected file
+            const selectedFilename = wildcardSpriteSheets.get(level);
+            if (selectedFilename) {
+              const normalizedFolder = imageConfig.urlFolder.replace(/\/$/, '');
+              spriteUrl = `${normalizedFolder}/${selectedFilename}`;
+            } else {
+              // File not found in wildcard scan, skip this level
+              console.warn(`⚠️  Wildcard: No sprite sheet file found for level ${level}`);
+              continue;
+            }
+          } else {
+            // Exact match mode: generate URL from pattern
+            spriteUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, 0);
+          }
+
           const resolvedUrl = await resolveImageUrl(spriteUrl);
 
           if (counterConfig.debug) {
@@ -1043,9 +1113,27 @@ async function preloadCounterImages(
             }
           }
         } else {
-          // Each level uses separate frame files: L0-0.png, L0-1.png, etc.
+          // Each level uses separate frame files
+          // Use wildcard-selected files if available, otherwise use exact pattern
           for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
-            const frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
+            let frameUrl: string;
+
+            if (wildcardFiles) {
+              // Wildcard mode: use randomly selected file
+              const selectedFilename = wildcardFiles.get(level)?.get(frameIdx);
+              if (selectedFilename) {
+                const normalizedFolder = imageConfig.urlFolder.replace(/\/$/, '');
+                frameUrl = `${normalizedFolder}/${selectedFilename}`;
+              } else {
+                // File not found in wildcard scan, skip
+                console.warn(`⚠️  Wildcard: No file found for level ${level}, frame ${frameIdx}`);
+                continue;
+              }
+            } else {
+              // Exact match mode: generate URL from pattern
+              frameUrl = generateLevelFrameUrl(imageConfig.urlFolder, framePattern, level, frameIdx);
+            }
+
             const resolvedUrl = await resolveImageUrl(frameUrl);
 
             if (resolvedUrl) {
@@ -1065,9 +1153,20 @@ async function preloadCounterImages(
         }
       }
     } else if (isMultiFrame && imageConfig.urlFolder) {
-      // Multi-file mode: load separate frame files (no Lx pattern)
+      // Multi-file mode: load separate frame files (non-level pattern)
+      // Format: prefix-{frame}.ext (hyphen separates prefix from frame number)
       const framePattern = imageConfig.framePattern || 'frame-{n}.png';
-      const frameUrls = generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
+
+      // Validate frame pattern format
+      if (!validateFramePattern(framePattern, false)) {
+        throw new Error(
+          `Invalid framePattern for multi-file mode: "${framePattern}". ` +
+          `Non-level mode patterns MUST end with -{n}.ext (e.g., "frame-{n}.png"). ` +
+          `Format: prefix-{frame}.ext`
+        );
+      }
+
+      const frameUrls = await generateFrameUrls(imageConfig.urlFolder, framePattern, frameCount);
 
       const frameMap = new Map<number, string>();
       levelMap.set(0, frameMap); // Single level (level 0)
@@ -1952,8 +2051,246 @@ export const createProgressStack = async (
 };
 
 /**
+ * Validates that a framePattern follows the required naming convention.
+ *
+ * Rules:
+ * - Non-level mode: MUST end with -{n} (hyphen separates prefix from frame number)
+ * - Level mode with individual frames: MUST end with _{n}-{n} (underscore before level, hyphen between level and frame)
+ * - Level mode with sprite sheets per level: MUST end with _{n} (underscore before level number)
+ *
+ * Separator usage:
+ * - `_` (underscore): Separates prefix from level number (used in level mode only)
+ * - `-` (hyphen): Separates prefix from frame number (non-level mode) or level from frame number (level mode)
+ *
+ * @param framePattern - Pattern to validate
+ * @param isLevelMode - Whether this is for level mode (default: false)
+ * @param isSpriteSheetPerLevel - Whether using sprite sheet per level (only relevant for level mode)
+ * @returns True if valid, false otherwise
+ *
+ * @example
+ * ```typescript
+ * // Non-level mode (hyphen before frame)
+ * validateFramePattern('sprite-{n}.png', false);          // true - sprite-0.png
+ * validateFramePattern('*-{n}.gif', false);               // true - wildcard match
+ *
+ * // Level mode with individual frames (underscore before level, hyphen before frame)
+ * validateFramePattern('char_{n}-{n}.png', true, false);  // true - char_0-0.png, char_1-5.png
+ * validateFramePattern('*_{n}-{n}.png', true, false);     // true - wildcard with level
+ *
+ * // Level mode with sprite sheet per level (underscore before level only)
+ * validateFramePattern('sprite_{n}.png', true, true);     // true - sprite_0.png, sprite_1.png
+ * validateFramePattern('*_{n}.png', true, true);          // true - wildcard sprite sheets
+ *
+ * // Invalid examples
+ * validateFramePattern('frame_{n}.png', false);           // false - non-level mode requires hyphen, not underscore
+ * validateFramePattern('sprite-{n}.png', true, false);    // false - level mode requires underscore before level number
+ * validateFramePattern('sprite{n}.png', true, true);      // false - missing underscore separator before level
+ * validateFramePattern('char_{n}.png', true, false);      // false - individual frames mode requires _{n}-{n} format
+ * ```
+ */
+export const validateFramePattern = (
+  framePattern: string,
+  isLevelMode: boolean = false,
+  isSpriteSheetPerLevel: boolean = false
+): boolean => {
+  if (isLevelMode) {
+    if (isSpriteSheetPerLevel) {
+      // Level mode with sprite sheet per level: must end with _{n}.ext
+      // Underscore separates prefix from level number
+      const pattern = /_{n}\.[^.]+$/;
+      return pattern.test(framePattern);
+    } else {
+      // Level mode with individual frames: must end with _{n}-{n}.ext
+      // Underscore before level, hyphen between level and frame
+      const pattern = /_{n}-{n}\.[^.]+$/;
+      return pattern.test(framePattern);
+    }
+  } else {
+    // Non-level mode: must end with -{n}.ext
+    // Hyphen before frame number
+    const pattern = /-{n}\.[^.]+$/;
+    return pattern.test(framePattern);
+  }
+};
+
+/**
+ * Scans a directory for files matching the wildcard pattern *-{n}.ext
+ * and randomly selects one file for each frame number.
+ *
+ * Pattern format: prefix-{frame}.ext
+ * - Hyphen separates prefix from frame number
+ *
+ * **Reuse Feature (Windows-friendly):**
+ * To reduce file size by reusing images, use the `@` syntax:
+ * - Create a 0-byte placeholder file: `prefix-{frame}@{ref_frame}.ext`
+ * - Example: `walk-5@0.png` means "Frame 5 reuses the image from Frame 0"
+ * - The reference frame MUST be scanned before the reusing frame (lower frame number)
+ *
+ * @param urlFolder - Folder path to scan
+ * @param framePattern - Pattern ending with -{n} (e.g., "*-{n}.png")
+ * @param frameCount - Number of frames expected
+ * @returns Map of frame index to selected filename, or null if scanning is not possible
+ *
+ * @example
+ * ```typescript
+ * // Files in folder: "red-0.png", "blue-0.png", "green-0.png", "red-1.png", "blue-1.png"
+ * const fileMap = await scanWildcardFrames('./assets', '*-{n}.png', 2);
+ * // Returns: Map { 0 => 'blue-0.png', 1 => 'red-1.png' } (random selection)
+ *
+ * // With reuse (files: "walk-0.png", "walk-1.png", "walk-2@0.png", "walk-3@1.png")
+ * const fileMap = await scanWildcardFrames('./assets', '*-{n}.png', 4);
+ * // Frame 2 reuses walk-0.png, Frame 3 reuses walk-1.png
+ * // Returns: Map { 0 => 'walk-0.png', 1 => 'walk-1.png', 2 => 'walk-0.png', 3 => 'walk-1.png' }
+ * ```
+ */
+export const scanWildcardFrames = async (
+  urlFolder: string,
+  framePattern: string,
+  frameCount: number
+): Promise<Map<number, string> | null> => {
+  try {
+    // Validate pattern format
+    if (!validateFramePattern(framePattern, false)) {
+      console.error(`❌ Invalid framePattern: "${framePattern}"`);
+      console.error(`   Frame patterns MUST end with -{n}.ext (e.g., "sprite-{n}.png")`);
+      return null;
+    }
+
+    // Check if this is a wildcard pattern
+    if (!framePattern.includes('*')) {
+      return null; // Not a wildcard pattern, use exact match mode
+    }
+
+    // Dynamic import to work in both Node.js and browser environments
+    const fs = await import('fs');
+    const path = await import('path');
+
+    // Resolve absolute path
+    const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
+    const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
+    const absoluteFolder = path.resolve(urlFolder);
+
+    // Security: Validate path is within workspace
+    if (!absoluteFolder.startsWith(resolvedWorkspaceRoot + path.sep) && absoluteFolder !== resolvedWorkspaceRoot) {
+      console.error(`⚠️  Security: Path traversal detected in wildcard scan!`);
+      console.error(`   Folder: ${urlFolder}`);
+      console.error(`   Resolved: ${absoluteFolder}`);
+      console.error(`   Workspace: ${resolvedWorkspaceRoot}`);
+      return null;
+    }
+
+    // Check if directory exists
+    if (!fs.existsSync(absoluteFolder)) {
+      console.error(`Folder not found for wildcard scan: ${urlFolder}`);
+      return null;
+    }
+
+    // Read directory contents
+    const files = fs.readdirSync(absoluteFolder);
+
+    // Extract the pattern parts: prefix wildcard and suffix
+    // Example: "*-{n}.png" -> suffix = "-{n}.png"
+    const wildcardIndex = framePattern.indexOf('*');
+    const patternAfterWildcard = framePattern.substring(wildcardIndex + 1);
+
+    // Extract file extension from pattern
+    const extMatch = patternAfterWildcard.match(/\.[^.]+$/);
+    const extension = extMatch ? extMatch[0] : '';
+
+    // Build regex to match files: anything + -{frameNum} + extension
+    // Example: /^.*-(\d+)\.png$/ for pattern "*-{n}.png"
+    const frameNumberPattern = patternAfterWildcard
+      .replace('-{n}', '-(?<frameNum>\\d+)')
+      .replace(/\./g, '\\.');
+    const regex = new RegExp(`^.*${frameNumberPattern}$`);
+
+    // Regex to detect reuse syntax: prefix-{frame}@{ref_frame}.ext
+    const reuseRegex = /^.*-(?<frame>\d+)@(?<refFrame>\d+)\./;
+
+    // Group files by frame number
+    const frameGroups: Map<number, string[]> = new Map();
+
+    // Track reuse mappings: {frame} -> {ref_frame}
+    const reuseMap = new Map<number, number>();
+
+    for (const file of files) {
+      // Check if this is a reuse directive
+      const reuseMatch = file.match(reuseRegex);
+      if (reuseMatch && reuseMatch.groups) {
+        const frame = parseInt(reuseMatch.groups.frame, 10);
+        const refFrame = parseInt(reuseMatch.groups.refFrame, 10);
+
+        reuseMap.set(frame, refFrame);
+        console.log(`🔗 Reuse: Frame ${frame} -> Frame ${refFrame}`);
+        continue; // Don't add to frameGroups
+      }
+
+      const match = file.match(regex);
+      if (match && match.groups?.frameNum) {
+        const frameNum = parseInt(match.groups.frameNum, 10);
+
+        if (!frameGroups.has(frameNum)) {
+          frameGroups.set(frameNum, []);
+        }
+        frameGroups.get(frameNum)!.push(file);
+      }
+    }
+
+    // Randomly select one file for each frame
+    const selectedFiles = new Map<number, string>();
+
+    for (let i = 0; i < frameCount; i++) {
+      // Check if this frame should reuse another frame
+      if (reuseMap.has(i)) {
+        const refFrame = reuseMap.get(i)!;
+
+        // Get the already-selected file from the reference frame
+        const refFile = selectedFiles.get(refFrame);
+
+        if (refFile) {
+          selectedFiles.set(i, refFile);
+          console.log(`♻️  Frame ${i}: Reusing "${refFile}" from Frame ${refFrame}`);
+          continue;
+        } else {
+          console.warn(`⚠️  Reuse failed: Frame ${refFrame} not yet selected for Frame ${i}`);
+          console.warn(`⚠️  Make sure reference frames come before frames that reuse them`);
+          // Fall through to normal selection
+        }
+      }
+
+      const candidates = frameGroups.get(i);
+
+      if (!candidates || candidates.length === 0) {
+        console.warn(`⚠️  No files found matching pattern for frame ${i}`);
+        continue;
+      }
+
+      // Random selection (using crypto for better randomness if available)
+      const randomIndex = Math.floor(Math.random() * candidates.length);
+      const selectedFile = candidates[randomIndex];
+      selectedFiles.set(i, selectedFile);
+
+      if (candidates.length > 1) {
+        console.log(`🎲 Frame ${i}: Selected "${selectedFile}" from ${candidates.length} candidates: [${candidates.join(', ')}]`);
+      }
+    }
+
+    return selectedFiles;
+  } catch (error) {
+    console.error(`Error scanning wildcard frames:`, error);
+    return null;
+  }
+};
+
+/**
  * Helper function to generate frame URLs from folder path and pattern.
  * This is used when the user provides multiple separate image files instead of a sprite sheet.
+ *
+ * Supports two modes:
+ * 1. **Exact match**: Pattern like "frame-{n}.png" generates exact filenames
+ * 2. **Wildcard match**: Pattern like "*-{n}.png" scans folder and randomly selects matching files
+ *    - Files MUST end with -{n} (hyphen separates prefix from frame number)
+ *    - When multiple files match the same -{n}, one is randomly selected
  *
  * @param urlFolder - Folder path containing the frame images
  * @param framePattern - Pattern for frame filenames (default: 'frame-{n}.png')
@@ -1962,25 +2299,53 @@ export const createProgressStack = async (
  *
  * @example
  * ```typescript
- * // Default pattern
- * const urls = generateFrameUrls('images/character', undefined, 5);
+ * // Exact match mode
+ * const urls = generateFrameUrls('images/character', 'frame-{n}.png', 5);
  * // Returns: ['images/character/frame-0.png', 'images/character/frame-1.png', ...]
  *
- * // Custom pattern
- * const urls = generateFrameUrls('assets/sprite', 'img_{n}.gif', 3);
- * // Returns: ['assets/sprite/img_0.gif', 'assets/sprite/img_1.gif', 'assets/sprite/img_2.gif']
+ * // Wildcard mode with random selection
+ * const urls = await generateFrameUrls('assets/sprite', '*-{n}.gif', 3);
+ * // Scans folder for files ending with -0.gif, -1.gif, -2.gif
+ * // If found: red-0.gif, blue-0.gif -> randomly picks one for frame 0
+ * // Returns: ['assets/sprite/blue-0.gif', 'assets/sprite/red-1.gif', 'assets/sprite/green-2.gif']
  * ```
  */
-export const generateFrameUrls = (
+export const generateFrameUrls = async (
   urlFolder: string,
   framePattern: string = 'frame-{n}.png',
   frameCount: number
-): string[] => {
+): Promise<string[]> => {
   const urls: string[] = [];
 
   // Normalize folder path (remove trailing slash if present)
   const normalizedFolder = urlFolder.replace(/\/$/, '');
 
+  // Check if this is a wildcard pattern
+  if (framePattern.includes('*') && framePattern.includes('-{n}')) {
+    // Wildcard mode: scan folder and randomly select files
+    const selectedFiles = await scanWildcardFrames(urlFolder, framePattern, frameCount);
+
+    if (selectedFiles) {
+      // Use the randomly selected files
+      for (let i = 0; i < frameCount; i++) {
+        const filename = selectedFiles.get(i);
+        if (filename) {
+          urls.push(`${normalizedFolder}/${filename}`);
+        } else {
+          // Fallback: generate expected filename (may not exist)
+          const fallbackFilename = framePattern.replace('*', 'missing').replace('{n}', i.toString());
+          console.warn(`⚠️  Frame ${i} not found, using fallback: ${fallbackFilename}`);
+          urls.push(`${normalizedFolder}/${fallbackFilename}`);
+        }
+      }
+      return urls;
+    }
+
+    // If scanning failed, fall through to exact match mode
+    console.warn(`⚠️  Wildcard scanning failed, falling back to exact match mode`);
+  }
+
+  // Exact match mode: generate filenames from pattern
   for (let i = 0; i < frameCount; i++) {
     // Replace {n} placeholder with frame number
     const filename = framePattern.replace('{n}', i.toString());
@@ -2029,13 +2394,370 @@ export const getContributionLevel = (
 };
 
 /**
- * Generate frame URL with L{n} placeholder replacement.
+ * Scans a directory for files matching the wildcard pattern with _{n}-{n} format
+ * and randomly selects files for each level and frame combination.
+ *
+ * Pattern format: prefix_{level}-{frame}.ext
+ * - Underscore separates prefix from level number
+ * - Hyphen separates level number from frame number
+ *
+ * **Reuse Feature (Windows-friendly):**
+ * To reduce file size by reusing images across levels/frames, use the `@` syntax:
+ * - Create a 0-byte placeholder file: `prefix_{level}-{frame}@{ref_level}-{ref_frame}.ext`
+ * - Example: `sprite_2-3@0-1.png` means "Level 2, Frame 3 reuses the image from Level 0, Frame 1"
+ * - The reference level/frame MUST be scanned before the reusing one (lower level/frame number)
+ *
+ * @param urlFolder - Folder path to scan
+ * @param framePattern - Pattern with _{n}-{n} (e.g., "*_{n}-{n}.png")
+ * @param contributionLevels - Number of contribution levels (typically 5)
+ * @param framesPerLevel - Number of frames per level (can be number or array)
+ * @returns Nested map: level -> frameIndex -> filename, or null if scanning failed
+ *
+ * @example
+ * ```typescript
+ * // Basic usage - random selection from multiple files
+ * // Files: "red_0-0.png", "blue_0-0.png", "red_1-0.png", "green_1-5.png"
+ * const levelMap = await scanWildcardLevelFrames('./assets', '*_{n}-{n}.png', 2, 6);
+ * // Returns: Map {
+ * //   0 => Map { 0 => 'blue_0-0.png' },
+ * //   1 => Map { 0 => 'red_1-0.png', 5 => 'green_1-5.png' }
+ * // }
+ *
+ * // With reuse - reducing file count
+ * // Files: "char_0-0.png", "char_0-1.png", "char_1-0@0-0.png", "char_1-1@0-1.png"
+ * const levelMap = await scanWildcardLevelFrames('./assets', '*_{n}-{n}.png', 2, 2);
+ * // Level 1 frames reuse Level 0 frames
+ * // Returns: Map {
+ * //   0 => Map { 0 => 'char_0-0.png', 1 => 'char_0-1.png' },
+ * //   1 => Map { 0 => 'char_0-0.png', 1 => 'char_0-1.png' }
+ * // }
+ * ```
+ */
+export const scanWildcardLevelFrames = async (
+  urlFolder: string,
+  framePattern: string,
+  contributionLevels: number,
+  framesPerLevel: number | number[]
+): Promise<Map<number, Map<number, string>> | null> => {
+  try {
+    // Validate pattern format (individual frames only, not sprite sheet per level)
+    if (!validateFramePattern(framePattern, true, false)) {
+      console.error(`❌ Invalid framePattern for level mode: "${framePattern}"`);
+      console.error(`   Level mode patterns MUST end with _{n}-{n}.ext (e.g., "sprite_{n}-{n}.png")`);
+      console.error(`   Format: prefix_{level}-{frame}.ext`);
+      return null;
+    }
+
+    // Check if this is a wildcard pattern
+    if (!framePattern.includes('*')) {
+      return null; // Not a wildcard pattern, use exact match mode
+    }
+
+    // Dynamic import
+    const fs = await import('fs');
+    const path = await import('path');
+
+    // Resolve and validate path
+    const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
+    const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
+    const absoluteFolder = path.resolve(urlFolder);
+
+    if (!absoluteFolder.startsWith(resolvedWorkspaceRoot + path.sep) && absoluteFolder !== resolvedWorkspaceRoot) {
+      console.error(`⚠️  Security: Path traversal detected in wildcard level scan!`);
+      return null;
+    }
+
+    if (!fs.existsSync(absoluteFolder)) {
+      console.error(`Folder not found for wildcard level scan: ${urlFolder}`);
+      return null;
+    }
+
+    // Read directory
+    const files = fs.readdirSync(absoluteFolder);
+
+    // Build regex: *_{level}-{frame}.ext -> ^.*_(\d+)-(\d+)\.ext$
+    // Also support reuse syntax: *_{level}-{frame}@{ref_level}-{ref_frame}.ext
+    const patternAfterWildcard = framePattern.substring(framePattern.indexOf('*') + 1);
+    const regexPattern = patternAfterWildcard
+      .replace(/_{n}-{n}/g, '_(?<level>\\d+)-(?<frame>\\d+)')
+      .replace(/\./g, '\\.');
+    const regex = new RegExp(`^.*${regexPattern}$`);
+
+    // Regex to detect reuse syntax: prefix_{level}-{frame}@{ref_level}-{ref_frame}.ext
+    const reuseRegex = new RegExp(`^.*_(?<level>\\d+)-(?<frame>\\d+)@(?<refLevel>\\d+)-(?<refFrame>\\d+)\\.`);
+
+    // Group files by level and frame
+    const levelGroups: Map<number, Map<number, string[]>> = new Map();
+
+    // Track reuse mappings: {level}-{frame} -> {ref_level}-{ref_frame}
+    const reuseMap = new Map<string, string>();
+
+    for (const file of files) {
+      // Check if this is a reuse directive
+      const reuseMatch = file.match(reuseRegex);
+      if (reuseMatch && reuseMatch.groups) {
+        const level = parseInt(reuseMatch.groups.level, 10);
+        const frame = parseInt(reuseMatch.groups.frame, 10);
+        const refLevel = parseInt(reuseMatch.groups.refLevel, 10);
+        const refFrame = parseInt(reuseMatch.groups.refFrame, 10);
+
+        const key = `${level}-${frame}`;
+        const refKey = `${refLevel}-${refFrame}`;
+        reuseMap.set(key, refKey);
+
+        console.log(`🔗 Reuse: Level ${level}, Frame ${frame} -> Level ${refLevel}, Frame ${refFrame}`);
+        continue; // Don't add to levelGroups, it's just a directive
+      }
+
+      // Regular file matching
+      const match = file.match(regex);
+      if (match && match.groups?.level && match.groups?.frame) {
+        const level = parseInt(match.groups.level, 10);
+        const frame = parseInt(match.groups.frame, 10);
+
+        if (!levelGroups.has(level)) {
+          levelGroups.set(level, new Map());
+        }
+        const frameMap = levelGroups.get(level)!;
+
+        if (!frameMap.has(frame)) {
+          frameMap.set(frame, []);
+        }
+        frameMap.get(frame)!.push(file);
+      }
+    }
+
+    // Randomly select files for each level and frame
+    const selectedFiles: Map<number, Map<number, string>> = new Map();
+
+    for (let level = 0; level < contributionLevels; level++) {
+      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+      const levelFrameMap = new Map<number, string>();
+      selectedFiles.set(level, levelFrameMap);
+
+      for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
+        const key = `${level}-${frameIdx}`;
+
+        // Check if this frame should reuse another frame
+        if (reuseMap.has(key)) {
+          const refKey = reuseMap.get(key)!;
+          const [refLevelStr, refFrameStr] = refKey.split('-');
+          const refLevel = parseInt(refLevelStr, 10);
+          const refFrame = parseInt(refFrameStr, 10);
+
+          // Get the already-selected file from the reference frame
+          const refFile = selectedFiles.get(refLevel)?.get(refFrame);
+
+          if (refFile) {
+            levelFrameMap.set(frameIdx, refFile);
+            console.log(`♻️  Level ${level}, Frame ${frameIdx}: Reusing "${refFile}" from Level ${refLevel}, Frame ${refFrame}`);
+            continue;
+          } else {
+            console.warn(`⚠️  Reuse failed: Level ${refLevel}, Frame ${refFrame} not yet selected for Level ${level}, Frame ${frameIdx}`);
+            console.warn(`⚠️  Make sure reference frames come before frames that reuse them (lower level/frame number)`);
+            // Fall through to normal selection
+          }
+        }
+
+        const candidates = levelGroups.get(level)?.get(frameIdx);
+
+        if (!candidates || candidates.length === 0) {
+          console.warn(`⚠️  No files found for level ${level}, frame ${frameIdx}`);
+          continue;
+        }
+
+        // Random selection
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        const selectedFile = candidates[randomIndex];
+        levelFrameMap.set(frameIdx, selectedFile);
+
+        if (candidates.length > 1) {
+          console.log(`🎲 Level ${level}, Frame ${frameIdx}: Selected "${selectedFile}" from ${candidates.length} candidates`);
+        }
+      }
+    }
+
+    return selectedFiles;
+  } catch (error) {
+    console.error(`Error scanning wildcard level frames:`, error);
+    return null;
+  }
+};
+
+/**
+ * Scan folder for wildcard sprite sheet files in sprite-sheet-per-level mode.
+ * Supports multiple files with the same level suffix for random selection.
+ *
+ * @param urlFolder - Folder path to scan
+ * @param framePattern - Pattern with wildcard (e.g., "*_{n}.png")
+ * @param contributionLevels - Number of contribution levels
+ * @returns Map of level -> selected filename, or null if error/not wildcard
+ *
+ * @example
+ * ```typescript
+ * // Files: warrior_0.png, mage_0.png, warrior_1.png
+ * const levelMap = await scanWildcardSpriteSheetPerLevel('./assets', '*_{n}.png', 5);
+ * // Returns: Map { 0 => 'warrior_0.png' or 'mage_0.png', 1 => 'warrior_1.png', ... }
+ * ```
+ */
+export const scanWildcardSpriteSheetPerLevel = async (
+  urlFolder: string,
+  framePattern: string,
+  contributionLevels: number
+): Promise<Map<number, string> | null> => {
+  try {
+    // Validate pattern format (sprite sheet per level only)
+    if (!validateFramePattern(framePattern, true, true)) {
+      console.error(`❌ Invalid framePattern for sprite sheet per level mode: "${framePattern}"`);
+      console.error(`   Sprite sheet per level patterns MUST end with _{n}.ext (e.g., "sprite_{n}.png")`);
+      console.error(`   Format: prefix_{level}.ext`);
+      return null;
+    }
+
+    // Check if this is a wildcard pattern
+    if (!framePattern.includes('*')) {
+      return null; // Not a wildcard pattern, use exact match mode
+    }
+
+    // Dynamic import
+    const fs = await import('fs');
+    const path = await import('path');
+
+    // Resolve and validate path
+    const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
+    const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
+    const absoluteFolder = path.resolve(urlFolder);
+
+    if (!absoluteFolder.startsWith(resolvedWorkspaceRoot + path.sep) && absoluteFolder !== resolvedWorkspaceRoot) {
+      console.error(`⚠️  Security: Path traversal detected in wildcard sprite sheet scan!`);
+      return null;
+    }
+
+    if (!fs.existsSync(absoluteFolder)) {
+      console.error(`Folder not found for wildcard sprite sheet scan: ${urlFolder}`);
+      return null;
+    }
+
+    // Read directory
+    const files = fs.readdirSync(absoluteFolder);
+
+    // Build regex: *_{level}.ext -> ^.*_(\d+)\.ext$
+    // Also support reuse syntax: *_{level}@{ref_level}.ext
+    const patternAfterWildcard = framePattern.substring(framePattern.indexOf('*') + 1);
+    const regexPattern = patternAfterWildcard
+      .replace(/_{n}/g, '_(?<level>\\d+)')
+      .replace(/\./g, '\\.');
+    const regex = new RegExp(`^.*${regexPattern}$`);
+
+    // Regex to detect reuse syntax: prefix_{level}@{ref_level}.ext
+    const reuseRegex = new RegExp(`^.*_(?<level>\\d+)@(?<refLevel>\\d+)\\.`);
+
+    // Group files by level
+    const levelGroups: Map<number, string[]> = new Map();
+
+    // Track reuse mappings: {level} -> {ref_level}
+    const reuseMap = new Map<number, number>();
+
+    for (const file of files) {
+      // Check if this is a reuse directive
+      const reuseMatch = file.match(reuseRegex);
+      if (reuseMatch && reuseMatch.groups) {
+        const level = parseInt(reuseMatch.groups.level, 10);
+        const refLevel = parseInt(reuseMatch.groups.refLevel, 10);
+
+        reuseMap.set(level, refLevel);
+        console.log(`🔗 Reuse: Level ${level} -> Level ${refLevel}`);
+        continue; // Don't add to levelGroups, it's just a directive
+      }
+
+      // Regular file matching
+      const match = file.match(regex);
+      if (match && match.groups?.level) {
+        const level = parseInt(match.groups.level, 10);
+
+        if (!levelGroups.has(level)) {
+          levelGroups.set(level, []);
+        }
+        levelGroups.get(level)!.push(file);
+      }
+    }
+
+    // Randomly select one file for each level
+    const selectedFiles = new Map<number, string>();
+
+    for (let level = 0; level < contributionLevels; level++) {
+      // Check if this level should reuse another level
+      if (reuseMap.has(level)) {
+        const refLevel = reuseMap.get(level)!;
+        const refFile = selectedFiles.get(refLevel);
+
+        if (refFile) {
+          selectedFiles.set(level, refFile);
+          console.log(`♻️  Level ${level}: Reusing "${refFile}" from Level ${refLevel}`);
+          continue;
+        } else {
+          console.warn(`⚠️  Reuse failed: Level ${refLevel} not yet selected for Level ${level}`);
+          console.warn(`⚠️  Make sure reference levels come before levels that reuse them (lower level number)`);
+          // Fall through to normal selection
+        }
+      }
+
+      const candidates = levelGroups.get(level);
+
+      if (!candidates || candidates.length === 0) {
+        console.warn(`⚠️  No sprite sheet file found for level ${level}`);
+        continue;
+      }
+
+      // Random selection
+      const randomIndex = Math.floor(Math.random() * candidates.length);
+      const selectedFile = candidates[randomIndex];
+      selectedFiles.set(level, selectedFile);
+
+      if (candidates.length > 1) {
+        console.log(`🎲 Level ${level}: Selected "${selectedFile}" from ${candidates.length} candidates: [${candidates.join(', ')}]`);
+      }
+    }
+
+    return selectedFiles;
+  } catch (error) {
+    console.error(`Error scanning wildcard sprite sheet files:`, error);
+    return null;
+  }
+};
+
+/**
+ * Generate frame URL with level and frame number replacement.
+ * Supports both exact match and wildcard modes.
+ *
+ * Handles two formats:
+ * 1. Individual frames: prefix_{level}-{frame}.ext
+ * 2. Sprite sheet per level: prefix_{level}.ext
+ *
+ * Separator usage:
+ * - Underscore before level number
+ * - Hyphen between level and frame (only for individual frames)
  *
  * @param urlFolder - Base folder path
- * @param framePattern - Pattern with {n} and/or L{n} placeholders
+ * @param framePattern - Pattern with _{n}-{n} or _{n} placeholders
  * @param level - Contribution level (0-4)
- * @param frameIndex - Frame number within the level
+ * @param frameIndex - Frame number within the level (ignored for sprite sheet per level)
  * @returns Full URL path
+ *
+ * @example
+ * ```typescript
+ * // Individual frames
+ * generateLevelFrameUrl('./assets', 'sprite_{n}-{n}.png', 1, 5)
+ * // Returns: './assets/sprite_1-5.png'
+ *
+ * // Sprite sheet per level
+ * generateLevelFrameUrl('./assets', 'sprite_{n}.png', 2, 0)
+ * // Returns: './assets/sprite_2.png'
+ *
+ * // With wildcard (wildcard removed in generation)
+ * generateLevelFrameUrl('./assets', '*_{n}-{n}.gif', 2, 3)
+ * // Returns: './assets/_2-3.gif'
+ * ```
  */
 export const generateLevelFrameUrl = (
   urlFolder: string,
@@ -2045,11 +2767,23 @@ export const generateLevelFrameUrl = (
 ): string => {
   const normalizedFolder = urlFolder.replace(/\/$/, '');
 
-  // Replace L{n} with actual level number
-  let filename = framePattern.replace(/L\{n\}/g, `L${level}`);
+  // Replace wildcard with empty string (for exact match mode)
+  let filename = framePattern.replace('*', '');
 
-  // Replace {n} with frame number (for frame index within level)
-  filename = filename.replace('{n}', frameIndex.toString());
+  // Check if this is sprite sheet per level mode (only one {n})
+  const isSpriteSheetPerLevel = !filename.includes('-{n}');
+
+  if (isSpriteSheetPerLevel) {
+    // Sprite sheet per level: prefix_{level}.ext
+    // Only replace single {n} with level number
+    filename = filename.replace('{n}', level.toString());
+  } else {
+    // Individual frames: prefix_{level}-{frame}.ext
+    // Replace first {n} with level number
+    filename = filename.replace('{n}', level.toString());
+    // Replace second {n} with frame number
+    filename = filename.replace('{n}', frameIndex.toString());
+  }
 
   return `${normalizedFolder}/${filename}`;
 };
@@ -2086,11 +2820,11 @@ export const validateImageConfig = (config: CounterImageConfig): boolean => {
  * @param config - Image configuration
  * @returns Object containing mode and relevant data
  */
-export const resolveImageMode = (config: CounterImageConfig): {
+export const resolveImageMode = async (config: CounterImageConfig): Promise<{
   mode: 'single' | 'sprite-sheet' | 'multi-file';
   frameUrls?: string[];
   spriteUrl?: string;
-} => {
+}> => {
   if (!validateImageConfig(config)) {
     throw new Error('Invalid CounterImageConfig');
   }
@@ -2100,7 +2834,16 @@ export const resolveImageMode = (config: CounterImageConfig): {
     const framesPerLevelValue = config.sprite?.framesPerLevel;
     const frameCount = (typeof framesPerLevelValue === 'number' ? framesPerLevelValue : 1);
     const framePattern = config.framePattern || 'frame-{n}.png';
-    const frameUrls = generateFrameUrls(config.urlFolder, framePattern, frameCount);
+
+    // Validate frame pattern (non-level mode)
+    if (!validateFramePattern(framePattern, false)) {
+      throw new Error(
+        `Invalid framePattern: "${framePattern}". ` +
+        `Frame patterns MUST end with -{n}.ext (e.g., "sprite-{n}.png")`
+      );
+    }
+
+    const frameUrls = await generateFrameUrls(config.urlFolder, framePattern, frameCount);
 
     return {
       mode: 'multi-file',

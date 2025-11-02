@@ -109,19 +109,19 @@ const config = {
       // It should be set via INPUT_HIDE_PROGRESS_BAR environment variable
       images: [
         {
-          urlFolder: path.join(REPO_ROOT, ".github/assets/glitch-samurai"),  // Absolute path to assets
-          framePattern: "L{n}.png",
-          width: 140,
-          height: 46,
+          urlFolder: path.join(REPO_ROOT, ".github/assets/sci-fi-samurai"),  // Absolute path to assets
+          framePattern: "*_{n}.png",
+          width: 192,
+          height: 64,
           anchorY: 1,
           anchorX: 0.5,
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: [6, 12, 12, 12, 12],  // Variable frames per level
-            frameWidth: 140,
-            frameHeight: 46,
+            framesPerLevel: [19, 8, 8, 8, 8],  // Variable frames per level
+            frameWidth: 192,
+            frameHeight: 64,
             layout: "horizontal",
             useSpriteSheetPerLevel: true
             // Note: sprite speed is automatically synced with frameDuration (100ms)
@@ -153,26 +153,98 @@ console.log("");
 
 // Check if sprite assets exist
 console.log("🔍 Checking sprite assets...");
-const assetsPath = path.join(REPO_ROOT, ".github/assets");
-const requiredAssets = ["L0.png", "L1.png", "L2.png", "L3.png", "L4.png"];
-const missingAssets: string[] = [];
+const assetsPath = path.join(REPO_ROOT, ".github/assets/sci-fi-samurai");
 
-for (const asset of requiredAssets) {
-  const assetPath = path.join(assetsPath, asset);
-  if (fs.existsSync(assetPath)) {
-    const stats = fs.statSync(assetPath);
-    console.log(`   ✅ ${asset} (${(stats.size / 1024).toFixed(1)} KB)`);
+// Check if the assets folder exists
+if (!fs.existsSync(assetsPath)) {
+  console.warn(`⚠️  Warning: Assets folder not found: ${assetsPath}`);
+  console.warn("   Creating folder...");
+  fs.mkdirSync(assetsPath, { recursive: true });
+  console.log("");
+}
+
+// Check for sprite sheet files matching the pattern *_{n}.png
+// Also support reuse syntax: *_{n}@{ref}.png
+// Expected files: sprite_0.png, sprite_1.png, sprite_2@1.png (reuses level 1), etc.
+const foundAssets: string[] = [];
+const reuseLevels: Map<number, number> = new Map(); // level -> ref_level
+const missingLevels: number[] = [];
+
+// First pass: scan for reuse directives
+if (fs.existsSync(assetsPath)) {
+  const allFiles = fs.readdirSync(assetsPath);
+  const reuseRegex = /^.*_(\d+)@(\d+)\.png$/;
+
+  allFiles.forEach(file => {
+    const reuseMatch = file.match(reuseRegex);
+    if (reuseMatch) {
+      const level = parseInt(reuseMatch[1], 10);
+      const refLevel = parseInt(reuseMatch[2], 10);
+      reuseLevels.set(level, refLevel);
+    }
+  });
+}
+
+// Second pass: check each level
+for (let level = 0; level < 5; level++) {
+  // Check if this level has a reuse directive
+  if (reuseLevels.has(level)) {
+    const refLevel = reuseLevels.get(level)!;
+    const reuseFiles = fs.existsSync(assetsPath)
+      ? fs.readdirSync(assetsPath).filter(f => {
+          const match = f.match(new RegExp(`^.*_${level}@${refLevel}\\.png$`));
+          return match !== null;
+        })
+      : [];
+
+    if (reuseFiles.length > 0) {
+      reuseFiles.forEach(file => {
+        const filePath = path.join(assetsPath, file);
+        const stats = fs.statSync(filePath);
+        console.log(`   ♻️  Level ${level}: ${file} (reuses Level ${refLevel}) (${(stats.size / 1024).toFixed(1)} KB)`);
+        foundAssets.push(file);
+      });
+      continue; // Skip regular file check for this level
+    }
+  }
+
+  // Find all files matching pattern *_{level}.png (excluding reuse files)
+  const files = fs.existsSync(assetsPath)
+    ? fs.readdirSync(assetsPath).filter(f => {
+        // Match *_{level}.png but not *_{level}@*.png
+        const match = f.match(new RegExp(`^.*_${level}\\.png$`));
+        const hasReuse = f.includes('@');
+        return match !== null && !hasReuse;
+      })
+    : [];
+
+  if (files.length > 0) {
+    // Found files for this level
+    files.forEach(file => {
+      const filePath = path.join(assetsPath, file);
+      const stats = fs.statSync(filePath);
+      console.log(`   ✅ Level ${level}: ${file} (${(stats.size / 1024).toFixed(1)} KB)`);
+      foundAssets.push(file);
+    });
   } else {
-    console.log(`   ❌ ${asset} (missing)`);
-    missingAssets.push(asset);
+    console.log(`   ❌ Level ${level}: No files matching *_${level}.png or *_${level}@*.png`);
+    missingLevels.push(level);
   }
 }
 console.log("");
 
-if (missingAssets.length > 0) {
-  console.warn("⚠️  Warning: Some sprite assets are missing:");
-  missingAssets.forEach(asset => console.warn(`   - ${asset}`));
+if (missingLevels.length > 0) {
+  console.warn("⚠️  Warning: Some sprite levels are missing:");
+  console.warn(`   Missing levels: ${missingLevels.join(', ')}`);
+  console.warn(`   Expected pattern: *_{n}.png (e.g., sprite_0.png, char_1.png)`);
+  console.warn(`   Or reuse syntax: *_{n}@{ref}.png (e.g., sprite_2@1.png reuses level 1)`);
   console.warn("   The script will continue, but sprites may not render correctly.");
+  console.log("");
+} else {
+  console.log(`✅ Found ${foundAssets.length} sprite sheet(s) for 5 levels`);
+  if (reuseLevels.size > 0) {
+    console.log(`   Including ${reuseLevels.size} reuse directive(s): ${Array.from(reuseLevels.entries()).map(([l, r]) => `L${l}→L${r}`).join(', ')}`);
+  }
   console.log("");
 }
 

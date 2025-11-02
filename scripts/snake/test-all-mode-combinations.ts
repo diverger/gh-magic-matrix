@@ -189,7 +189,7 @@ const TEST_CONFIGS = [
       fontSize: 14,
       images: [{
         urlFolder: ".github/assets",
-        framePattern: "L{n}.png",  // L0.png, L1.png, L2.png, L3.png, L4.png
+        framePattern: "sprite_{n}.png",  // sprite_0.png, sprite_1.png, sprite_2.png, sprite_3.png, sprite_4.png
         width: 64,
         height: 86,
         anchorY: 0.6875,      // Align character feet
@@ -222,7 +222,7 @@ const TEST_CONFIGS = [
       fontSize: 14,
       images: [{
         urlFolder: ".github/assets",
-        framePattern: "L{n}.png",  // L0.png - L4.png (sprite sheets)
+        framePattern: "sprite_{n}.png",  // sprite_0.png - sprite_4.png (sprite sheets)
         width: 64,
         height: 86,
         anchorY: 0.6875,      // Image anchor Y (0.6875 = 44/64, align character feet)
@@ -315,7 +315,7 @@ const TEST_CONFIGS = [
         fontSize: 12,
         images: [{
           urlFolder: ".github/assets",
-          framePattern: "L{n}.png",
+          framePattern: "sprite_{n}.png",
           width: 32,
           height: 32,
           sprite: {
