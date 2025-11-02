@@ -5,19 +5,19 @@ The recommended settings for these sprite sheet are:
 ```json
 images: [
   {
-    urlFolder: path.join(REPO_ROOT, ".github/assets/sci-fi-samurai"),  // Absolute path to assets
+    urlFolder: path.join(REPO_ROOT, ".github/assets/the-sage"),  // Absolute path to assets
     framePattern: "*_{n}.png",
     width: 192,
-    height: 64,
-    anchorY: 1,
-    anchorX: 0.5,
+    height: 48,
+    anchorY: 0.9,
+    anchorX: 0.42,
     textAnchorY: 1.0,
     spacing: 0,
     sprite: {
       contributionLevels: 5,
-      framesPerLevel: [19, 8, 8, 8, 8],  // Variable frames per level
+      framesPerLevel: [14, 8, 4, 8, 8],  // Variable frames per level
       frameWidth: 192,
-      frameHeight: 64,
+      frameHeight: 48,
       layout: "horizontal",
       useSpriteSheetPerLevel: true
       // Note: sprite speed is automatically synced with frameDuration (100ms)

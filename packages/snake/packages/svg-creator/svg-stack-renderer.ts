@@ -22,7 +22,7 @@ function getSecureRandom(): number {
     if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
       const uint32 = new Uint32Array(1);
       globalThis.crypto.getRandomValues(uint32);
-      return (uint32[0] >>> 0) / 0x100000000; // 32-bit random to [0,1)
+      return uint32[0] / 0x100000000; // 32-bit random to [0,1)
     }
   } catch (e) {
     // Fall through to Math.random()
