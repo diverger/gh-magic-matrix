@@ -65,7 +65,7 @@ const config = {
 
   // Contribution counter settings
   showContributionCounter: "true",
-  counterDebug: "false",
+  counterDebug: "true",  // Enable debug mode to see frame counts
 
   // Display configuration (matching ci.yml exactly)
   counterDisplays: [
