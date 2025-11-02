@@ -66,6 +66,43 @@ export interface SvgStackResult {
 }
 
 /**
+ * Validates that a path is within the workspace using path.relative.
+ * This is more robust across platforms than string prefix checks.
+ *
+ * @param pathModule - Path module (from import('path'))
+ * @param resolvedWorkspaceRoot - Absolute path to workspace root (already resolved)
+ * @param absolutePath - Absolute path to validate
+ * @returns true if path is within workspace, false if outside (potential traversal)
+ *
+ * @example
+ * ```typescript
+ * const path = await import('path');
+ * const isValid = isPathWithinWorkspace(path, '/home/user/workspace', '/home/user/workspace/assets/image.png');
+ * // Returns: true
+ *
+ * const isInvalid = isPathWithinWorkspace(path, '/home/user/workspace', '/etc/passwd');
+ * // Returns: false
+ * ```
+ */
+const isPathWithinWorkspace = (
+  pathModule: any,
+  resolvedWorkspaceRoot: string,
+  absolutePath: string
+): boolean => {
+  // Compute relative path from workspace root to the given path
+  const relativePath = pathModule.relative(resolvedWorkspaceRoot, absolutePath);
+
+  // Path is outside workspace if:
+  // 1. Relative path starts with '..' (goes up directories)
+  // 2. Relative path is absolute (Windows: starts with drive letter, Unix: starts with /)
+  if (relativePath.startsWith('..') || pathModule.isAbsolute(relativePath)) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
  * Creates an SVG group element representing a single stack with multiple layers.
  *
  * @param stack - Stack data including position, height, and color.
@@ -2161,6 +2198,17 @@ export const scanWildcardFrames = async (
       return null; // Not a wildcard pattern, use exact match mode
     }
 
+    // Validate that framePattern contains at most one wildcard
+    const wildcardCount = (framePattern.match(/\*/g) || []).length;
+    if (wildcardCount > 1) {
+      console.error(
+        `❌ Invalid framePattern: "${framePattern}" contains ${wildcardCount} wildcards. ` +
+        `Only ONE wildcard (*) is supported per pattern. ` +
+        `Examples: "*-{n}.png", "*_{n}-{n}.png"`
+      );
+      return null;
+    }
+
     // Dynamic import to work in both Node.js and browser environments
     const fs = await import('fs');
     const path = await import('path');
@@ -2170,8 +2218,8 @@ export const scanWildcardFrames = async (
     const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
     const absoluteFolder = path.resolve(urlFolder);
 
-    // Security: Validate path is within workspace
-    if (!absoluteFolder.startsWith(resolvedWorkspaceRoot + path.sep) && absoluteFolder !== resolvedWorkspaceRoot) {
+    // Security: Validate path is within workspace using path.relative-based check
+    if (!isPathWithinWorkspace(path, resolvedWorkspaceRoot, absoluteFolder)) {
       console.error(`⚠️  Security: Path traversal detected in wildcard scan!`);
       console.error(`   Folder: ${urlFolder}`);
       console.error(`   Resolved: ${absoluteFolder}`);
@@ -2453,6 +2501,17 @@ export const scanWildcardLevelFrames = async (
       return null; // Not a wildcard pattern, use exact match mode
     }
 
+    // Validate that framePattern contains at most one wildcard
+    const wildcardCount = (framePattern.match(/\*/g) || []).length;
+    if (wildcardCount > 1) {
+      console.error(
+        `❌ Invalid framePattern: "${framePattern}" contains ${wildcardCount} wildcards. ` +
+        `Only ONE wildcard (*) is supported per pattern. ` +
+        `Examples: "*_{n}-{n}.png"`
+      );
+      return null;
+    }
+
     // Dynamic import
     const fs = await import('fs');
     const path = await import('path');
@@ -2462,7 +2521,7 @@ export const scanWildcardLevelFrames = async (
     const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
     const absoluteFolder = path.resolve(urlFolder);
 
-    if (!absoluteFolder.startsWith(resolvedWorkspaceRoot + path.sep) && absoluteFolder !== resolvedWorkspaceRoot) {
+    if (!isPathWithinWorkspace(path, resolvedWorkspaceRoot, absoluteFolder)) {
       console.error(`⚠️  Security: Path traversal detected in wildcard level scan!`);
       return null;
     }
@@ -2619,6 +2678,17 @@ export const scanWildcardSpriteSheetPerLevel = async (
       return null; // Not a wildcard pattern, use exact match mode
     }
 
+    // Validate that framePattern contains at most one wildcard
+    const wildcardCount = (framePattern.match(/\*/g) || []).length;
+    if (wildcardCount > 1) {
+      console.error(
+        `❌ Invalid framePattern: "${framePattern}" contains ${wildcardCount} wildcards. ` +
+        `Only ONE wildcard (*) is supported per pattern. ` +
+        `Examples: "*_{n}.png"`
+      );
+      return null;
+    }
+
     // Dynamic import
     const fs = await import('fs');
     const path = await import('path');
@@ -2628,7 +2698,7 @@ export const scanWildcardSpriteSheetPerLevel = async (
     const resolvedWorkspaceRoot = path.resolve(workspaceRoot);
     const absoluteFolder = path.resolve(urlFolder);
 
-    if (!absoluteFolder.startsWith(resolvedWorkspaceRoot + path.sep) && absoluteFolder !== resolvedWorkspaceRoot) {
+    if (!isPathWithinWorkspace(path, resolvedWorkspaceRoot, absoluteFolder)) {
       console.error(`⚠️  Security: Path traversal detected in wildcard sprite sheet scan!`);
       return null;
     }
@@ -2740,23 +2810,30 @@ export const scanWildcardSpriteSheetPerLevel = async (
  *
  * @param urlFolder - Base folder path
  * @param framePattern - Pattern with _{n}-{n} or _{n} placeholders
+ *                       Can include wildcard: *_{n}.png, *_{n}-{n}.png
+ *                       IMPORTANT: Only ONE wildcard (*) is supported per pattern
  * @param level - Contribution level (0-4)
  * @param frameIndex - Frame number within the level (ignored for sprite sheet per level)
  * @returns Full URL path
+ * @throws Error if framePattern contains more than one wildcard
  *
  * @example
  * ```typescript
- * // Individual frames
+ * // Individual frames - exact match
  * generateLevelFrameUrl('./assets', 'sprite_{n}-{n}.png', 1, 5)
  * // Returns: './assets/sprite_1-5.png'
  *
- * // Sprite sheet per level
+ * // Individual frames - wildcard (used with scanWildcardLevelFrames)
+ * generateLevelFrameUrl('./assets', '*_{n}-{n}.png', 1, 5)
+ * // Returns: './assets/_{n}-{n}.png' (for fallback only, wildcard mode should use scanWildcardLevelFrames)
+ *
+ * // Sprite sheet per level - exact match
  * generateLevelFrameUrl('./assets', 'sprite_{n}.png', 2, 0)
  * // Returns: './assets/sprite_2.png'
  *
- * // With wildcard (wildcard removed in generation)
- * generateLevelFrameUrl('./assets', '*_{n}-{n}.gif', 2, 3)
- * // Returns: './assets/_2-3.gif'
+ * // Sprite sheet per level - wildcard (used with scanWildcardSpriteSheetPerLevel)
+ * generateLevelFrameUrl('./assets', '*_{n}.png', 2, 0)
+ * // Returns: './assets/_{n}.png' (for fallback only, wildcard mode should use scanWildcardSpriteSheetPerLevel)
  * ```
  */
 export const generateLevelFrameUrl = (
@@ -2765,10 +2842,21 @@ export const generateLevelFrameUrl = (
   level: number,
   frameIndex: number
 ): string => {
+  // Validate that framePattern contains at most one wildcard
+  const wildcardCount = (framePattern.match(/\*/g) || []).length;
+  if (wildcardCount > 1) {
+    throw new Error(
+      `Invalid framePattern: "${framePattern}" contains ${wildcardCount} wildcards. ` +
+      `Only ONE wildcard (*) is supported per pattern. ` +
+      `Examples: "*_{n}.png", "*_{n}-{n}.png"`
+    );
+  }
+
   const normalizedFolder = urlFolder.replace(/\/$/, '');
 
-  // Replace wildcard with empty string (for exact match mode)
-  let filename = framePattern.replace('*', '');
+  // Remove wildcard if present (for exact match mode fallback)
+  // Using replaceAll to ensure consistent handling of any wildcard
+  let filename = framePattern.replaceAll('*', '');
 
   // Check if this is sprite sheet per level mode (only one {n})
   const isSpriteSheetPerLevel = !filename.includes('-{n}');
@@ -3080,7 +3168,7 @@ export const loadImageAsDataUri = async (filePath: string): Promise<string | nul
     // Security: Validate path is within workspace (prevent path traversal attacks)
     // This prevents malicious configurations from reading files outside the workspace
     // (e.g., "../../etc/passwd" or "../../.env")
-    if (!absolutePath.startsWith(resolvedWorkspaceRoot + path.sep) && absolutePath !== resolvedWorkspaceRoot) {
+    if (!isPathWithinWorkspace(path, resolvedWorkspaceRoot, absolutePath)) {
       console.error(`⚠️  Security: Path traversal detected!`);
       console.error(`   Requested: ${filePath}`);
       console.error(`   Resolved:  ${absolutePath}`);
