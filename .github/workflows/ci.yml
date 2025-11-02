@@ -249,6 +249,7 @@ jobs:
                 "prefix": "{img:0} ",
                 "suffix": "",
                 "fontSize": 14,
+                "hide_progress_bar": "true",
                 "images": [
                   {
                     "urlFolder": ".github/assets/glitch-samurai",
