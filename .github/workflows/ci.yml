@@ -283,6 +283,7 @@ jobs:
             [
               {
                 "position": "follow",
+                "mode": "level",
                 "prefix": "{img:0} ",
                 "suffix": " commits",
                 "fontSize": 14,
@@ -297,7 +298,6 @@ jobs:
                     "textAnchorY": 1.0,
                     "spacing": 8,
                     "sprite": {
-                      "mode": "level",
                       "contributionLevels": 5,
                       "framesPerLevel": 8,
                       "frameWidth": 48,
