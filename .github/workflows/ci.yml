@@ -251,19 +251,19 @@ jobs:
                 "fontSize": 14,
                 "images": [
                   {
-                    "urlFolder": ".github/assets",
+                    "urlFolder": ".github/assets/glitch-samurai",
                     "framePattern": "L{n}.png",
-                    "width": 64,
-                    "height": 86,
-                    "anchorY": 0.6875,
-                    "anchorX": 0.3,
+                    "width": 128,
+                    "height": 32,
+                    "anchorY": 1,
+                    "anchorX": 0.8,
                     "textAnchorY": 1.0,
                     "spacing": 0,
                     "sprite": {
                       "contributionLevels": 5,
-                      "framesPerLevel": 8,
-                      "frameWidth": 48,
-                      "frameHeight": 64,
+                      "framesPerLevel": ['*', '*', '*', '*', '*'],
+                      "frameWidth": 128,
+                      "frameHeight": 32,
                       "layout": "horizontal",
                       "useSpriteSheetPerLevel": true
                     }

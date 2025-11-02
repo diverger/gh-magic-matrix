@@ -119,12 +119,18 @@ const config = {
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: [5, 12, 12, 12, 12],  // Variable frames per level
-            frameWidth: 128,
-            frameHeight: 32,
-            layout: "horizontal",
+            framesPerLevel: ['*', '*', '*', '*', '*'],  // Auto-detect: use all frames from each sprite sheet
+            // Alternative examples:
+            // framesPerLevel: [5, 12, 12, 12, 12]  // Fixed: L0=5, L1-L4=12 frames
+            // framesPerLevel: '*'  // Auto-detect all levels
+            // framesPerLevel: [5, '*', '*', 12, '*']  // Mixed: L0=5, L1=auto, L2=auto, L3=12, L4=auto
+            frameWidth: 128,   // Each frame is 128px wide
+            frameHeight: 32,   // Each frame is 32px tall
+            layout: "horizontal",  // Frames arranged left-to-right
             useSpriteSheetPerLevel: true
-            // Note: sprite speed is automatically synced with frameDuration (100ms)
+            // Note: With '*', actual frame count is auto-detected from sprite sheet dimensions
+            // Example: If sprite is 1920px wide, it has 15 frames (1920/128=15)
+            // Sprite speed is automatically synced with frameDuration (100ms per frame)
           }
         }
       ]
@@ -147,7 +153,8 @@ console.log(`   User: ${config.githubUserName}`);
 console.log(`   Output: ${config.outputPath}`);
 console.log(`   Frame Duration: ${config.frameDuration}ms`);
 console.log(`   Sprite Mode: level (5 levels)`);
-console.log(`   Frames per Level: [11, 12, 12, 12, 12] (L0=11, L1-L4=12)`);
+console.log(`   Frames: Auto-detect from sprite sheet dimensions`);
+console.log(`   Note: Each sprite sheet will use all available frames`);
 console.log(`   Debug Mode: ${config.counterDebug}`);
 console.log("");
 

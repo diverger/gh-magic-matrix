@@ -496,16 +496,37 @@ export interface CounterImageConfig {
   /** Sprite sheet or multi-image animation configuration */
   sprite?: {
     /**
-     * UNIFIED: Number of frames (works for all modes)
-     * - For sync/loop modes: total frame count across all cells
-     * - For level mode: frames per level (or array for different counts per level)
+     * Number of frames to USE from the sprite sheet
+     *
+     * IMPORTANT: This specifies how many frames to USE, NOT how many frames the sprite sheet contains.
+     * The actual frame count in the sprite sheet is automatically calculated from:
+     *   - Horizontal layout: imageWidth / frameWidth
+     *   - Vertical layout: imageHeight / frameHeight
+     *
+     * Special values:
+     * - Use '*' (string) or -1 (number) for AUTO-DETECTION: Use all available frames from sprite sheet
+     *   Example: framesPerLevel: '*' → automatically use all frames in each sprite sheet
+     *   Example: framesPerLevel: [5, '*', 12, '*', 8] → L0=5, L1=auto, L2=12, L3=auto, L4=8
+     *
+     * This allows you to:
+     * - Use different frame counts for different levels from the same sprite sheet
+     * - Use only a subset of frames (e.g., use 8 frames from a 20-frame sprite sheet)
+     * - Auto-detect and use all frames when wildcard selects different sprites
+     *
+     * Behavior:
+     * - If framesPerLevel < actual frames: Uses frames 0 to (framesPerLevel-1)
+     * - If framesPerLevel > actual frames: Out-of-range frames fallback to frame 0
+     * - If framesPerLevel is '*' or -1: Auto-detects and uses all available frames
      *
      * Examples:
-     * - `framesPerLevel: 8` with mode 'sync' → 8 frames cycling (run-0.png ~ run-7.png)
-     * - `framesPerLevel: 8` with mode 'level' → 8 frames per level (L0.png, L1.png, ...)
-     * - `framesPerLevel: [1,2,4,6,8]` → level 0 has 1 frame, level 4 has 8 frames
+     * - `framesPerLevel: 8` → Use frames 0-7 (even if sprite has 20 frames)
+     * - `framesPerLevel: '*'` → Auto-detect: use all frames in sprite sheet
+     * - `framesPerLevel: [5, 12, 12, 12, 12]` → L0 uses 5 frames, L1-L4 use 12 frames each
+     * - `framesPerLevel: ['*', '*', '*', '*', '*']` → Each level uses all frames from its sprite
+     * - Sprite sheet with 1920px width, frameWidth 128px → has 15 actual frames
+     *   But you can still set framesPerLevel: 8 to only use the first 8 frames
      */
-    framesPerLevel?: number | number[];
+    framesPerLevel?: number | string | (number | string)[];
 
     /**
      * Frame width (only for sprite sheet mode)
@@ -990,6 +1011,100 @@ function renderProgressBar(
 }
 
 /**
+ * Check if a framesPerLevel value indicates auto-detection
+ * Auto-detection values: '*' (string) or -1 (number)
+ */
+const isAutoDetectFrames = (value: number | string): boolean => {
+  return value === '*' || value === -1;
+};
+
+/**
+ * Detect actual frame count from sprite sheet dimensions
+ *
+ * @param dataUri - Data URI of the sprite sheet image
+ * @param frameWidth - Width of each frame
+ * @param frameHeight - Height of each frame
+ * @param layout - Sprite layout ('horizontal' or 'vertical')
+ * @returns Detected frame count, or null if detection fails
+ */
+const detectSpriteFrameCount = async (
+  dataUri: string,
+  frameWidth: number,
+  frameHeight: number,
+  layout: 'horizontal' | 'vertical'
+): Promise<number | null> => {
+  try {
+    // Parse data URI to get image buffer
+    const base64Data = dataUri.split(',')[1];
+    if (!base64Data) return null;
+
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Try to get image dimensions
+    try {
+      const { default: sizeOf } = await import('image-size');
+      const dimensions = sizeOf(buffer);
+
+      if (!dimensions.width || !dimensions.height) {
+        return null;
+      }
+
+      // Calculate frame count based on layout
+      if (layout === 'horizontal') {
+        return Math.floor(dimensions.width / frameWidth);
+      } else {
+        return Math.floor(dimensions.height / frameHeight);
+      }
+    } catch (error) {
+      // image-size not available or failed
+      return null;
+    }
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * Resolve frame count: handle auto-detection ('*' or -1) or use configured value
+ *
+ * @param configValue - Configured framesPerLevel value (number, '*', or -1)
+ * @param dataUri - Optional data URI for auto-detection
+ * @param frameWidth - Frame width for auto-detection
+ * @param frameHeight - Frame height for auto-detection
+ * @param layout - Sprite layout for auto-detection
+ * @param defaultValue - Fallback value if auto-detection fails
+ * @returns Resolved frame count as number
+ */
+const resolveFrameCount = async (
+  configValue: number | string,
+  dataUri: string | null,
+  frameWidth: number,
+  frameHeight: number,
+  layout: 'horizontal' | 'vertical',
+  defaultValue: number
+): Promise<number> => {
+  // If it's a regular number, use it directly
+  if (typeof configValue === 'number' && configValue !== -1) {
+    return configValue;
+  }
+
+  // Auto-detection requested
+  if (isAutoDetectFrames(configValue)) {
+    if (dataUri) {
+      const detected = await detectSpriteFrameCount(dataUri, frameWidth, frameHeight, layout);
+      if (detected !== null && detected > 0) {
+        return detected;
+      }
+    }
+    // Auto-detection failed, use default
+    return defaultValue;
+  }
+
+  // Invalid value, use default
+  return defaultValue;
+};
+
+/**
  * Pre-load counter images and create SVG definitions.
  * This optimizes file size by defining images once in <defs> and referencing them.
  *
@@ -1094,7 +1209,9 @@ async function preloadCounterImages(
         const frameMap = new Map<number, string>();
         levelMap.set(level, frameMap);
 
-        const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+        // Get configured frame count (might be '*' or -1 for auto-detect)
+        const configuredFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[level] : framesPerLevel;
+        const defaultFrameCount = typeof framesPerLevel === 'number' ? framesPerLevel : 8;
 
         if (useSpriteSheetPerLevel) {
           // Each level is a sprite sheet file
@@ -1127,6 +1244,20 @@ async function preloadCounterImages(
             const layout = sprite.layout || 'horizontal';
             const frameWidth = sprite.frameWidth || imageConfig.width;
             const frameHeight = sprite.frameHeight || imageConfig.height;
+
+            // Resolve actual frame count (auto-detect if needed)
+            let levelFrameCount = await resolveFrameCount(
+              configuredFrameCount,
+              resolvedUrl,
+              frameWidth,
+              frameHeight,
+              layout,
+              defaultFrameCount
+            );
+
+            if (counterConfig.debug && isAutoDetectFrames(configuredFrameCount)) {
+              console.log(`  🔍 Auto-detected ${levelFrameCount} frames for level ${level}`);
+            }
 
             // Define the full sprite sheet image for this level
             const spriteImageId = `contrib-sprite-${displayIndex}-${imgIdx}-L${level}`;
@@ -1171,6 +1302,11 @@ async function preloadCounterImages(
           }
         } else {
           // Each level uses separate frame files
+          // Resolve frame count first
+          let levelFrameCount = typeof configuredFrameCount === 'number' && configuredFrameCount !== -1
+            ? configuredFrameCount
+            : defaultFrameCount;
+
           // Use wildcard-selected files if available, otherwise use exact pattern
           for (let frameIdx = 0; frameIdx < levelFrameCount; frameIdx++) {
             let frameUrl: string;
@@ -1757,11 +1893,12 @@ export const createProgressStack = async (
                       }
 
                       // For animated levels, cycle through frames
-                      const framesPerLevel = imageConfig.sprite?.framesPerLevel || 1;
-                      const levelFrameCount = Array.isArray(framesPerLevel) ? framesPerLevel[currentLevel] : framesPerLevel;
+                      // Get actual frame count from preloaded frameMap (already resolved during preload)
+                      const frameMap = levelMap.get(currentLevel);
+                      const levelFrameCount = frameMap ? frameMap.size : 1;
 
                       if (counterConfig.debug && elem.currentContribution === 0 && index < 50) {
-                        console.log(`  🔍 Frame ${index}: L0 cell detected - levelFrameCount=${levelFrameCount}, framesPerLevel=${JSON.stringify(framesPerLevel)}`);
+                        console.log(`  🔍 Frame ${index}: L0 cell detected - levelFrameCount=${levelFrameCount}`);
                       }
 
                       if (levelFrameCount > 1) {
@@ -1793,9 +1930,8 @@ export const createProgressStack = async (
 
                         // Get the frame count for the PREVIOUS level (currently playing)
                         // Use currentLevel as fallback if prevLevel is undefined (first frame)
-                        const prevLevelFrameCount = Array.isArray(framesPerLevel)
-                          ? framesPerLevel[state.prevLevel ?? currentLevel]
-                          : framesPerLevel;
+                        const prevLevelMap = levelMap.get(state.prevLevel ?? currentLevel);
+                        const prevLevelFrameCount = prevLevelMap ? prevLevelMap.size : 1;
 
                         // Defensive: ensure prevLevelFrameCount is a positive finite number
                         const safePrevLevelFrameCount = Number.isFinite(prevLevelFrameCount) && prevLevelFrameCount > 0
@@ -1894,9 +2030,8 @@ export const createProgressStack = async (
 
                         // Calculate current frame within the animation cycle
                         // Use elapsed sprite frames (based on actual time) to determine frame index
-                        const selectedLevelFrameCount = Array.isArray(framesPerLevel)
-                          ? framesPerLevel[level]
-                          : framesPerLevel;
+                        const selectedLevelMap = levelMap.get(level);
+                        const selectedLevelFrameCount = selectedLevelMap ? selectedLevelMap.size : 1;
 
                         // Defensive check: ensure selectedLevelFrameCount is a valid positive integer
                         if (!Number.isFinite(selectedLevelFrameCount) || selectedLevelFrameCount <= 0) {
