@@ -109,19 +109,19 @@ const config = {
       // It should be set via INPUT_HIDE_PROGRESS_BAR environment variable
       images: [
         {
-          urlFolder: path.join(REPO_ROOT, ".github/assets/sci-fi-samurai"),  // Absolute path to assets
+          urlFolder: path.join(REPO_ROOT, ".github/assets/the-tarnished-widow"),  // Absolute path to assets
           framePattern: "*_{n}.png",
-          width: 192,
-          height: 64,
-          anchorY: 1,
-          anchorX: 0.5,
+          width: 208,
+          height: 112,
+          anchorY: 0.857,
+          anchorX: 0.3,
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: [19, 8, 8, 8, 8],  // Variable frames per level
-            frameWidth: 192,
-            frameHeight: 64,
+            framesPerLevel: [19, 12, 12, 12, 12],  // Variable frames per level
+            frameWidth: 208,
+            frameHeight: 112,
             layout: "horizontal",
             useSpriteSheetPerLevel: true
             // Note: sprite speed is automatically synced with frameDuration (100ms)
