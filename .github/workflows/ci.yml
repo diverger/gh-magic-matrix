@@ -252,7 +252,7 @@ jobs:
                 "images": [
                   {
                     "urlFolder": ".github/assets/glitch-samurai",
-                    "framePattern": "L{n}.png",
+                    "framePattern": "*_{n}.png",
                     "width": 128,
                     "height": 32,
                     "anchorY": 1,
@@ -288,8 +288,8 @@ jobs:
                 "fontSize": 14,
                 "images": [
                   {
-                    "urlFolder": ".github/assets",
-                    "framePattern": "L{n}.png",
+                    "urlFolder": ".github/assets/the-male-adventurer",
+                    "framePattern": "*_{n}.png",
                     "width": 64,
                     "height": 86,
                     "anchorY": 0.6875,

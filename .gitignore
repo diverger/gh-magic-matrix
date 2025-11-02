@@ -55,9 +55,16 @@ jspm_packages/
 # dotenv environment variables file
 .env
 .env.test
+.env.local
+.env.*.local
 
-# GitHub token (never commit!)
+# GitHub tokens and sensitive credentials (never commit!)
 .github/token.txt
+.github/token.txt.example
+*.token
+*_token.txt
+.secrets
+.credentials
 
 # Build output
 dist/

@@ -5,16 +5,16 @@
  * This script tests the level sprite animation mode with real GitHub data.
  * It mimics the CI workflow's "Generate snake with multi-level sprite sheets" step.
  *
- * Setup:
- *   1. Copy .github/token.txt.example to .github/token.txt
- *   2. Replace the placeholder with your GitHub token
+ * Prerequisites:
+ * - Set GITHUB_TOKEN environment variable or create .env file
+ * - See .env.example for configuration template
  *
  * Usage:
  *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Example:
- *   # Use token from file
- *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
+ *   # Set token via environment variable
+ *   GITHUB_TOKEN=ghp_xxxxx bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Run from repository root:
  *   cd gh-magic-matrix
@@ -24,6 +24,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { loadGitHubToken } from "../utils/env-loader.js";
 import type { OutputConfig } from "../../packages/snake/src/outputs-options";
 
 // Get the repository root directory (2 levels up from this script)
@@ -45,38 +46,7 @@ function isOutputConfig(o: any): o is OutputConfig {
   );
 }
 
-/**
- * Load GitHub token from file or environment
- */
-function loadGitHubToken(): string {
-  // 1. Check environment variable (preferred)
-  if (process.env.GITHUB_TOKEN) {
-    return process.env.GITHUB_TOKEN;
-  }
-
-  // 2. Try to load from .github/token.txt
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf8").trim();
-    if (token && !token.includes("your_github_token_here")) {
-      return token;
-    }
-  }
-
-  // 3. No token found
-  console.error("❌ Error: GitHub token is required");
-  console.error("");
-  console.error("Please provide a token in one of these ways:");
-  console.error("  1. Environment: export GITHUB_TOKEN=ghp_xxxxx");
-  console.error("  2. File: Create .github/token.txt with your token");
-  console.error("");
-  console.error("To create token file:");
-  console.error("  cp .github/token.txt.example .github/token.txt");
-  console.error("  # Edit .github/token.txt and replace with your token");
-  process.exit(1);
-}
-
-const githubToken = loadGitHubToken();
+const githubToken = loadGitHubToken(REPO_ROOT);
 
 console.log("🐍 Multi-Level Sprite Sheets Local Test");
 console.log("==========================================");
