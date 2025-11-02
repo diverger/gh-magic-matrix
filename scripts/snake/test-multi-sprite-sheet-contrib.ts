@@ -100,7 +100,7 @@ const config = {
   // Display configuration (matching ci.yml exactly)
   counterDisplays: [
     {
-      position: "free",
+      position: "follow",
       mode: "level",
       prefix: "{img:0} ",
       suffix: "",
@@ -109,19 +109,19 @@ const config = {
       // It should be set via INPUT_HIDE_PROGRESS_BAR environment variable
       images: [
         {
-          urlFolder: path.join(REPO_ROOT, ".github/assets/the-sage"),  // Absolute path to assets
+          urlFolder: path.join(REPO_ROOT, ".github/assets/glitch-samurai"),  // Absolute path to assets
           framePattern: "*_{n}.png",
-          width: 192,
-          height: 48,
-          anchorY: 0.9,
-          anchorX: 0.42,
+          width: 128,
+          height: 32,
+          anchorY: 1,
+          anchorX: 0.8,
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: [14, 8, 4, 8, 8],  // Variable frames per level
-            frameWidth: 192,
-            frameHeight: 48,
+            framesPerLevel: [5, 12, 12, 12, 12],  // Variable frames per level
+            frameWidth: 128,
+            frameHeight: 32,
             layout: "horizontal",
             useSpriteSheetPerLevel: true
             // Note: sprite speed is automatically synced with frameDuration (100ms)

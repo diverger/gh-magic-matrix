@@ -20,7 +20,6 @@ images: [
       frameHeight: 64,
       layout: "horizontal",
       useSpriteSheetPerLevel: true
-      // Note: sprite speed is automatically synced with frameDuration (100ms)
     }
   }
 ]
