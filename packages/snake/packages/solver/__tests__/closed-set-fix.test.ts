@@ -85,19 +85,20 @@ describe('Pathfinder with closed-set-on-generation', () => {
       expect(path).toBeNull();
     });
 
-    it('findPath should return null when start equals target and already occupied', () => {
+    it('findPath should return path when start equals target', () => {
       const grid = new Grid(3, 3);
       const pathfinder = new Pathfinder(grid);
 
-      // Snake is at (1, 1) and target is also (1, 1), but cell is colored
+      // Snake is at (1, 1) and target is also (1, 1), even if cell is colored
       grid.setColor(1, 1, 2 as any);
       const snake = Snake.fromPoint(new Point(1, 1));
 
       const path = pathfinder.findPath(snake, 1, 1, EMPTY);
 
-      // Should return empty path or null depending on implementation
-      // If at target but cell invalid, typically returns null
-      expect(path).toBeNull();
+      // When already at target, returns path with just the current position
+      expect(path).not.toBeNull();
+      expect(path?.length).toBe(1);
+      expect(path?.[0].equals(snake)).toBe(true);
     });
 
     it('findPath should return null in a fully blocked grid', () => {
