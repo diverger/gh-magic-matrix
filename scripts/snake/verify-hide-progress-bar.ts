@@ -10,27 +10,20 @@
  * - Check if SVG contains progress bar elements (rect with specific classes/attributes)
  * - Progress bar is rendered as colored cells in the snake grid
  *
- * Use token from file
- * bun scripts/snake/verify-hide-progress-bar.ts
+ * Prerequisites:
+ * - Set GITHUB_TOKEN environment variable or create .env file
+ * - See .env.example for configuration template
+ *
+ * Run: bun scripts/snake/verify-hide-progress-bar.ts
  */
 
 import * as fs from "fs";
 import * as path from "path";
+import { loadGitHubToken } from "../utils/env-loader.js";
 
 const REPO_ROOT = path.resolve(process.cwd());
 
-function loadGitHubToken(): string {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf-8").trim();
-    if (token && !token.includes("your_github_token_here")) return token;
-  }
-  console.error("❌ Error: GitHub token is required");
-  process.exit(1);
-}
-
-const githubToken = loadGitHubToken();
+const githubToken = loadGitHubToken(REPO_ROOT);
 
 console.log("🧪 Verifying Hide Progress Bar Functionality");
 console.log("=" .repeat(60));

@@ -13,6 +13,10 @@
  * 8. top-left-sync - Fixed position + sync frame advance
  * 9. multi-display-combo - Multiple counter combination display
  *
+ * Prerequisites:
+ * - Set GITHUB_TOKEN environment variable or create .env file
+ * - See .env.example for configuration template
+ *
  * Run:
  *   bun scripts/snake/test-all-mode-combinations.ts
  *
@@ -24,6 +28,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { loadGitHubToken } from "../utils/env-loader.js";
 
 // TypeScript interface for test configuration
 interface TestConfig {
@@ -38,23 +43,11 @@ interface TestConfig {
 // Get repo root - use __dirname equivalent for bun
 const REPO_ROOT = path.resolve(process.cwd());
 
-// Load GitHub token
-function loadGitHubToken(): string {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf8").trim();
-    if (token && !token.includes("your_github_token_here")) return token;
-  }
-  console.error("❌ Error: GitHub token is required");
-  process.exit(1);
-}
-
 console.log("🧪 Testing All Position Mode × Time Mode Combinations");
 console.log("=".repeat(60));
 console.log("");
 
-const githubToken = loadGitHubToken();
+const githubToken = loadGitHubToken(REPO_ROOT);
 
 // Test configurations
 const TEST_CONFIGS = [
@@ -189,7 +182,7 @@ const TEST_CONFIGS = [
       fontSize: 14,
       images: [{
         urlFolder: ".github/assets",
-        framePattern: "L{n}.png",  // L0.png, L1.png, L2.png, L3.png, L4.png
+        framePattern: "sprite_{n}.png",  // sprite_0.png, sprite_1.png, sprite_2.png, sprite_3.png, sprite_4.png
         width: 64,
         height: 86,
         anchorY: 0.6875,      // Align character feet
@@ -222,7 +215,7 @@ const TEST_CONFIGS = [
       fontSize: 14,
       images: [{
         urlFolder: ".github/assets",
-        framePattern: "L{n}.png",  // L0.png - L4.png (sprite sheets)
+        framePattern: "sprite_{n}.png",  // sprite_0.png - sprite_4.png (sprite sheets)
         width: 64,
         height: 86,
         anchorY: 0.6875,      // Image anchor Y (0.6875 = 44/64, align character feet)
@@ -315,7 +308,7 @@ const TEST_CONFIGS = [
         fontSize: 12,
         images: [{
           urlFolder: ".github/assets",
-          framePattern: "L{n}.png",
+          framePattern: "sprite_{n}.png",
           width: 32,
           height: 32,
           sprite: {

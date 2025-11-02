@@ -5,16 +5,16 @@
  * This script tests the level sprite animation mode with real GitHub data.
  * It mimics the CI workflow's "Generate snake with multi-level sprite sheets" step.
  *
- * Setup:
- *   1. Copy .github/token.txt.example to .github/token.txt
- *   2. Replace the placeholder with your GitHub token
+ * Prerequisites:
+ * - Set GITHUB_TOKEN environment variable or create .env file
+ * - See .env.example for configuration template
  *
  * Usage:
  *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Example:
- *   # Use token from file
- *   bun scripts/snake/test-multi-sprite-sheet-contrib.ts
+ *   # Set token via environment variable
+ *   GITHUB_TOKEN=ghp_xxxxx bun scripts/snake/test-multi-sprite-sheet-contrib.ts
  *
  * Run from repository root:
  *   cd gh-magic-matrix
@@ -24,6 +24,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { loadGitHubToken } from "../utils/env-loader.js";
 import type { OutputConfig } from "../../packages/snake/src/outputs-options";
 
 // Get the repository root directory (2 levels up from this script)
@@ -45,38 +46,7 @@ function isOutputConfig(o: any): o is OutputConfig {
   );
 }
 
-/**
- * Load GitHub token from file or environment
- */
-function loadGitHubToken(): string {
-  // 1. Check environment variable (preferred)
-  if (process.env.GITHUB_TOKEN) {
-    return process.env.GITHUB_TOKEN;
-  }
-
-  // 2. Try to load from .github/token.txt
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf8").trim();
-    if (token && !token.includes("your_github_token_here")) {
-      return token;
-    }
-  }
-
-  // 3. No token found
-  console.error("❌ Error: GitHub token is required");
-  console.error("");
-  console.error("Please provide a token in one of these ways:");
-  console.error("  1. Environment: export GITHUB_TOKEN=ghp_xxxxx");
-  console.error("  2. File: Create .github/token.txt with your token");
-  console.error("");
-  console.error("To create token file:");
-  console.error("  cp .github/token.txt.example .github/token.txt");
-  console.error("  # Edit .github/token.txt and replace with your token");
-  process.exit(1);
-}
-
-const githubToken = loadGitHubToken();
+const githubToken = loadGitHubToken(REPO_ROOT);
 
 console.log("🐍 Multi-Level Sprite Sheets Local Test");
 console.log("==========================================");
@@ -95,7 +65,7 @@ const config = {
 
   // Contribution counter settings
   showContributionCounter: "true",
-  counterDebug: "true",
+  counterDebug: "true",  // Enable debug mode to see frame counts
 
   // Display configuration (matching ci.yml exactly)
   counterDisplays: [
@@ -105,23 +75,32 @@ const config = {
       prefix: "{img:0} ",
       suffix: "",
       fontSize: 14,
+      // Note: hide_progress_bar is NOT a property of display objects
+      // It should be set via INPUT_HIDE_PROGRESS_BAR environment variable
       images: [
         {
-          urlFolder: path.join(REPO_ROOT, ".github/assets"),  // Absolute path to assets
-          framePattern: "L{n}.png",
-          width: 64,
-          height: 86,
-          anchorY: 0.6875,
-          anchorX: 0.3,
+          urlFolder: path.join(REPO_ROOT, ".github/assets/glitch-samurai"),  // Absolute path to assets
+          framePattern: "*_{n}.png",
+          width: 128,
+          height: 32,
+          anchorY: 1,
+          anchorX: 0.8,
           textAnchorY: 1.0,
           spacing: 0,
           sprite: {
             contributionLevels: 5,
-            framesPerLevel: 8,
-            frameWidth: 48,
-            frameHeight: 64,
-            layout: "horizontal",
+            framesPerLevel: ['*', '*', '*', '*', '*'],  // Auto-detect: use all frames from each sprite sheet
+            // Alternative examples:
+            // framesPerLevel: [5, 12, 12, 12, 12]  // Fixed: L0=5, L1-L4=12 frames
+            // framesPerLevel: '*'  // Auto-detect all levels
+            // framesPerLevel: [5, '*', '*', 12, '*']  // Mixed: L0=5, L1=auto, L2=auto, L3=12, L4=auto
+            frameWidth: 128,   // Each frame is 128px wide
+            frameHeight: 32,   // Each frame is 32px tall
+            layout: "horizontal",  // Frames arranged left-to-right
             useSpriteSheetPerLevel: true
+            // Note: With '*', actual frame count is auto-detected from sprite sheet dimensions
+            // Example: If sprite is 1920px wide, it has 15 frames (1920/128=15)
+            // Sprite speed is automatically synced with frameDuration (100ms per frame)
           }
         }
       ]
@@ -135,6 +114,7 @@ process.env.INPUT_OUTPUTS = `${config.outputPath}?palette=github-light`;
 process.env.INPUT_FRAME_DURATION = config.frameDuration;
 process.env.INPUT_SHOW_CONTRIBUTION_COUNTER = config.showContributionCounter;
 process.env.INPUT_COUNTER_DEBUG = config.counterDebug;
+process.env.INPUT_HIDE_PROGRESS_BAR = "true";  // Hide the progress bar
 process.env.INPUT_COUNTER_DISPLAYS = JSON.stringify(config.counterDisplays);
 process.env.GITHUB_TOKEN = githubToken;
 
@@ -143,32 +123,104 @@ console.log(`   User: ${config.githubUserName}`);
 console.log(`   Output: ${config.outputPath}`);
 console.log(`   Frame Duration: ${config.frameDuration}ms`);
 console.log(`   Sprite Mode: level (5 levels)`);
-console.log(`   Frames per Level: 8`);
+console.log(`   Frames: Auto-detect from sprite sheet dimensions`);
+console.log(`   Note: Each sprite sheet will use all available frames`);
 console.log(`   Debug Mode: ${config.counterDebug}`);
 console.log("");
 
 // Check if sprite assets exist
 console.log("🔍 Checking sprite assets...");
-const assetsPath = path.join(REPO_ROOT, ".github/assets");
-const requiredAssets = ["L0.png", "L1.png", "L2.png", "L3.png", "L4.png"];
-const missingAssets: string[] = [];
+const assetsPath = path.join(REPO_ROOT, ".github/assets/glitch-samurai");
+// Check if the assets folder exists
+if (!fs.existsSync(assetsPath)) {
+  console.warn(`⚠️  Warning: Assets folder not found: ${assetsPath}`);
+  console.warn("   Creating folder...");
+  fs.mkdirSync(assetsPath, { recursive: true });
+  console.log("");
+}
 
-for (const asset of requiredAssets) {
-  const assetPath = path.join(assetsPath, asset);
-  if (fs.existsSync(assetPath)) {
-    const stats = fs.statSync(assetPath);
-    console.log(`   ✅ ${asset} (${(stats.size / 1024).toFixed(1)} KB)`);
+// Check for sprite sheet files matching the pattern *_{n}.png
+// Also support reuse syntax: *_{n}@{ref}.png
+// Expected files: sprite_0.png, sprite_1.png, sprite_2@1.png (reuses level 1), etc.
+const foundAssets: string[] = [];
+const reuseLevels: Map<number, number> = new Map(); // level -> ref_level
+const missingLevels: number[] = [];
+
+// First pass: scan for reuse directives
+if (fs.existsSync(assetsPath)) {
+  const allFiles = fs.readdirSync(assetsPath);
+  const reuseRegex = /^.*_(\d+)@(\d+)\.png$/;
+
+  allFiles.forEach(file => {
+    const reuseMatch = file.match(reuseRegex);
+    if (reuseMatch) {
+      const level = parseInt(reuseMatch[1], 10);
+      const refLevel = parseInt(reuseMatch[2], 10);
+      reuseLevels.set(level, refLevel);
+    }
+  });
+}
+
+// Second pass: check each level
+for (let level = 0; level < 5; level++) {
+  // Check if this level has a reuse directive
+  if (reuseLevels.has(level)) {
+    const refLevel = reuseLevels.get(level)!;
+    const reuseFiles = fs.existsSync(assetsPath)
+      ? fs.readdirSync(assetsPath).filter(f => {
+          const match = f.match(new RegExp(`^.*_${level}@${refLevel}\\.png$`));
+          return match !== null;
+        })
+      : [];
+
+    if (reuseFiles.length > 0) {
+      reuseFiles.forEach(file => {
+        const filePath = path.join(assetsPath, file);
+        const stats = fs.statSync(filePath);
+        console.log(`   ♻️  Level ${level}: ${file} (reuses Level ${refLevel}) (${(stats.size / 1024).toFixed(1)} KB)`);
+        foundAssets.push(file);
+      });
+      continue; // Skip regular file check for this level
+    }
+  }
+
+  // Find all files matching pattern *_{level}.png (excluding reuse files)
+  const files = fs.existsSync(assetsPath)
+    ? fs.readdirSync(assetsPath).filter(f => {
+        // Match *_{level}.png but not *_{level}@*.png
+        const match = f.match(new RegExp(`^.*_${level}\\.png$`));
+        const hasReuse = f.includes('@');
+        return match !== null && !hasReuse;
+      })
+    : [];
+
+  if (files.length > 0) {
+    // Found files for this level
+    files.forEach(file => {
+      const filePath = path.join(assetsPath, file);
+      const stats = fs.statSync(filePath);
+      console.log(`   ✅ Level ${level}: ${file} (${(stats.size / 1024).toFixed(1)} KB)`);
+      foundAssets.push(file);
+    });
   } else {
-    console.log(`   ❌ ${asset} (missing)`);
-    missingAssets.push(asset);
+    console.log(`   ❌ Level ${level}: No files matching *_${level}.png or *_${level}@*.png`);
+    missingLevels.push(level);
   }
 }
 console.log("");
 
-if (missingAssets.length > 0) {
-  console.warn("⚠️  Warning: Some sprite assets are missing:");
-  missingAssets.forEach(asset => console.warn(`   - ${asset}`));
+if (missingLevels.length > 0) {
+  console.warn("⚠️  Warning: Some sprite levels are missing:");
+  console.warn(`   Missing levels: ${missingLevels.join(', ')}`);
+  console.warn(`   Expected pattern: *_{n}.png (e.g., sprite_0.png, char_1.png)`);
+  console.warn(`   Or reuse syntax: *_{n}@{ref}.png (e.g., sprite_2@1.png reuses level 1)`);
   console.warn("   The script will continue, but sprites may not render correctly.");
+  console.log("");
+} else {
+  console.log(`✅ Found ${foundAssets.length} sprite sheet(s) for 5 levels`);
+  if (reuseLevels.size > 0) {
+    console.log(`   Including ${reuseLevels.size} reuse directive(s): ${Array.from(reuseLevels.entries()).map(([l, r]) => `L${l}→L${r}`).join(', ')}`);
+  }
   console.log("");
 }
 
