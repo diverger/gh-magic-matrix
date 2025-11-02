@@ -240,6 +240,7 @@ jobs:
           INPUT_GITHUB_USER_NAME: diverger
           INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_HIDE_PROGRESS_BAR: "true"
           INPUT_COUNTER_DEBUG: "true"
           INPUT_COUNTER_DISPLAYS: |
             [
@@ -249,7 +250,6 @@ jobs:
                 "prefix": "{img:0} ",
                 "suffix": "",
                 "fontSize": 14,
-                "hide_progress_bar": "true",
                 "images": [
                   {
                     "urlFolder": ".github/assets/glitch-samurai",
