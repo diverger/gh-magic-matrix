@@ -13,6 +13,26 @@ import { createKeyframeAnimation, type AnimationKeyframe } from "./css-utils";
 import { createElement } from "./svg-utils";
 
 /**
+ * Get a better random number (0-1) using crypto if available, falls back to Math.random()
+ * Bun has built-in crypto support, providing better randomness than Math.random()
+ */
+function getSecureRandom(): number {
+  try {
+    // Try to use crypto.getRandomValues if available (Bun, Node.js 15+)
+    if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
+      const uint32 = new Uint32Array(1);
+      globalThis.crypto.getRandomValues(uint32);
+      return (uint32[0] >>> 0) / 0x100000000; // 32-bit random to [0,1)
+    }
+  } catch (e) {
+    // Fall through to Math.random()
+  }
+
+  // Fallback to Math.random() if crypto not available
+  return Math.random();
+}
+
+/**
  * Configuration options for SVG stack rendering.
  */
 export interface SvgStackConfig {
@@ -2313,8 +2333,8 @@ export const scanWildcardFrames = async (
         continue;
       }
 
-      // Random selection (using crypto for better randomness if available)
-      const randomIndex = Math.floor(Math.random() * candidates.length);
+      // Random selection using secure random
+      const randomIndex = Math.floor(getSecureRandom() * candidates.length);
       const selectedFile = candidates[randomIndex];
       selectedFiles.set(i, selectedFile);
 
@@ -2625,8 +2645,8 @@ export const scanWildcardLevelFrames = async (
           continue;
         }
 
-        // Random selection
-        const randomIndex = Math.floor(Math.random() * candidates.length);
+        // Random selection using secure random
+        const randomIndex = Math.floor(getSecureRandom() * candidates.length);
         const selectedFile = candidates[randomIndex];
         levelFrameMap.set(frameIdx, selectedFile);
 
@@ -2779,8 +2799,8 @@ export const scanWildcardSpriteSheetPerLevel = async (
         continue;
       }
 
-      // Random selection
-      const randomIndex = Math.floor(Math.random() * candidates.length);
+      // Random selection using secure random
+      const randomIndex = Math.floor(getSecureRandom() * candidates.length);
       const selectedFile = candidates[randomIndex];
       selectedFiles.set(level, selectedFile);
 

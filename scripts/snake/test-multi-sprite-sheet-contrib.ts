@@ -111,8 +111,8 @@ const config = {
         {
           urlFolder: path.join(REPO_ROOT, ".github/assets/the-tarnished-widow"),  // Absolute path to assets
           framePattern: "*_{n}.png",
-          width: 208,
-          height: 112,
+          width: 104,
+          height: 56,
           anchorY: 0.857,
           anchorX: 0.3,
           textAnchorY: 1.0,
