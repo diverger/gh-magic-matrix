@@ -238,7 +238,7 @@ jobs:
         run: bun packages/snake/dist/index.js
         env:
           INPUT_GITHUB_USER_NAME: diverger
-          INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-light"
+          INPUT_OUTPUTS: "dist/snake/with-multi-level-sprites.svg?palette=github-dark"
           INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
           INPUT_HIDE_PROGRESS_BAR: "true"
           INPUT_COUNTER_DEBUG: "false"
