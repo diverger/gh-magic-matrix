@@ -12,7 +12,7 @@ export interface SnakeRenderOptions {
    * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment
    * - Function: (index, total) => color - dynamically generate color for each segment
    * If provided, overrides colorSnake
-   * If array is shorter than snake length, remaining segments use the last color
+   * If array is shorter than snake length, colors wrap around cyclically
    */
   colorSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
   /**
