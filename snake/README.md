@@ -379,7 +379,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Generate custom snake
-        uses: diverger/gh-magic-matrix/snake@emoji-snake
+        uses: diverger/gh-magic-matrix/snake@main
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: |
