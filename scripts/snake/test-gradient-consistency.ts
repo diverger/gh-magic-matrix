@@ -53,7 +53,7 @@ const createTestSnake = (length: number): Snake => {
 };
 
 console.log('🧪 Testing Gradient Consistency Fix\n');
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 
 // Test 1: Static rendering with gradient function
 console.log('\n📊 Test 1: renderSnake with gradient function');
@@ -70,8 +70,10 @@ renderSnake(ctx1, snake1, {
 console.log(`   Segments rendered: 5`);
 console.log(`   totalLength values passed: [${recordedTotalLengths.join(', ')}]`);
 const allSame1 = recordedTotalLengths.every(val => val === recordedTotalLengths[0]);
+const test1Valid = recordedTotalLengths.every(val => val > 0);
 console.log(`   ✓ All totalLength values consistent: ${allSame1 ? 'YES' : 'NO'}`);
 console.log(`   ✓ totalLength = actual segments: ${recordedTotalLengths[0] === 5 ? 'YES' : 'NO'}`);
+console.log(`   ✓ All totalLength values > 0: ${test1Valid ? 'YES' : 'NO'}`);
 
 // Test 2: Interpolated rendering with gradient function
 console.log('\n📊 Test 2: renderSnakeWithInterpolation with gradient function');
@@ -89,8 +91,10 @@ renderSnakeWithInterpolation(ctx2, snakeStart, snakeEnd, 0.5, {
 console.log(`   Segments rendered: 7`);
 console.log(`   totalLength values passed: [${recordedTotalLengths.join(', ')}]`);
 const allSame2 = recordedTotalLengths.every(val => val === recordedTotalLengths[0]);
+const test2Valid = recordedTotalLengths.every(val => val > 0);
 console.log(`   ✓ All totalLength values consistent: ${allSame2 ? 'YES' : 'NO'}`);
 console.log(`   ✓ totalLength = actual segments: ${recordedTotalLengths[0] === 7 ? 'YES' : 'NO'}`);
+console.log(`   ✓ All totalLength values > 0: ${test2Valid ? 'YES' : 'NO'}`);
 
 // Test 3: Interpolation with different snake lengths (edge case)
 console.log('\n📊 Test 3: Interpolation with mismatched snake lengths');
@@ -110,14 +114,16 @@ console.log(`   Start snake: 10 segments, End snake: 6 segments`);
 console.log(`   Segments rendered: ${expectedSegments}`);
 console.log(`   totalLength values passed: [${recordedTotalLengths.slice(0, 3).join(', ')}, ...]`);
 const allSame3 = recordedTotalLengths.every(val => val === recordedTotalLengths[0]);
+const test3Valid = recordedTotalLengths.every(val => val > 0);
 console.log(`   ✓ All totalLength values consistent: ${allSame3 ? 'YES' : 'NO'}`);
 console.log(`   ✓ totalLength = min(start, end): ${recordedTotalLengths[0] === expectedSegments ? 'YES' : 'NO'}`);
+console.log(`   ✓ All totalLength values > 0: ${test3Valid ? 'YES' : 'NO'}`);
 
 // Summary
 console.log('\n' + '='.repeat(60));
 console.log('📋 Summary:');
 const allTestsPassed = allSame1 && allSame2 && allSame3 &&
-                       recordedTotalLengths.every(val => val > 0);
+                       test1Valid && test2Valid && test3Valid;
 
 if (allTestsPassed) {
   console.log('✅ All tests PASSED - Gradient consistency is fixed!');

@@ -117,6 +117,19 @@ export const renderAnimatedSvgSnake = async (
   // Use provided logger or default to no-op logger
   const logger = config.logger || noopLogger;
 
+  // Validate configuration arrays
+  if (config.styling.colorSegments &&
+      Array.isArray(config.styling.colorSegments) &&
+      config.styling.colorSegments.length === 0) {
+    throw new Error('colorSegments array cannot be empty');
+  }
+
+  if (config.customContentConfig?.segments &&
+      Array.isArray(config.customContentConfig.segments) &&
+      config.customContentConfig.segments.length === 0) {
+    throw new Error('customContentConfig.segments array cannot be empty');
+  }
+
   if (snakeChain.length === 0) {
     return { elements, styles: "", duration: 0 };
   }
@@ -267,19 +280,22 @@ export const renderAnimatedSvgSnake = async (
     }
   }
 
+  // Deduplicate URLs to avoid processing the same URL multiple times
+  const uniqueImageUrls = Array.from(new Set(imageContentsToProcess));
+
   // Convert all external URLs to Base64 in parallel
   const convertedImages = new Map<string, string>();
-  if (imageContentsToProcess.length > 0) {
-    logger.debug(`🔄 Converting ${imageContentsToProcess.length} external image URLs to Base64...`);
+  if (uniqueImageUrls.length > 0) {
+    logger.debug(`🔄 Converting ${uniqueImageUrls.length} unique external image URLs to Base64...`);
     const results = await Promise.allSettled(
-      imageContentsToProcess.map(url => processImageContent(url))
+      uniqueImageUrls.map(url => processImageContent(url))
     );
 
     let successCount = 0;
     let failureCount = 0;
 
     results.forEach((result, index) => {
-      const url = imageContentsToProcess[index];
+      const url = uniqueImageUrls[index];
       if (result.status === 'fulfilled') {
         convertedImages.set(url, result.value);
         successCount++;

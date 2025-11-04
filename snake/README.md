@@ -255,7 +255,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
 **Basic Emoji Snake:**
 
 ```yaml
-- uses: diverger/gh-magic-matrix/snake@emoji-snake
+- uses: diverger/gh-magic-matrix/snake@main
   with:
     github_user_name: ${{ github.repository_owner }}
     outputs: emoji-snake.svg
@@ -270,7 +270,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
 **Letter Snake:**
 
 ```yaml
-- uses: diverger/gh-magic-matrix/snake@emoji-snake
+- uses: diverger/gh-magic-matrix/snake@main
   with:
     github_user_name: ${{ github.repository_owner }}
     outputs: letter-snake.svg
@@ -285,7 +285,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
 **Image Snake (External URLs - Auto-converts to Base64):**
 
 ```yaml
-- uses: diverger/gh-magic-matrix/snake@emoji-snake
+- uses: diverger/gh-magic-matrix/snake@main
   with:
     github_user_name: ${{ github.repository_owner }}
     outputs: avatar-snake.svg

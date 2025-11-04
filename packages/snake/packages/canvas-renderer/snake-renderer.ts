@@ -20,7 +20,7 @@ export interface SnakeRenderOptions {
    * - 'none': Static colors (default) - each segment keeps its assigned color
    * - 'every-step': Shift colors on every grid movement (creates flowing color animation)
    * - 'on-eat': Shift colors only when eating a colored cell (contribution-based shifting)
-   * Note: Canvas renderer uses static colors; shift modes are primarily for SVG animation
+   * Note: Shift offset must be updated externally per frame; shift modes are primarily for SVG animation
    */
   colorShiftMode?: 'none' | 'every-step' | 'on-eat';
   /** Frame index for color shifting (used when colorShiftMode is active) */
@@ -145,10 +145,9 @@ export const renderSnakeWithInterpolation = (
   const startCells = snakeStart.toCells();
   const endCells = snakeEnd.toCells();
   const segmentCount = Math.min(startCells.length, endCells.length);
-  const totalSegments = segmentCount;
 
   // Create color getter with consistent total length
-  const getColorForSegment = createColorGetter(options, totalSegments);
+  const getColorForSegment = createColorGetter(options, segmentCount);
 
   for (let i = 0; i < segmentCount; i++) {
     const padding = Math.min((i + 1) * 0.6, (options.cellSize - 2) / 2);
