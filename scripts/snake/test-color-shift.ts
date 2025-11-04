@@ -118,7 +118,7 @@ async function runTests() {
         parsedOutputs,
         {
           githubToken,
-          snakeLength: 4,  // Use default length (4) to avoid pathfinding issues
+          snakeLength: 4,  // Use length 4 to avoid pathfinding issues with longer snakes
         }
       );
 

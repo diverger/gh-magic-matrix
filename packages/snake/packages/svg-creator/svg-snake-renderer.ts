@@ -448,8 +448,9 @@ export const renderAnimatedSvgSnake = async (
             colorKeyframes.push({ t, style: `fill: ${colorSegments[currentColorIndex]}` });
           });
 
-          // Add final keyframe
-          colorKeyframes.push({ t: 1, style: `fill: ${colorSegments[currentColorIndex]}` });
+          // Add final keyframe at same timing as position animation to ensure smooth loop
+          const finalT = snakeChain.length ? (snakeChain.length - 1) / snakeChain.length : 1;
+          colorKeyframes.push({ t: finalT, style: `fill: ${colorSegments[currentColorIndex]}` });
         }
 
         if (colorKeyframes.length > 0) {

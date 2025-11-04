@@ -56,6 +56,9 @@ const createColorGetter = (
 
     // Case 3: colorSegments is an array - apply shifting if enabled
     if (Array.isArray(colorSegments)) {
+      if (colorSegments.length === 0) {
+        return options.colorSnake;
+      }
       let finalShiftOffset = 0;
 
       // Apply shift offset based on mode
