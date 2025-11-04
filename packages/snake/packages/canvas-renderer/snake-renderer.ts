@@ -67,7 +67,7 @@ const createColorGetter = (
       }
 
       // Calculate color index with shift
-      const colorIndex = (segmentIndex + finalShiftOffset) % colorSegments.length;
+      const colorIndex = ((segmentIndex + finalShiftOffset) % colorSegments.length + colorSegments.length) % colorSegments.length;
       return colorSegments[colorIndex];
     }
 
