@@ -28,12 +28,21 @@ export interface SvgDrawOptions {
   colorSnake: string;
   /** Array of colors for contribution levels */
   colorDots: string[];
+  /**
+   * Optional array of colors for individual snake segments
+   * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment (index 0 = head)
+   * - Function: (index, total) => color - dynamically generate color for each segment (programmatic only)
+   * If provided, overrides colorSnake
+   * If array is shorter than snake length, remaining segments use the last color
+   */
+  colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
   /** Optional dark theme colors */
   dark?: {
     colorDotBorder: string;
     colorEmpty: string;
     colorSnake: string;
     colorDots: string[];
+    colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
   };
   /** Use custom snake (emoji/image/text) instead of rectangles */
   useCustomSnake?: boolean;
@@ -283,14 +292,77 @@ const applyPaletteOptions = (drawOptions: SvgDrawOptions, searchParams: URLSearc
  * Light theme overrides do not clear dark theme settings.
  * Dark theme must be explicitly overridden with dark_* parameters or will inherit from palette.
  */
+/**
+ * Splits a color string into individual colors, respecting parentheses in CSS functions like rgba(), hsl(), etc.
+ * @param colorString - The color string to split (e.g., "#ff0000,#00ff00" or "rgba(255,0,0,1);rgba(0,255,0,0.8)")
+ * @returns Array of color strings
+ */
+const splitColors = (colorString: string): string[] => {
+  const colors: string[] = [];
+  let current = '';
+  let depth = 0;
+
+  for (let i = 0; i < colorString.length; i++) {
+    const char = colorString[i];
+
+    if (char === '(') {
+      depth++;
+      current += char;
+    } else if (char === ')') {
+      depth--;
+      current += char;
+    } else if ((char === ',' || char === ';') && depth === 0) {
+      // Split only on commas/semicolons outside parentheses
+      if (current.trim()) {
+        colors.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  // Add the last color
+  if (current.trim()) {
+    colors.push(current.trim());
+  }
+
+  return colors;
+};
+
 const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearchParams): void => {
   // Light theme color overrides
   if (searchParams.has("color_snake")) {
-    drawOptions.colorSnake = searchParams.get("color_snake")!;
+    const snakeColorValue = searchParams.get("color_snake")!;
+    // Check if it contains comma or semicolon (multiple colors)
+    // But need to handle rgba/hsla which also contain commas
+    if (snakeColorValue.includes(',') || snakeColorValue.includes(';')) {
+      // Multiple colors - split respecting parentheses
+      const colors = splitColors(snakeColorValue);
+      if (colors.length > 1) {
+        drawOptions.colorSnakeSegments = colors;
+        // Set colorSnake to first color as fallback
+        drawOptions.colorSnake = colors[0];
+      } else {
+        // Single color (e.g., single rgba)
+        drawOptions.colorSnake = snakeColorValue;
+        drawOptions.colorSnakeSegments = undefined;
+      }
+    } else {
+      // Single color - traditional mode
+      drawOptions.colorSnake = snakeColorValue;
+      // Clear segment colors if previously set
+      drawOptions.colorSnakeSegments = undefined;
+    }
+  }
+
+  if (searchParams.has("color_snake_segments")) {
+    const colors = splitColors(searchParams.get("color_snake_segments")!);
+    drawOptions.colorSnakeSegments = colors;
   }
 
   if (searchParams.has("color_dots")) {
-    const colors = searchParams.get("color_dots")!.split(/[,;]/);
+    const colors = splitColors(searchParams.get("color_dots")!);
     drawOptions.colorDots = colors;
     drawOptions.colorEmpty = colors[0];
     // Note: Dark theme is preserved; override separately with dark_color_dots if needed
@@ -304,7 +376,8 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
   // Initialize dark theme if any dark_* parameter is provided
   const hasDarkOverrides = searchParams.has("dark_color_dots") ||
                            searchParams.has("dark_color_dot_border") ||
-                           searchParams.has("dark_color_snake");
+                           searchParams.has("dark_color_snake") ||
+                           searchParams.has("dark_color_snake_segments");
 
   if (hasDarkOverrides && !drawOptions.dark) {
     // Initialize dark theme with light theme defaults if not already set
@@ -317,7 +390,7 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
   }
 
   if (searchParams.has("dark_color_dots")) {
-    const colors = searchParams.get("dark_color_dots")!.split(/[,;]/);
+    const colors = splitColors(searchParams.get("dark_color_dots")!);
     if (drawOptions.dark) {
       drawOptions.dark.colorDots = colors;
       drawOptions.dark.colorEmpty = colors[0];
@@ -329,7 +402,31 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
   }
 
   if (searchParams.has("dark_color_snake") && drawOptions.dark) {
-    drawOptions.dark.colorSnake = searchParams.get("dark_color_snake")!;
+    const snakeColorValue = searchParams.get("dark_color_snake")!;
+    // Check if it contains comma or semicolon (multiple colors)
+    if (snakeColorValue.includes(',') || snakeColorValue.includes(';')) {
+      // Multiple colors - split respecting parentheses
+      const colors = splitColors(snakeColorValue);
+      if (colors.length > 1) {
+        drawOptions.dark.colorSnakeSegments = colors;
+        // Set colorSnake to first color as fallback
+        drawOptions.dark.colorSnake = colors[0];
+      } else {
+        // Single color (e.g., single rgba)
+        drawOptions.dark.colorSnake = snakeColorValue;
+        drawOptions.dark.colorSnakeSegments = undefined;
+      }
+    } else {
+      // Single color - traditional mode
+      drawOptions.dark.colorSnake = snakeColorValue;
+      // Clear segment colors if previously set
+      drawOptions.dark.colorSnakeSegments = undefined;
+    }
+  }
+
+  if (searchParams.has("dark_color_snake_segments") && drawOptions.dark) {
+    const colors = splitColors(searchParams.get("dark_color_snake_segments")!);
+    drawOptions.dark.colorSnakeSegments = colors;
   }
 };
 
@@ -405,7 +502,8 @@ const applyCustomSnakeOptions = (drawOptions: SvgDrawOptions, searchParams: URLS
       if (searchParams.has("custom_snake_segments")) {
         const segmentsParam = searchParams.get("custom_snake_segments")!;
         // Split by comma and trim whitespace from each segment
-        const segments = segmentsParam.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        // Empty segments are preserved and will use defaultContent
+        const segments = segmentsParam.split(',').map(s => s.trim());
         if (segments.length > 0) {
           drawOptions.customSnakeConfig.segments = segments;
         }

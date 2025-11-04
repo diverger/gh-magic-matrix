@@ -41,12 +41,21 @@ export interface SvgRenderOptions {
   sizeDot: number;
   /** Border radius for dots */
   sizeDotBorderRadius: number;
+  /**
+   * Optional array of colors for individual snake segments or function to generate colors
+   * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment (index 0 = head)
+   * - Function: (index, total) => color - dynamically generate color for each segment
+   * If provided, overrides colorSnake for segment colors
+   * If array is shorter than snake length, remaining segments use the last color
+   */
+  colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
   /** Dark mode colors (optional) */
   dark?: {
     colorDots: Record<number, string>;
     colorEmpty: string;
     colorDotBorder?: string;
     colorSnake?: string;
+    colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
   };
   /** Use custom content (emoji/image/text) for snake segments instead of rectangles */
   useCustomSnake?: boolean;
@@ -187,6 +196,7 @@ export const createSvg = async (
     styling: {
       body: drawOptions.colorSnake,
       head: drawOptions.colorSnake,
+      colorSegments: drawOptions.colorSnakeSegments,
     },
     cellSize: drawOptions.sizeCell,
     animationDuration: duration, // Keep in milliseconds

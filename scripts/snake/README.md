@@ -58,6 +58,37 @@ bun scripts/snake/test-emoji-snake.ts
 
 ---
 
+## 🌈 Colorful Snake Test Suite
+
+### test-colorful-snake.ts
+**Per-segment color test suite** with 9 configurations showcasing different color patterns for traditional snake rendering.
+
+```bash
+bun scripts/snake/test-colorful-snake.ts
+```
+
+**Test Configurations**:
+1. `rainbow-segments` - Rainbow colored segments (array)
+2. `gradient-purple-pink` - Purple to pink gradient (function)
+3. `hue-rotation` - Full HSL hue rotation (function)
+4. `fire-gradient` - Fire gradient from yellow to red (function)
+5. `ocean-gradient` - Ocean gradient from cyan to blue (function)
+6. `traffic-light` - Repeating red/yellow/green pattern (function)
+7. `fade-to-transparent` - Fading opacity (function)
+8. `neon-alternating` - Alternating neon colors (array)
+9. `default-single-color` - Single color (for comparison)
+
+**Output**: `test-outputs/colorful-snake/*.svg` (9 files)
+
+**Features**:
+- Array-based color configuration
+- Function-based dynamic color generation
+- Gradient effects (linear, hue rotation, fade)
+- Pattern effects (traffic light, alternating)
+- Comparison with single-color mode
+
+---
+
 ## ✅ Verification Scripts
 
 ### verify-sync-logic.ts

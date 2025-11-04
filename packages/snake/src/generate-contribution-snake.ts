@@ -206,6 +206,7 @@ export const generateContributionSnake = async (
                 colorEmpty: drawOptions.colorEmpty,
                 colorDotBorder: drawOptions.colorDotBorder,
                 colorSnake: drawOptions.colorSnake,
+                colorSnakeSegments: drawOptions.colorSnakeSegments,
                 sizeCell: drawOptions.sizeCell,
                 sizeDot: drawOptions.sizeDot,
                 sizeDotBorderRadius: drawOptions.sizeDotBorderRadius,
@@ -218,6 +219,7 @@ export const generateContributionSnake = async (
                   colorEmpty: drawOptions.dark.colorEmpty,
                   colorDotBorder: drawOptions.dark.colorDotBorder,
                   colorSnake: drawOptions.dark.colorSnake,
+                  colorSnakeSegments: drawOptions.dark.colorSnakeSegments,
                 } : undefined,
                 // Add custom content configuration if available
                 useCustomSnake: drawOptions.useCustomSnake,

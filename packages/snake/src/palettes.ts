@@ -19,6 +19,14 @@ export interface ColorPalette {
   colorSnake: string;
   /** Array of colors for different contribution levels (0-4) */
   colorDots: string[];
+  /**
+   * Optional array of colors for individual snake segments or function to generate colors
+   * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment (index 0 = head)
+   * - Function: (index, total) => color - dynamically generate color for each segment
+   * If provided, overrides colorSnake
+   * If array is shorter than snake length, remaining segments use the last color
+   */
+  colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
 }
 
 /**
@@ -54,6 +62,31 @@ export const basePalettes: Record<string, ColorPalette> = {
     colorEmpty: "#14532d",
     colorDots: ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e"],
     colorSnake: "#dc2626",
+  },
+
+  // Example with rainbow gradient snake segments
+  "rainbow": {
+    colorDotBorder: "#1b1f230a",
+    colorEmpty: "#ebedf0",
+    colorDots: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
+    colorSnake: "#a855f7",
+    colorSnakeSegments: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"],
+  },
+
+  // Example with gradient function (purple to pink)
+  "gradient": {
+    colorDotBorder: "#1b1f230a",
+    colorEmpty: "#161b22",
+    colorDots: ["#161b22", "#01311f", "#034525", "#0f6d31", "#00c647"],
+    colorSnake: "#a855f7",
+    colorSnakeSegments: (index: number, total: number) => {
+      // Gradient from purple to pink
+      const ratio = index / Math.max(total - 1, 1);
+      const r = Math.round(168 + (236 - 168) * ratio);
+      const g = Math.round(85 + (72 - 85) * ratio);
+      const b = Math.round(247 + (153 - 247) * ratio);
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    },
   },
 };
 

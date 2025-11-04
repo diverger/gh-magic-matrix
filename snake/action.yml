@@ -21,7 +21,12 @@ inputs:
 
       Supported query string options:
       - palette:      A preset of color, one of [github, github-dark, github-light]
-      - color_snake:  Color of the snake
+      - color_snake:  Color(s) of the snake. Supports:
+                      • Single color: all segments use the same color (e.g., blue or #7845ab)
+                      • Multiple colors: comma-separated list for per-segment colors
+                        - 1st color = head, 2nd = second segment, etc.
+                        - Remaining segments use the last color
+                        - Example: #ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b5cf6
       - color_dots:   Comma separated list of dots color.
                       The first one is 0 contribution, then it goes from the low contribution to the highest.
                       Exactly 5 colors are expected.
@@ -31,6 +36,7 @@ inputs:
           dark.svg?palette=github-dark&color_snake=blue
           light.svg?color_snake=#7845ab
           ocean.svg?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
+          rainbow.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6
     required: false
     default: 'snake.svg'
   show_contribution_counter:
@@ -66,19 +72,19 @@ inputs:
       Example with emoji array:
         {
           "segments": ["🐍", "🟢", "🟡", "🔴", "🔵"],
-          "defaultEmoji": "🟢"
+          "defaultContent": "🟢"
         }
 
       Example with emoji function pattern (uses alternating pattern):
         {
           "segments": ["🟢", "🟡"],
-          "defaultEmoji": "🟢"
+          "defaultContent": "🟢"
         }
 
       Example with letters:
         {
           "segments": ["S", "N", "A", "K", "E"],
-          "defaultEmoji": "·"
+          "defaultContent": "·"
         }
 
       Example with images (auto-converts external URLs to Base64 for GitHub compatibility):
@@ -88,13 +94,13 @@ inputs:
             "https://avatars.githubusercontent.com/u/5678?s=16",
             "data:image/png;base64,iVBORw0KGgo..."
           ],
-          "defaultEmoji": "🟢"
+          "defaultContent": "🟢"
         }
 
       Fields:
       - segments: Array of emoji/letters/image URLs, or will cycle through the array for each segment
                   Images can be external URLs (automatically converted to Base64) or data URIs
-      - defaultEmoji: Fallback emoji/letter/image for segments not defined in array (default: "🟢")
+      - defaultContent: Fallback emoji/letter/image for segments not defined in array (default: "🟢")
 
       Note:
       - External image URLs (http://, https://) are automatically converted to Base64 data URIs for GitHub CSP compatibility

@@ -9,23 +9,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { loadGitHubToken } from "../utils/env-loader";
 
 const OUTPUT_DIR = "test-outputs/mixed-snake";
 const REPO_ROOT = path.resolve(process.cwd());
-
-// Load GitHub token
-function loadGitHubToken(): string {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf8").trim();
-    if (token && !token.includes("your_github_token_here")) return token;
-  }
-  console.error("❌ Error: GitHub token is required");
-  console.error("   Set GITHUB_TOKEN environment variable or create .github/token.txt");
-  process.exit(1);
-}
 
 interface TestConfig {
   name: string;
@@ -33,7 +20,7 @@ interface TestConfig {
   useEmoji: boolean;
   emojiConfig: {
     segments: (index: number, total: number) => string;
-    defaultEmoji?: string;
+    defaultContent?: string;
   };
 }
 
@@ -144,7 +131,7 @@ async function main() {
   console.log();
 
   // Load GitHub token
-  const githubToken = loadGitHubToken();
+  const githubToken = loadGitHubToken(REPO_ROOT);
 
   // Import dependencies
   const { generateContributionSnake } = await import("../../packages/snake/src/generate-contribution-snake");

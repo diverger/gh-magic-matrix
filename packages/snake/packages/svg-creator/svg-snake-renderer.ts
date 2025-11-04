@@ -32,6 +32,14 @@ export interface SvgSnakeConfig {
     body: string;
     /** Optional border color */
     bodyBorder?: string;
+    /**
+     * Optional array of colors for individual segments or function to generate colors
+     * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment
+     * - Function: (index, total) => color - dynamically generate color for each segment
+     * If provided, overrides head and body colors
+     * If array is shorter than snake length, remaining segments use the last color
+     */
+    colorSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
   };
   /** Use custom content (emoji/image/text) instead of rectangles */
   useCustomContent?: boolean;
@@ -174,6 +182,27 @@ export const renderAnimatedSvgSnake = async (
     return segments[segments.length - 1] || defaultContent;
   };
 
+  // Helper function to get color for a segment
+  const getColorForSegment = (segmentIndex: number): string => {
+    const colorSegments = config.styling.colorSegments;
+
+    // Case 1: No custom segment colors - use default head/body colors
+    if (!colorSegments) {
+      return segmentIndex === 0 ? config.styling.head : config.styling.body;
+    }
+
+    // Case 2: colorSegments is a function - call it with current position
+    if (typeof colorSegments === 'function') {
+      return colorSegments(segmentIndex, snakeLength);
+    }
+
+    // Case 3: colorSegments is an array - return element at index or last color
+    if (segmentIndex < colorSegments.length) {
+      return colorSegments[segmentIndex];
+    }
+    return colorSegments[colorSegments.length - 1] || config.styling.body;
+  };
+
   // Pre-process all image URLs to Base64 for GitHub compatibility
   const imageContentsToProcess: string[] = [];
   if (config.useCustomContent) {
@@ -285,7 +314,7 @@ export const renderAnimatedSvgSnake = async (
         height: s.toFixed(1),
         rx: radius.toFixed(1),
         ry: radius.toFixed(1),
-        fill: i === 0 ? config.styling.head : config.styling.body,
+        fill: getColorForSegment(i),
         stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
         "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
       });

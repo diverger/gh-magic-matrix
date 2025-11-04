@@ -16,25 +16,15 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { loadGitHubToken } from "../utils/env-loader";
 
 const REPO_ROOT = path.resolve(process.cwd());
-
-function loadGitHubToken(): string {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf8").trim();
-    if (token && !token.includes("your_github_token_here")) return token;
-  }
-  console.error("❌ Error: GitHub token is required");
-  process.exit(1);
-}
 
 console.log("🔤 Testing Letter Snake Configurations");
 console.log("=".repeat(60));
 console.log("");
 
-const githubToken = loadGitHubToken();
+const githubToken = loadGitHubToken(REPO_ROOT);
 
 const OUTPUT_DIR = path.join(REPO_ROOT, "test-outputs", "letter-snake");
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -105,18 +95,10 @@ for (const config of LETTER_CONFIGS) {
   console.log(`   📝 ${config.description}`);
 
   const outputPath = path.join(OUTPUT_DIR, `${config.name}.svg`);
-  console.log(`   💾 Output: test-outputs/letter-snake/${config.name}.svg`);
+  console.log(`   💾 Output: ${outputPath}`);
 
   try {
-    // Use environment variable approach like test-emoji-snake.ts
-    process.env.INPUT_OUTPUTS = JSON.stringify([
-      {
-        type: "svg",
-        filename: outputPath,
-      }
-    ]);
-
-    const outputs = parseOutputsOption([process.env.INPUT_OUTPUTS || ""]);
+    const outputs = parseOutputsOption([outputPath]);
 
     if (!Array.isArray(outputs) || outputs.length === 0) {
       throw new Error("parseOutputsOption returned invalid outputs");

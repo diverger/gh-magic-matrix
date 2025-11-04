@@ -211,7 +211,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
     custom_snake_config: |
       {
         "segments": ["🐍", "🟢", "🟡", "🔴"],
-        "defaultEmoji": "🟢"
+        "defaultContent": "🟢"
       }
 ```
 
@@ -226,7 +226,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
     custom_snake_config: |
       {
         "segments": ["S", "N", "A", "K", "E"],
-        "defaultEmoji": "·"
+        "defaultContent": "·"
       }
 ```
 
@@ -246,7 +246,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
           "https://avatars.githubusercontent.com/u/3?s=16",
           "https://avatars.githubusercontent.com/u/4?s=16"
         ],
-        "defaultEmoji": "🟢"
+        "defaultContent": "🟢"
       }
 ```
 
@@ -257,7 +257,7 @@ Render snake segments as emojis, letters, numbers, or images instead of colored 
   - Letters: `["A", "B", "C"]`
   - Images: `["https://example.com/img.png", "data:image/png;base64,..."]`
 
-- **`defaultEmoji`**: Fallback character/image for segments not defined in the array (default: `"🟢"`)
+- **`defaultContent`**: Fallback character/image for segments not defined in the array (default: `"🟢"`)
 
 ### Supported Content Types
 
@@ -296,7 +296,7 @@ custom_snake_config: |
       "🟢",
       "data:image/png;base64,iVBORw0KGgo..."
     ],
-    "defaultEmoji": "·"
+    "defaultContent": "·"
   }
 ```
 
@@ -306,7 +306,7 @@ custom_snake_config: |
 custom_snake_config: |
   {
     "segments": ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣"],
-    "defaultEmoji": "⚪"
+    "defaultContent": "⚪"
   }
 ```
 
@@ -337,7 +337,7 @@ jobs:
           custom_snake_config: |
             {
               "segments": ["🐍", "🟢", "🟡", "🔴", "🔵"],
-              "defaultEmoji": "🟢"
+              "defaultContent": "🟢"
             }
 
       - name: Publish to GitHub Pages

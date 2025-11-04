@@ -9,24 +9,14 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { loadGitHubToken } from "../utils/env-loader";
 
 const REPO_ROOT = path.resolve(process.cwd());
-
-function loadGitHubToken(): string {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  const tokenPath = path.join(REPO_ROOT, ".github/token.txt");
-  if (fs.existsSync(tokenPath)) {
-    const token = fs.readFileSync(tokenPath, "utf8").trim();
-    if (token && !token.includes("your_github_token_here")) return token;
-  }
-  console.error("❌ Error: GitHub token is required");
-  process.exit(1);
-}
 
 console.log("🔤 Quick Letter Snake Test");
 console.log("=".repeat(60));
 
-const githubToken = loadGitHubToken();
+const githubToken = loadGitHubToken(REPO_ROOT);
 
 // Import required functions
 const { generateContributionSnake } = await import("../../packages/snake/src/generate-contribution-snake");
