@@ -10,8 +10,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as core from "@actions/core";
-import { parseOutputsOption } from "./outputs-options";
+import { parseOutputsOption, type SvgDrawOptions } from "./outputs-options";
 import { generateContributionSnake } from "./generate-contribution-snake";
+import type { CounterDisplayConfig } from "../packages/svg-creator/svg-stack-renderer";
 
 /**
  * Main action execution function.
@@ -38,13 +39,24 @@ const runAction = async (): Promise<void> => {
     const forceAnimations = process.env.INPUT_FORCE_ANIMATIONS !== "false";
     const counterDebug = process.env.INPUT_COUNTER_DEBUG === "true";
 
+    // Parse custom snake configuration (emoji/letters/images)
+    const useCustomSnake = process.env.INPUT_USE_CUSTOM_SNAKE === "true";
+    let customSnakeConfig: SvgDrawOptions['customSnakeConfig'] | undefined;
+    if (process.env.INPUT_CUSTOM_SNAKE_CONFIG) {
+      try {
+        customSnakeConfig = JSON.parse(process.env.INPUT_CUSTOM_SNAKE_CONFIG);
+      } catch (e) {
+        throw new Error(`Failed to parse INPUT_CUSTOM_SNAKE_CONFIG: ${(e as Error).message || String(e)}`);
+      }
+    }
+
     // Parse multiple displays configuration
-    let counterDisplays: any[] | undefined;
+    let counterDisplays: CounterDisplayConfig[] | undefined;
     if (process.env.INPUT_COUNTER_DISPLAYS) {
       try {
         counterDisplays = JSON.parse(process.env.INPUT_COUNTER_DISPLAYS);
       } catch (e) {
-        throw new Error(`Failed to parse INPUT_COUNTER_DISPLAYS: ${e}`);
+        throw new Error(`Failed to parse INPUT_COUNTER_DISPLAYS: ${(e as Error).message || String(e)}`);
       }
     }
 
@@ -58,6 +70,23 @@ const runAction = async (): Promise<void> => {
 
     console.log(`🐍 Starting snake generation for user: ${userName}`);
     console.log(`📝 Processing ${outputs.length} output(s)`);
+
+    // Add custom snake configuration to all outputs if enabled
+    if (useCustomSnake) {
+      console.log(`🎨 Custom snake rendering enabled (emoji/letters/images)`);
+      if (customSnakeConfig) {
+        console.log(`📦 Using custom visual configuration`);
+      }
+
+      outputs.forEach(output => {
+        if (output) {
+          output.drawOptions.useCustomSnake = true;
+          if (customSnakeConfig) {
+            output.drawOptions.customSnakeConfig = customSnakeConfig;
+          }
+        }
+      });
+    }
 
     // Add contribution counter configuration to all outputs if enabled
     if (showContributionCounter) {

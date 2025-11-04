@@ -219,6 +219,9 @@ export const generateContributionSnake = async (
                   colorDotBorder: drawOptions.dark.colorDotBorder,
                   colorSnake: drawOptions.dark.colorSnake,
                 } : undefined,
+                // Add custom content configuration if available
+                useCustomSnake: drawOptions.useCustomSnake,
+                customSnakeConfig: drawOptions.customSnakeConfig,
               },
               {
                 frameDuration: animationOptions.frameDuration,

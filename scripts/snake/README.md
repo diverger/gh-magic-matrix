@@ -28,6 +28,36 @@ bun scripts/snake/test-all-mode-combinations.ts
 
 ---
 
+## 🎨 Emoji Snake Test Suite
+
+### test-emoji-snake.ts
+**Emoji snake test suite** with 9 emoji configurations showcasing different emoji themes.
+
+```bash
+bun scripts/snake/test-emoji-snake.ts
+```
+
+**Test Configurations**:
+1. `default-emoji` - Default emoji (🐍 head, 🟢 body)
+2. `rainbow-snake` - Rainbow colored emoji (🐍 🔴 🟠 🟡 🟢 🔵 🟣)
+3. `fire-dragon` - Fire dragon theme (🐲 🔥)
+4. `starry-snake` - Starry space theme with cycling stars (⭐ ✨ 💫 🌟)
+5. `food-chain` - Food chain theme (🍎 🍊 🍋 🍇 🍓)
+6. `heart-gradient` - Heart gradient theme (❤️ 🧡 💛 💚 💙 💜)
+7. `space-snake` - Space theme (🌍 🌙 ⭐ 🪐 🌟 ☄️)
+8. `gradient-circles` - Gradient circles (🟢 🟡 ⚪)
+9. `traditional-rect` - Traditional rectangles (for comparison)
+
+**Output**: `test-outputs/emoji-snake/*.svg` (9 files)
+
+**Features**:
+- Array-based emoji configuration
+- Function-based dynamic emoji generation
+- Comparison with traditional rectangle mode
+- Full GitHub README compatibility
+
+---
+
 ## ✅ Verification Scripts
 
 ### verify-sync-logic.ts

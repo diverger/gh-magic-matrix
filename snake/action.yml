@@ -52,6 +52,55 @@ inputs:
       Set to false if you want to respect user motion preferences (recommended for interactive web pages).
     required: false
     default: 'true'
+  use_custom_snake:
+    description: |
+      Enable custom visual rendering for snake segments instead of colored rectangles.
+      Supports: Unicode emojis (🐍), letters (A-Z), numbers (0-9), and images (PNG/JPEG/GIF).
+      When enabled, each snake segment can be rendered as your chosen character or image.
+    required: false
+    default: 'false'
+  custom_snake_config:
+    description: |
+      JSON configuration for custom visual snake rendering (only used when use_custom_snake is true).
+
+      Example with emoji array:
+        {
+          "segments": ["🐍", "🟢", "🟡", "🔴", "🔵"],
+          "defaultEmoji": "🟢"
+        }
+
+      Example with emoji function pattern (uses alternating pattern):
+        {
+          "segments": ["🟢", "🟡"],
+          "defaultEmoji": "🟢"
+        }
+
+      Example with letters:
+        {
+          "segments": ["S", "N", "A", "K", "E"],
+          "defaultEmoji": "·"
+        }
+
+      Example with images (auto-converts external URLs to Base64 for GitHub compatibility):
+        {
+          "segments": [
+            "https://avatars.githubusercontent.com/u/1234?s=16",
+            "https://avatars.githubusercontent.com/u/5678?s=16",
+            "data:image/png;base64,iVBORw0KGgo..."
+          ],
+          "defaultEmoji": "🟢"
+        }
+
+      Fields:
+      - segments: Array of emoji/letters/image URLs, or will cycle through the array for each segment
+                  Images can be external URLs (automatically converted to Base64) or data URIs
+      - defaultEmoji: Fallback emoji/letter/image for segments not defined in array (default: "🟢")
+
+      Note:
+      - External image URLs (http://, https://) are automatically converted to Base64 data URIs for GitHub CSP compatibility
+      - Supports emoji (🐍), letters (A-Z), numbers (0-9), and images (PNG, JPEG, GIF)
+      - Images are rendered as SVG <image> elements with proper sizing
+    required: false
   counter_displays:
     description: |
       JSON array of multiple counter displays. Each display can have different position, text, colors, and images.
