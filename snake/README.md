@@ -17,6 +17,58 @@ Generate an animated SVG showing a snake eating GitHub contributions inspired by
   />
 </picture>
 
+## Table of Contents
+
+- [Snake Contribution Grid](#snake-contribution-grid)
+  - [Table of Contents](#table-of-contents)
+  - [Usage](#usage)
+    - [Basic Usage](#basic-usage)
+    - [Advanced Configuration](#advanced-configuration)
+  - [Configuration Options](#configuration-options)
+    - [Basic Options](#basic-options)
+    - [Custom Snake Options (Emoji/Letters/Images)](#custom-snake-options-emojilettersimages)
+  - [Custom Snake Feature](#custom-snake-feature)
+    - [Quick Start](#quick-start)
+    - [Configuration Fields](#configuration-fields)
+    - [Supported Content Types](#supported-content-types)
+    - [Automatic Base64 Conversion](#automatic-base64-conversion)
+    - [Advanced Examples](#advanced-examples)
+    - [Complete Workflow Example](#complete-workflow-example)
+    - [Contribution Counter Options](#contribution-counter-options)
+    - [⚠️ Accessibility: Motion Preferences](#️-accessibility-motion-preferences)
+  - [Contribution Counter Feature](#contribution-counter-feature)
+    - [Position Modes](#position-modes)
+      - [Fixed Positions](#fixed-positions)
+      - [Follow Position](#follow-position)
+      - [Free Position](#free-position)
+    - [Quick Start](#quick-start-1)
+    - [Counter Display Configuration](#counter-display-configuration)
+      - [Position Options](#position-options)
+      - [Text Display Options](#text-display-options)
+      - [Image Display Options](#image-display-options)
+      - [Full Configuration Reference](#full-configuration-reference)
+      - [Image Configuration Fields](#image-configuration-fields)
+      - [Sprite Configuration Fields](#sprite-configuration-fields)
+    - [Animation Modes](#animation-modes)
+      - [Sync Mode (`mode: "sync"`)](#sync-mode-mode-sync)
+      - [Loop Mode (`mode: "loop"`)](#loop-mode-mode-loop)
+      - [Level Mode (`mode: "level"`)](#level-mode-mode-level)
+    - [Core Differences Summary](#core-differences-summary)
+    - [Mode Combinations](#mode-combinations)
+    - [Complete Examples](#complete-examples)
+  - [Outputs](#outputs)
+  - [Algorithm Details](#algorithm-details)
+    - [1. Two-Phase Clearing Strategy](#1-two-phase-clearing-strategy)
+    - [2. Tunnel-Based Pathfinding](#2-tunnel-based-pathfinding)
+    - [3. Advanced Data Structures](#3-advanced-data-structures)
+  - [Color Customization](#color-customization)
+    - [Pre-defined Color Themes](#pre-defined-color-themes)
+    - [Multi-Color Snake Segments](#multi-color-snake-segments)
+    - [Color Shift Modes](#color-shift-modes)
+  - [Display in Your README](#display-in-your-readme)
+  - [Complete Workflow Example](#complete-workflow-example-1)
+  - [Examples](#examples)
+
 ## Usage
 
 ### Basic Usage
@@ -849,6 +901,62 @@ The colors represent:
 3. Level 2 (medium-low)
 4. Level 3 (medium-high)
 5. Level 4 (high contributions)
+
+### Multi-Color Snake Segments
+
+Create rainbow or gradient snakes with different colors for each segment:
+
+**Rainbow Snake:**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6
+```
+
+**Two-Color Gradient:**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ff0000,#0000ff
+```
+
+**Query Parameters:**
+- `color_snake`: Single color or comma-separated list for multi-color segments
+  - Single color: `color_snake=blue` (all segments use same color)
+  - Multiple colors: `color_snake=#ff0000,#ff7700,#ffff00` (per-segment colors)
+
+The snake assigns colors to segments in order (head to tail). If the color array is shorter than the snake length, the last color repeats for remaining segments.
+
+### Color Shift Modes
+
+Animate color transitions as the snake moves:
+
+**Mode 1: Shift on Every Step**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6&color_shift_mode=every-step
+```
+- Colors shift forward by one segment with each grid movement
+- Creates a flowing, wave-like color animation
+- Perfect for rainbow effects
+
+**Mode 2: Shift When Eating Contributions**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e&color_shift_mode=on-eat
+```
+- Colors shift only when the snake eats a colored (non-empty) contribution cell
+- Links color changes to actual contribution consumption
+- More subtle and contribution-focused animation
+
+**Available Modes:**
+- `none` (default): Static colors - each segment keeps its assigned color
+- `every-step`: Shift colors on every grid movement
+- `on-eat`: Shift colors only when eating colored cells
+
+**Dark Mode Support:**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#22c55e,#3b82f6&color_shift_mode=every-step&dark_color_snake=#8b5cf6,#ec4899,#f97316&dark_color_shift_mode=on-eat
+```
 
 ## Display in Your README
 

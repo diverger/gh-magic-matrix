@@ -40,6 +40,13 @@ export interface SvgSnakeConfig {
      * If array is shorter than snake length, remaining segments use the last color
      */
     colorSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /**
+     * Color shift mode for multi-color snakes (when colorSegments is an array)
+     * - 'none': Static colors (default) - each segment keeps its assigned color
+     * - 'every-step': Shift colors on every grid movement (creates flowing color animation)
+     * - 'on-eat': Shift colors only when eating a colored cell (contribution-based shifting)
+     */
+    colorShiftMode?: 'none' | 'every-step' | 'on-eat';
   };
   /** Use custom content (emoji/image/text) instead of rectangles */
   useCustomContent?: boolean;
@@ -101,7 +108,8 @@ export interface SvgSnakeResult {
 export const renderAnimatedSvgSnake = async (
   snakeChain: Snake[],
   config: SvgSnakeConfig,
-  dotSize: number
+  dotSize: number,
+  initialGrid?: import("../types/grid").Grid  // Optional: needed for 'on-eat' color shift mode
 ): Promise<SvgSnakeResult> => {
   const elements: string[] = [];
   const animationStyles: string[] = [];
@@ -115,6 +123,33 @@ export const renderAnimatedSvgSnake = async (
 
   // Get the length of the snake from the first frame
   const snakeLength = snakeChain[0] ? snakeChain[0].toCells().length : 0;
+
+  // Calculate eat events if color shift mode is 'on-eat'
+  const eatEvents: number[] = []; // Frame indices where colored cells are eaten
+  const shiftMode = config.styling.colorShiftMode || 'none';
+
+  if (shiftMode === 'on-eat' && initialGrid) {
+    const workingGrid = initialGrid.clone();
+    for (let i = 0; i < snakeChain.length; i++) {
+      const snake = snakeChain[i];
+      const head = snake.getHead();
+
+      if (head.x >= 0 && head.x < workingGrid.width &&
+          head.y >= 0 && head.y < workingGrid.height) {
+        const cellColor = workingGrid.getColor(head.x, head.y);
+        const isEmpty = workingGrid.isEmptyCell(cellColor);
+
+        if (!isEmpty) {
+          eatEvents.push(i); // Record frame where colored cell was eaten
+          workingGrid.setColorEmpty(head.x, head.y);
+        }
+      }
+    }
+
+    if (logger && eatEvents.length > 0) {
+      logger.debug(`🎨 Color shift 'on-eat' mode: ${eatEvents.length} eat events detected`);
+    }
+  }
 
   // Create arrays to store positions for each snake segment across all frames
   const snakeParts: Array<Array<{ x: number, y: number }>> = Array.from({ length: snakeLength }, () => []);
@@ -182,8 +217,10 @@ export const renderAnimatedSvgSnake = async (
     return segments[segments.length - 1] || defaultContent;
   };
 
-  // Helper function to get color for a segment
-  const getColorForSegment = (segmentIndex: number): string => {
+  // Helper function to get color for a segment with color shifting support
+  // For static rendering (SVG elements), frameIndex represents the initial frame (0)
+  // Dynamic color shifts during animation are handled via CSS animations
+  const getColorForSegment = (segmentIndex: number, frameIndex: number = 0): string => {
     const colorSegments = config.styling.colorSegments;
 
     // Case 1: No custom segment colors - use default head/body colors
@@ -196,11 +233,27 @@ export const renderAnimatedSvgSnake = async (
       return colorSegments(segmentIndex, snakeLength);
     }
 
-    // Case 3: colorSegments is an array - return element at index or last color
-    if (segmentIndex < colorSegments.length) {
-      return colorSegments[segmentIndex];
+    // Case 3: colorSegments is an array - apply shifting if enabled
+    if (Array.isArray(colorSegments)) {
+      let shiftOffset = 0;
+
+      // Calculate shift offset based on mode
+      if (shiftMode === 'every-step') {
+        // Shift colors on every frame movement
+        shiftOffset = frameIndex;
+      } else if (shiftMode === 'on-eat') {
+        // Shift colors based on number of eat events up to this frame
+        shiftOffset = eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
+      }
+
+      // Apply shift offset to get final color index
+      const colorIndex = (segmentIndex + shiftOffset) % colorSegments.length;
+
+      // Get color at the calculated index
+      return colorSegments[colorIndex];
     }
-    return colorSegments[colorSegments.length - 1] || config.styling.body;
+
+    return config.styling.body;
   };
 
   // Pre-process all image URLs to Base64 for GitHub compatibility
@@ -306,7 +359,8 @@ export const renderAnimatedSvgSnake = async (
       }
     } else {
       // Create rectangle element
-      segmentElement = createElement("rect", {
+      // Only set inline fill if NOT using color shift mode (CSS will handle it)
+      const rectAttributes: Record<string, string> = {
         class: `snake-segment snake-segment-${i}`,
         x: margin.toFixed(1),
         y: margin.toFixed(1),
@@ -314,10 +368,17 @@ export const renderAnimatedSvgSnake = async (
         height: s.toFixed(1),
         rx: radius.toFixed(1),
         ry: radius.toFixed(1),
-        fill: getColorForSegment(i),
         stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
         "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
-      });
+      };
+
+      // Only set inline fill if shift mode is 'none' (default/static)
+      // CSS animations will handle fill color for shift modes
+      if (shiftMode === 'none') {
+        rectAttributes.fill = getColorForSegment(i);
+      }
+
+      segmentElement = createElement("rect", rectAttributes);
     }
 
     elements.push(segmentElement);
@@ -355,10 +416,57 @@ export const renderAnimatedSvgSnake = async (
 
       const css = createKeyframeAnimation(animationName, keyframes);
 
+      // Create color animation if shift mode is active
+      let colorAnimation = '';
+      const colorSegments = config.styling.colorSegments;
+      if (shiftMode !== 'none' && Array.isArray(colorSegments) && colorSegments.length > 1) {
+        const colorAnimationName = `snake-color-${i}`;
+        const colorKeyframes: Array<{ t: number; style: string }> = [];
+
+        // Generate color keyframes based on shift mode
+        if (shiftMode === 'every-step') {
+          // Create keyframe for each frame in the animation
+          const frameCount = snakeChain.length;
+          for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+            const shiftOffset = frameIdx;
+            const colorIndex = (i + shiftOffset) % colorSegments.length;
+            const color = colorSegments[colorIndex];
+
+            colorKeyframes.push({
+              t: frameIdx / frameCount,
+              style: `fill: ${color}`
+            });
+          }
+        } else if (shiftMode === 'on-eat') {
+          // Create keyframes at eat events
+          let currentColorIndex = i % colorSegments.length;
+          colorKeyframes.push({ t: 0, style: `fill: ${colorSegments[currentColorIndex]}` });
+
+          eatEvents.forEach(eventFrame => {
+            const t = eventFrame / snakeChain.length;
+            currentColorIndex = (currentColorIndex + 1) % colorSegments.length;
+            colorKeyframes.push({ t, style: `fill: ${colorSegments[currentColorIndex]}` });
+          });
+
+          // Add final keyframe
+          colorKeyframes.push({ t: 1, style: `fill: ${colorSegments[currentColorIndex]}` });
+        }
+
+        if (colorKeyframes.length > 0) {
+          const colorCss = createKeyframeAnimation(colorAnimationName, colorKeyframes);
+          colorAnimation = `, ${colorAnimationName} ${config.animationDuration}ms step-end infinite`;
+          animationStyles.push(colorCss);
+        }
+      }
+
+      // Add initial fill color in CSS if using shift mode
+      const initialFill = shiftMode !== 'none' ? `fill: ${getColorForSegment(i, 0)};` : '';
+
       animationStyles.push(`
         .snake-segment-${i} {
           ${transform(positions[0])};
-          animation: ${animationName} ${config.animationDuration}ms ${timingFunction} infinite;
+          ${initialFill}
+          animation: ${animationName} ${config.animationDuration}ms ${timingFunction} infinite${colorAnimation};
         }
         ${css}
       `);

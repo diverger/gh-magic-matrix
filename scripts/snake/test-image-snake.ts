@@ -101,14 +101,16 @@ for (const test of tests) {
 
   // Apply configuration
   outputs.forEach(output => {
-    if (output && output.drawOptions) {
+    if (output) {
+      if (!output.drawOptions) {
+        output.drawOptions = {};
+      }
       output.drawOptions.useCustomSnake = true;
       output.drawOptions.customSnakeConfig = {
         segments: test.segments,
       };
     }
   });
-
   const results = await generateContributionSnake(
     "diverger",
     outputs,

@@ -36,6 +36,13 @@ export interface SvgDrawOptions {
    * If array is shorter than snake length, remaining segments use the last color
    */
   colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+  /**
+   * Color shift mode for multi-color snakes (when colorSnakeSegments is an array)
+   * - 'none': Static colors (default) - each segment keeps its assigned color
+   * - 'every-step': Shift colors on every grid movement (creates flowing color animation)
+   * - 'on-eat': Shift colors only when eating a colored cell (contribution-based shifting)
+   */
+  colorShiftMode?: 'none' | 'every-step' | 'on-eat';
   /** Optional dark theme colors */
   dark?: {
     colorDotBorder: string;
@@ -43,6 +50,7 @@ export interface SvgDrawOptions {
     colorSnake: string;
     colorDots: string[];
     colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    colorShiftMode?: 'none' | 'every-step' | 'on-eat';
   };
   /** Use custom snake (emoji/image/text) instead of rectangles */
   useCustomSnake?: boolean;
@@ -361,6 +369,13 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
     drawOptions.colorSnakeSegments = colors;
   }
 
+  if (searchParams.has("color_shift_mode")) {
+    const mode = searchParams.get("color_shift_mode")!;
+    if (mode === 'none' || mode === 'every-step' || mode === 'on-eat') {
+      drawOptions.colorShiftMode = mode;
+    }
+  }
+
   if (searchParams.has("color_dots")) {
     const colors = splitColors(searchParams.get("color_dots")!);
     drawOptions.colorDots = colors;
@@ -427,6 +442,13 @@ const applyColorOverrides = (drawOptions: SvgDrawOptions, searchParams: URLSearc
   if (searchParams.has("dark_color_snake_segments") && drawOptions.dark) {
     const colors = splitColors(searchParams.get("dark_color_snake_segments")!);
     drawOptions.dark.colorSnakeSegments = colors;
+  }
+
+  if (searchParams.has("dark_color_shift_mode") && drawOptions.dark) {
+    const mode = searchParams.get("dark_color_shift_mode")!;
+    if (mode === 'none' || mode === 'every-step' || mode === 'on-eat') {
+      drawOptions.dark.colorShiftMode = mode;
+    }
   }
 };
 

@@ -27,6 +27,11 @@ inputs:
                         - 1st color = head, 2nd = second segment, etc.
                         - Remaining segments use the last color
                         - Example: #ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b5cf6
+      - color_shift_mode: Color animation mode for multi-color snakes (requires multiple colors in color_snake):
+                      • none (default): Static colors - each segment keeps its assigned color
+                      • every-step: Shift colors on every grid movement (flowing wave effect)
+                      • on-eat: Shift colors only when eating colored cells (contribution-based)
+                      Example: color_shift_mode=every-step or color_shift_mode=on-eat
       - color_dots:   Comma separated list of dots color.
                       The first one is 0 contribution, then it goes from the low contribution to the highest.
                       Exactly 5 colors are expected.
@@ -37,6 +42,8 @@ inputs:
           light.svg?color_snake=#7845ab
           ocean.svg?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
           rainbow.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6
+          rainbow-flow.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6&color_shift_mode=every-step
+          gradient-eat.svg?color_snake=#ff0000,#ff7700,#ffff00&color_shift_mode=on-eat
     required: false
     default: 'snake.svg'
   show_contribution_counter:
