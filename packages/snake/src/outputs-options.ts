@@ -229,8 +229,32 @@ export const parseEntry = (entry: string): OutputConfig | null => {
   // Apply palette configuration
   applyPaletteOptions(drawOptions, searchParams);
 
+  // Validate: palette and color_dots are mutually exclusive
+  const hasPalette = searchParams.has("palette");
+  const hasColorDots = searchParams.has("color_dots");
+  if (hasPalette && hasColorDots) {
+    console.warn("⚠️  Warning: Both 'palette' and 'color_dots' are set. They are mutually exclusive.");
+    console.warn("   'palette' is a preset color scheme, 'color_dots' is custom colors.");
+    console.warn("   Using 'color_dots' (custom colors will override palette).");
+  }
+
   // Apply individual color overrides
   applyColorOverrides(drawOptions, searchParams);
+
+  // Ensure dark theme exists if any color customization was applied
+  // This allows users to set color_dots/color_snake without needing to set palette
+  if (!drawOptions.dark && (searchParams.has("color_dots") || searchParams.has("color_snake") || searchParams.has("color_snake_segments"))) {
+    // Initialize dark theme with light theme values
+    // Users can explicitly override with dark_* parameters if needed
+    drawOptions.dark = {
+      colorDotBorder: drawOptions.colorDotBorder,
+      colorEmpty: drawOptions.colorEmpty,
+      colorSnake: drawOptions.colorSnake,
+      colorDots: [...drawOptions.colorDots],
+      colorSnakeSegments: Array.isArray(drawOptions.colorSnakeSegments) ? [...drawOptions.colorSnakeSegments] : drawOptions.colorSnakeSegments,
+      colorShiftMode: drawOptions.colorShiftMode,
+    };
+  }
 
   // Apply animation options
   applyAnimationOptions(animationOptions, searchParams);
