@@ -20,6 +20,24 @@ export const createElement = (tagName: string, attributes: Record<string, any>):
 };
 
 /**
+ * Creates an SVG text element with content.
+ *
+ * @param attributes - Object containing attribute key-value pairs.
+ * @param textContent - The text content to display.
+ * @returns A string representation of the SVG text element.
+ *
+ * @example
+ * ```typescript
+ * createTextElement({ x: 10, y: 20, class: 'emoji' }, '🐍')
+ * // Returns: '<text x="10" y="20" class="emoji">🐍</text>'
+ * ```
+ */
+export const createTextElement = (attributes: Record<string, any>, textContent: string): string => {
+  const escapedContent = escapeXml(String(textContent ?? ''));
+  return `<text ${convertToAttributes(attributes)}>${escapedContent}</text>`;
+};
+
+/**
  * Converts an object to XML/SVG attribute string format.
  *
  * @param attributes - Object containing attribute key-value pairs.

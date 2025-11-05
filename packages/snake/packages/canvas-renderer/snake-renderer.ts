@@ -7,7 +7,73 @@ import { createRoundedRectPath, lerp, clamp } from "./canvas-utils";
 export interface SnakeRenderOptions {
   colorSnake: string;
   cellSize: number;
+  /**
+   * Optional array of colors for individual segments or function to generate colors
+   * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment
+   * - Function: (index, total) => color - dynamically generate color for each segment
+   * If provided, overrides colorSnake
+   * If array is shorter than snake length, colors wrap around cyclically
+   */
+  colorSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+  /**
+   * Color shift mode for multi-color snakes (when colorSegments is an array)
+   * - 'none': Static colors (default) - each segment keeps its assigned color
+   * - 'every-step': Shift colors on every grid movement (creates flowing color animation)
+   * - 'on-eat': Shift colors only when eating a colored cell (contribution-based shifting)
+   * Note: Shift offset must be updated externally per frame; shift modes are primarily for SVG animation
+   */
+  colorShiftMode?: 'none' | 'every-step' | 'on-eat';
+  /** Frame index for color shifting (used when colorShiftMode is active) */
+  colorShiftOffset?: number;
 }
+
+/**
+ * Helper function to create a color getter function for snake segments.
+ * Ensures consistent gradient behavior across different rendering contexts.
+ *
+ * @param options - Rendering configuration options
+ * @param totalSegments - Total number of segments being rendered
+ * @returns Function that returns color for a given segment index
+ */
+const createColorGetter = (
+  options: SnakeRenderOptions,
+  totalSegments: number
+): ((segmentIndex: number) => string) => {
+  const colorSegments = options.colorSegments;
+  const shiftMode = options.colorShiftMode || 'none';
+  const shiftOffset = options.colorShiftOffset || 0;
+
+  return (segmentIndex: number): string => {
+    // Case 1: No custom segment colors - use default colorSnake
+    if (!colorSegments) {
+      return options.colorSnake;
+    }
+
+    // Case 2: colorSegments is a function - call it with total segments count
+    if (typeof colorSegments === 'function') {
+      return colorSegments(segmentIndex, totalSegments);
+    }
+
+    // Case 3: colorSegments is an array - apply shifting if enabled
+    if (Array.isArray(colorSegments)) {
+      if (colorSegments.length === 0) {
+        return options.colorSnake;
+      }
+      let finalShiftOffset = 0;
+
+      // Apply shift offset based on mode
+      if (shiftMode === 'every-step' || shiftMode === 'on-eat') {
+        finalShiftOffset = shiftOffset;
+      }
+
+      // Calculate color index with shift
+      const colorIndex = ((segmentIndex + finalShiftOffset) % colorSegments.length + colorSegments.length) % colorSegments.length;
+      return colorSegments[colorIndex];
+    }
+
+    return options.colorSnake;
+  };
+};
 
 /**
  * Renders a snake on the canvas.
@@ -27,12 +93,16 @@ export const renderSnake = (
   options: SnakeRenderOptions
 ): void => {
   const cells = snake.toCells();
+  const totalSegments = cells.length;
+
+  // Create color getter with consistent total length
+  const getColorForSegment = createColorGetter(options, totalSegments);
 
   for (let i = 0; i < cells.length; i++) {
     const padding = Math.min((i + 1) * 0.6, (options.cellSize - 2) / 2);
 
     ctx.save();
-    ctx.fillStyle = options.colorSnake;
+    ctx.fillStyle = getColorForSegment(i);
     ctx.translate(
       cells[i].x * options.cellSize + padding,
       cells[i].y * options.cellSize + padding
@@ -76,6 +146,9 @@ export const renderSnakeWithInterpolation = (
   const endCells = snakeEnd.toCells();
   const segmentCount = Math.min(startCells.length, endCells.length);
 
+  // Create color getter with consistent total length
+  const getColorForSegment = createColorGetter(options, segmentCount);
+
   for (let i = 0; i < segmentCount; i++) {
     const padding = Math.min((i + 1) * 0.6, (options.cellSize - 2) / 2);
 
@@ -97,7 +170,7 @@ export const renderSnakeWithInterpolation = (
     const y = lerp(segmentInterpolation, startY, endY);
 
     ctx.save();
-    ctx.fillStyle = options.colorSnake;
+    ctx.fillStyle = getColorForSegment(i);
     ctx.translate(x * options.cellSize + padding, y * options.cellSize + padding);
 
     const segmentSize = options.cellSize - padding * 2;

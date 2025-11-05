@@ -41,12 +41,41 @@ export interface SvgRenderOptions {
   sizeDot: number;
   /** Border radius for dots */
   sizeDotBorderRadius: number;
+  /**
+   * Optional array of colors for individual snake segments or function to generate colors
+   * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment (index 0 = head)
+   * - Function: (index, total) => color - dynamically generate color for each segment
+   * If provided, overrides colorSnake for segment colors
+   * If array is shorter than snake length, remaining segments use the last color
+   */
+  colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+  /**
+   * Color shift mode for multi-color snakes (when colorSnakeSegments is an array)
+   * - 'none': Static colors (default) - each segment keeps its assigned color
+   * - 'every-step': Shift colors on every grid movement (creates flowing color animation)
+   * - 'on-eat': Shift colors only when eating a colored cell (contribution-based shifting)
+   */
+  colorShiftMode?: 'none' | 'every-step' | 'on-eat';
   /** Dark mode colors (optional) */
   dark?: {
     colorDots: Record<number, string>;
     colorEmpty: string;
     colorDotBorder?: string;
     colorSnake?: string;
+    colorSnakeSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    colorShiftMode?: 'none' | 'every-step' | 'on-eat';
+  };
+  /** Use custom content (emoji/image/text) for snake segments instead of rectangles */
+  useCustomSnake?: boolean;
+  /** Custom content configuration for snake (only used when useCustomSnake is true) */
+  customSnakeConfig?: {
+    /**
+     * Array of content (emoji/image/text) for each segment or a function to generate them
+     * Example: ['🐍', '🟢', '🟡'] or (index, total) => content
+     */
+    segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /** Default content for unspecified segments (emoji/image/text, default: 🟢) */
+    defaultContent?: string;
   };
 }
 
@@ -170,15 +199,20 @@ export const createSvg = async (
     showEmptyCells, // Pass the flag to control L0 rendering
   }, duration);
 
-  // Render the animated snake
-  const snakeResult = renderAnimatedSvgSnake(chain, {
+  // Render the animated snake (auto-converts external URLs to Base64)
+  const snakeResult = await renderAnimatedSvgSnake(chain, {
     styling: {
       body: drawOptions.colorSnake,
       head: drawOptions.colorSnake,
+      colorSegments: drawOptions.colorSnakeSegments,
+      colorShiftMode: drawOptions.colorShiftMode,
     },
     cellSize: drawOptions.sizeCell,
     animationDuration: duration, // Keep in milliseconds
-  }, drawOptions.sizeDot); // Pass dotSize as separate parameter following SNK pattern
+    useCustomContent: drawOptions.useCustomSnake,
+    customContentConfig: drawOptions.customSnakeConfig,
+    logger: animationOptions.contributionCounter?.debug ? console : undefined,
+  }, drawOptions.sizeDot, grid); // Pass grid for 'on-eat' mode eat event detection
 
   // Calculate progress bar Y position (leaving space for counter text above if needed)
   const progressBarY = (grid.height + gapCells) * drawOptions.sizeCell;

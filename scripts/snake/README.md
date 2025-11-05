@@ -28,6 +28,67 @@ bun scripts/snake/test-all-mode-combinations.ts
 
 ---
 
+## 🎨 Emoji Snake Test Suite
+
+### test-emoji-snake.ts
+**Emoji snake test suite** with 9 emoji configurations showcasing different emoji themes.
+
+```bash
+bun scripts/snake/test-emoji-snake.ts
+```
+
+**Test Configurations**:
+1. `default-emoji` - Default emoji (🐍 head, 🟢 body)
+2. `rainbow-snake` - Rainbow colored emoji (🐍 🔴 🟠 🟡 🟢 🔵 🟣)
+3. `fire-dragon` - Fire dragon theme (🐲 🔥)
+4. `starry-snake` - Starry space theme with cycling stars (⭐ ✨ 💫 🌟)
+5. `food-chain` - Food chain theme (🍎 🍊 🍋 🍇 🍓)
+6. `heart-gradient` - Heart gradient theme (❤️ 🧡 💛 💚 💙 💜)
+7. `space-snake` - Space theme (🌍 🌙 ⭐ 🪐 🌟 ☄️)
+8. `gradient-circles` - Gradient circles (🟢 🟡 ⚪)
+9. `traditional-rect` - Traditional rectangles (for comparison)
+
+**Output**: `test-outputs/emoji-snake/*.svg` (9 files)
+
+**Features**:
+- Array-based emoji configuration
+- Function-based dynamic emoji generation
+- Comparison with traditional rectangle mode
+- Full GitHub README compatibility
+
+---
+
+## 🌈 Colorful Snake Test Suite
+
+### test-colorful-snake.ts
+**Per-segment color test suite** with 9 configurations showcasing different color patterns for traditional snake rendering.
+
+```bash
+bun scripts/snake/test-colorful-snake.ts
+```
+
+**Test Configurations**:
+1. `rainbow-segments` - Rainbow colored segments (array)
+2. `gradient-purple-pink` - Purple to pink gradient (function)
+3. `hue-rotation` - Full HSL hue rotation (function)
+4. `fire-gradient` - Fire gradient from yellow to red (function)
+5. `ocean-gradient` - Ocean gradient from cyan to blue (function)
+6. `traffic-light` - Repeating red/yellow/green pattern (function)
+7. `fade-to-transparent` - Fading opacity (function)
+8. `neon-alternating` - Alternating neon colors (array)
+9. `default-single-color` - Single color (for comparison)
+
+**Output**: `test-outputs/colorful-snake/*.svg` (9 files)
+
+**Features**:
+- Array-based color configuration
+- Function-based dynamic color generation
+- Gradient effects (linear, hue rotation, fade)
+- Pattern effects (traffic light, alternating)
+- Comparison with single-color mode
+
+---
+
 ## ✅ Verification Scripts
 
 ### verify-sync-logic.ts

@@ -1,6 +1,23 @@
 import type { Snake } from "../types/snake";
 import { createKeyframeAnimation, type AnimationKeyframe } from "./css-utils";
-import { createElement } from "./svg-utils";
+import { createElement, createTextElement } from "./svg-utils";
+import { processImageContent } from "./image-utils";
+
+/** Logger interface for debug output */
+export interface Logger {
+  debug(...args: any[]): void;
+  info(...args: any[]): void;
+  warn(...args: any[]): void;
+  error(...args: any[]): void;
+}
+
+/** No-op logger that silently discards all output */
+const noopLogger: Logger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+};
 
 export interface SvgSnakeConfig {
   /** Size of each grid cell in pixels */
@@ -15,7 +32,46 @@ export interface SvgSnakeConfig {
     body: string;
     /** Optional border color */
     bodyBorder?: string;
+    /**
+     * Optional array of colors for individual segments or function to generate colors
+     * - Array: ['#ff0000', '#00ff00', '#0000ff'] - specific color for each segment
+     * - Function: (index, total) => color - dynamically generate color for each segment
+     * If provided, overrides head and body colors
+     * If array is shorter than snake length, remaining segments use the last color
+     */
+    colorSegments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /**
+     * Color shift mode for multi-color snakes (when colorSegments is an array)
+     * - 'none': Static colors (default) - each segment keeps its assigned color
+     * - 'every-step': Shift colors on every grid movement (creates flowing color animation)
+     * - 'on-eat': Shift colors only when eating a colored cell (contribution-based shifting)
+     */
+    colorShiftMode?: 'none' | 'every-step' | 'on-eat';
   };
+  /** Use custom content (emoji/image/text) instead of rectangles */
+  useCustomContent?: boolean;
+  /** Custom content configuration (only used when useCustomContent is true) */
+  customContentConfig?: {
+    /**
+     * Array of content (emoji/image/text) for each segment (index 0 = head, 1 = second segment, etc.)
+     * - Emoji: '🐍', '🟢', '🟡', '🔵'
+     * - Images: 'https://example.com/image.png' or 'data:image/png;base64,...'
+     * - Text: 'A', 'B', 'C', '1', '2', '3'
+     * If array is shorter than snake length, remaining segments use the last content
+     * Can also be a function: (index, length) => content string
+     */
+    segments?: string[] | ((segmentIndex: number, totalLength: number) => string);
+    /** Default content for segments not specified (default: 🟢) */
+    defaultContent?: string;
+    /**
+     * Animation timing function for smoother movement
+     * Options: 'linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out'
+     * Default: 'linear' for smooth movement (non-linear causes jerky motion with optimized keyframes)
+     */
+    animationTiming?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+  };
+  /** Optional logger for debug output (defaults to silent no-op logger) */
+  logger?: Logger;
 }
 
 export interface SvgSnakeResult {
@@ -45,17 +101,34 @@ export interface SvgSnakeResult {
  *   styling: { head: '#4CAF50', body: '#8BC34A' }
  * };
  *
- * const result = renderAnimatedSvgSnake(snakeMovement, config, 12);
+ * const result = await renderAnimatedSvgSnake(snakeMovement, config, 12);
  * document.body.appendChild(result.elements[0]);
  * ```
  */
-export const renderAnimatedSvgSnake = (
+export const renderAnimatedSvgSnake = async (
   snakeChain: Snake[],
   config: SvgSnakeConfig,
-  dotSize: number
-): SvgSnakeResult => {
+  dotSize: number,
+  initialGrid?: import("../types/grid").Grid  // Optional: needed for 'on-eat' color shift mode
+): Promise<SvgSnakeResult> => {
   const elements: string[] = [];
   const animationStyles: string[] = [];
+
+  // Use provided logger or default to no-op logger
+  const logger = config.logger || noopLogger;
+
+  // Validate configuration arrays
+  if (config.styling.colorSegments &&
+      Array.isArray(config.styling.colorSegments) &&
+      config.styling.colorSegments.length === 0) {
+    throw new Error('colorSegments array cannot be empty');
+  }
+
+  if (config.customContentConfig?.segments &&
+      Array.isArray(config.customContentConfig.segments) &&
+      config.customContentConfig.segments.length === 0) {
+    throw new Error('customContentConfig.segments array cannot be empty');
+  }
 
   if (snakeChain.length === 0) {
     return { elements, styles: "", duration: 0 };
@@ -64,10 +137,38 @@ export const renderAnimatedSvgSnake = (
   // Get the length of the snake from the first frame
   const snakeLength = snakeChain[0] ? snakeChain[0].toCells().length : 0;
 
+  // Calculate eat events if color shift mode is 'on-eat'
+  const eatEvents: number[] = []; // Frame indices where colored cells are eaten
+  const shiftMode = config.styling.colorShiftMode || 'none';
+
+  if (shiftMode === 'on-eat' && initialGrid) {
+    const workingGrid = initialGrid.clone();
+    for (let i = 0; i < snakeChain.length; i++) {
+      const snake = snakeChain[i];
+      const head = snake.getHead();
+
+      if (head.x >= 0 && head.x < workingGrid.width &&
+          head.y >= 0 && head.y < workingGrid.height) {
+        const cellColor = workingGrid.getColor(head.x, head.y);
+        const isEmpty = workingGrid.isEmptyCell(cellColor);
+
+        if (!isEmpty) {
+          eatEvents.push(i); // Record frame where colored cell was eaten
+          workingGrid.setColorEmpty(head.x, head.y);
+        }
+      }
+    }
+
+    if (logger && eatEvents.length > 0) {
+      logger.debug(`🎨 Color shift 'on-eat' mode: ${eatEvents.length} eat events detected`);
+    }
+  }
+
   // Create arrays to store positions for each snake segment across all frames
   const snakeParts: Array<Array<{ x: number, y: number }>> = Array.from({ length: snakeLength }, () => []);
 
   // Collect positions for each segment across all frames
+  // Each segment follows its natural position in the snake for each frame
   for (const snake of snakeChain) {
     const cells = snake.toCells();
     for (let i = 0; i < cells.length && i < snakeLength; i++) {
@@ -105,6 +206,116 @@ export const renderAnimatedSvgSnake = (
     });
   };
 
+  // Helper function to get content for a segment (emoji/letter/image)
+  const getContentForSegment = (segmentIndex: number): string => {
+    // Normalize configuration upfront
+    const customContentConfig = config.customContentConfig;
+    const segments = customContentConfig?.segments;
+    const defaultContent = customContentConfig?.defaultContent ?? '🟢';
+
+    // Case 1: No custom config or no segments - use default snake head/body
+    if (!customContentConfig || !segments) {
+      return segmentIndex === 0 ? '🐍' : defaultContent;
+    }
+
+    // Case 2: Segments is a function - call it with current position
+    if (typeof segments === 'function') {
+      return segments(segmentIndex, snakeLength);
+    }
+
+    // Case 3: Segments is an array - return element at index or last/default
+    if (segmentIndex < segments.length) {
+      return segments[segmentIndex];
+    }
+    return segments[segments.length - 1] || defaultContent;
+  };
+
+  // Helper function to get color for a segment with color shifting support
+  // For static rendering (SVG elements), frameIndex represents the initial frame (0)
+  // Dynamic color shifts during animation are handled via CSS animations
+  const getColorForSegment = (segmentIndex: number, frameIndex: number = 0): string => {
+    const colorSegments = config.styling.colorSegments;
+
+    // Case 1: No custom segment colors - use default head/body colors
+    if (!colorSegments) {
+      return segmentIndex === 0 ? config.styling.head : config.styling.body;
+    }
+
+    // Case 2: colorSegments is a function - call it with current position
+    if (typeof colorSegments === 'function') {
+      return colorSegments(segmentIndex, snakeLength);
+    }
+
+    // Case 3: colorSegments is an array - apply shifting if enabled
+    if (Array.isArray(colorSegments)) {
+      let shiftOffset = 0;
+
+      // Calculate shift offset based on mode
+      if (shiftMode === 'every-step') {
+        // Shift colors on every frame movement
+        shiftOffset = frameIndex;
+      } else if (shiftMode === 'on-eat') {
+        // Shift colors based on number of eat events up to this frame
+        shiftOffset = eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
+      }
+
+      // Apply shift offset to get final color index
+      const colorIndex = (segmentIndex + shiftOffset) % colorSegments.length;
+
+      // Get color at the calculated index
+      return colorSegments[colorIndex];
+    }
+
+    return config.styling.body;
+  };
+
+  // Pre-process all image URLs to Base64 for GitHub compatibility
+  const imageContentsToProcess: string[] = [];
+  if (config.useCustomContent) {
+    for (let i = 0; i < snakeLength; i++) {
+      const content = getContentForSegment(i);
+      if (content.startsWith('http://') || content.startsWith('https://')) {
+        imageContentsToProcess.push(content);
+      }
+    }
+  }
+
+  // Deduplicate URLs to avoid processing the same URL multiple times
+  const uniqueImageUrls = Array.from(new Set(imageContentsToProcess));
+
+  // Convert all external URLs to Base64 in parallel
+  const convertedImages = new Map<string, string>();
+  if (uniqueImageUrls.length > 0) {
+    logger.debug(`🔄 Converting ${uniqueImageUrls.length} unique external image URLs to Base64...`);
+    const results = await Promise.allSettled(
+      uniqueImageUrls.map(url => processImageContent(url))
+    );
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    results.forEach((result, index) => {
+      const url = uniqueImageUrls[index];
+      if (result.status === 'fulfilled') {
+        convertedImages.set(url, result.value);
+        successCount++;
+      } else {
+        // Log error and use original URL as fallback
+        logger.warn(`⚠️ Failed to convert image ${url}: ${result.reason}`);
+        convertedImages.set(url, url); // Fallback to original URL
+        failureCount++;
+      }
+    });
+
+    logger.debug(`✅ Image conversion complete: ${successCount} succeeded, ${failureCount} failed`);
+  }
+
+  // Helper to get processed content (with URL -> Base64 conversion)
+  const getProcessedContent = (segmentIndex: number): string => {
+    const original = getContentForSegment(segmentIndex);
+    return convertedImages.get(original) || original;
+  };
+
   // Create SVG elements for each snake segment
   snakeParts.forEach((positions, i) => {
     if (positions.length === 0) return;
@@ -119,27 +330,89 @@ export const renderAnimatedSvgSnake = (
     const margin = (config.cellSize - s) / 2;
     const radius = Math.min(4.5, (4 * s) / dotSize); // SNK's radius formula
 
-    // Create rectangle element
-    const rectElement = createElement("rect", {
-      class: `snake-segment snake-segment-${i}`,
-      x: margin.toFixed(1),
-      y: margin.toFixed(1),
-      width: s.toFixed(1),
-      height: s.toFixed(1),
-      rx: radius.toFixed(1),
-      ry: radius.toFixed(1),
-      fill: i === 0 ? config.styling.head : config.styling.body,
-      stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
-      "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
-    });
+    let segmentElement: string;
 
-    elements.push(rectElement);
+    if (config.useCustomContent) {
+      const content = getProcessedContent(i); // Use processed content (URLs converted to Base64)
+
+      // Check if content is an image (data URI or remaining external URL)
+      const isImage = content.startsWith('http://') ||
+                     content.startsWith('https://') ||
+                     content.startsWith('data:');
+
+      if (isImage) {
+        // Create image element for images
+        // Use full segment size to make segments appear more connected
+        const imageSize = s;
+        const imageOffset = (config.cellSize - imageSize) / 2;
+
+        segmentElement = createElement("image", {
+          class: `snake-segment snake-segment-${i}`,
+          x: imageOffset.toFixed(1),
+          y: imageOffset.toFixed(1),
+          width: imageSize.toFixed(1),
+          height: imageSize.toFixed(1),
+          href: content,
+          // Add transform-origin to match rectangle behavior
+          style: "transform-box: fill-box; transform-origin: center center;",
+        });
+      } else {
+        // Create text element for emoji/characters
+        // Use full segment size to make segments appear more connected
+        const fontSize = s;
+
+        segmentElement = createTextElement({
+          class: `snake-segment snake-segment-${i}`,
+          x: (config.cellSize / 2).toFixed(1),
+          y: (config.cellSize / 2).toFixed(1),
+          "font-size": fontSize.toFixed(1),
+          "text-anchor": "middle",
+          "dominant-baseline": "central",
+          "user-select": "none",
+          // Add transform-origin to match rectangle behavior
+          style: "transform-box: fill-box; transform-origin: center center;",
+        }, content);
+      }
+    } else {
+      // Create rectangle element
+      // Only set inline fill if NOT using color shift mode (CSS will handle it)
+      const rectAttributes: Record<string, string> = {
+        class: `snake-segment snake-segment-${i}`,
+        x: margin.toFixed(1),
+        y: margin.toFixed(1),
+        width: s.toFixed(1),
+        height: s.toFixed(1),
+        rx: radius.toFixed(1),
+        ry: radius.toFixed(1),
+        stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
+        "stroke-width": i === 0 || !config.styling.bodyBorder ? "0" : "0.5",
+      };
+
+      // Only set inline fill if shift mode is 'none' (default/static)
+      // CSS animations will handle fill color for shift modes
+      if (shiftMode === 'none') {
+        rectAttributes.fill = getColorForSegment(i);
+      }
+
+      segmentElement = createElement("rect", rectAttributes);
+    }
+
+    elements.push(segmentElement);
 
     // Create animation if there are multiple positions
     if (positions.length > 1) {
       const animationName = `snake-segment-${i}`;
 
-      // Create positions with time stamps - match SNK's timing exactly
+      // Get animation timing function
+      // IMPORTANT: Defaults to 'linear' to avoid "spring effect" between keyframes
+      // With optimized keyframes (only turns preserved), non-linear timing causes
+      // acceleration/deceleration between waypoints, creating jerky movement
+      // Custom content can override with animationTiming if desired
+      const timingFunction = config.useCustomContent && config.customContentConfig?.animationTiming
+        ? config.customContentConfig.animationTiming
+        : 'linear'; // Default to linear for smooth movement unless overridden
+
+      // Create keyframes for movement - match SNK's timing exactly
       // SNK uses i / length (not i / (length - 1)), so keyframes end before 100%
       const positionsWithTime = positions.map((pos, frameIndex) => ({
         x: pos.x,
@@ -159,10 +432,58 @@ export const renderAnimatedSvgSnake = (
 
       const css = createKeyframeAnimation(animationName, keyframes);
 
+      // Create color animation if shift mode is active
+      let colorAnimation = '';
+      const colorSegments = config.styling.colorSegments;
+      if (shiftMode !== 'none' && Array.isArray(colorSegments) && colorSegments.length > 1) {
+        const colorAnimationName = `snake-color-${i}`;
+        const colorKeyframes: Array<{ t: number; style: string }> = [];
+
+        // Generate color keyframes based on shift mode
+        if (shiftMode === 'every-step') {
+          // Create keyframe for each frame in the animation
+          const frameCount = snakeChain.length;
+          for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+            const shiftOffset = frameIdx;
+            const colorIndex = (i + shiftOffset) % colorSegments.length;
+            const color = colorSegments[colorIndex];
+
+            colorKeyframes.push({
+              t: frameIdx / frameCount,
+              style: `fill: ${color}`
+            });
+          }
+        } else if (shiftMode === 'on-eat') {
+          // Create keyframes at eat events
+          let currentColorIndex = i % colorSegments.length;
+          colorKeyframes.push({ t: 0, style: `fill: ${colorSegments[currentColorIndex]}` });
+
+          eatEvents.forEach(eventFrame => {
+            const t = eventFrame / snakeChain.length;
+            currentColorIndex = (currentColorIndex + 1) % colorSegments.length;
+            colorKeyframes.push({ t, style: `fill: ${colorSegments[currentColorIndex]}` });
+          });
+
+          // Add final keyframe at same timing as position animation to ensure smooth loop
+          const finalT = snakeChain.length ? (snakeChain.length - 1) / snakeChain.length : 1;
+          colorKeyframes.push({ t: finalT, style: `fill: ${colorSegments[currentColorIndex]}` });
+        }
+
+        if (colorKeyframes.length > 0) {
+          const colorCss = createKeyframeAnimation(colorAnimationName, colorKeyframes);
+          colorAnimation = `, ${colorAnimationName} ${config.animationDuration}ms step-end infinite`;
+          animationStyles.push(colorCss);
+        }
+      }
+
+      // Add initial fill color in CSS if using shift mode
+      const initialFill = shiftMode !== 'none' ? `fill: ${getColorForSegment(i, 0)};` : '';
+
       animationStyles.push(`
         .snake-segment-${i} {
           ${transform(positions[0])};
-          animation: ${animationName} ${config.animationDuration}ms linear infinite;
+          ${initialFill}
+          animation: ${animationName} ${config.animationDuration}ms ${timingFunction} infinite${colorAnimation};
         }
         ${css}
       `);
@@ -194,10 +515,10 @@ export const renderAnimatedSvgSnake = (
 /**
  * Creates a static SVG representation of a snake without animations.
  */
-export const renderStaticSvgSnake = (
+export const renderStaticSvgSnake = async (
   snake: Snake,
   config: SvgSnakeConfig,
   dotSize: number
-): SvgSnakeResult => {
+): Promise<SvgSnakeResult> => {
   return renderAnimatedSvgSnake([snake], config, dotSize);
 };

@@ -366,6 +366,78 @@ jobs:
             ]
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate snake with color shift (light theme - every-step)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/color-shift-light-every-step.svg?palette=github-light&color_snake=red,orange,yellow,green,blue,indigo,violet&color_shift_mode=every-step"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "text": "Rainbow Every Step (Light)",
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#1f883d"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with color shift (light theme - on-eat)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/color-shift-light-on-eat.svg?palette=github-light&color_snake=red,orange,yellow,green,blue,indigo,violet&color_shift_mode=on-eat"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "text": "Rainbow On Eat (Light)",
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#1f883d"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with color shift (dark theme - every-step)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/color-shift-dark-every-step.svg?palette=github-dark&color_snake=red,orange,yellow,green,blue,indigo,violet&color_shift_mode=every-step"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "text": "Rainbow Every Step (Dark)",
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#7ee787"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate snake with color shift (dark theme - on-eat)
+        run: bun packages/snake/dist/index.js
+        env:
+          INPUT_GITHUB_USER_NAME: diverger
+          INPUT_OUTPUTS: "dist/snake/color-shift-dark-on-eat.svg?palette=github-dark&color_snake=red,orange,yellow,green,blue,indigo,violet&color_shift_mode=on-eat"
+          INPUT_SHOW_CONTRIBUTION_COUNTER: "true"
+          INPUT_COUNTER_DISPLAYS: |
+            [
+              {
+                "position": "top-left",
+                "text": "Rainbow On Eat (Dark)",
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#7ee787"
+              }
+            ]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify all snake outputs exist
         run: |
           set +e  # Don't exit on error, we want to run all checks
@@ -382,6 +454,10 @@ jobs:
           test -f dist/snake/with-empty-cell-animation.svg || FAILED=1
           test -f dist/snake/hidden-progress-bar.svg || FAILED=1
           test -f dist/snake/with-spacing-control.svg || FAILED=1
+          test -f dist/snake/color-shift-light-every-step.svg || FAILED=1
+          test -f dist/snake/color-shift-light-on-eat.svg || FAILED=1
+          test -f dist/snake/color-shift-dark-every-step.svg || FAILED=1
+          test -f dist/snake/color-shift-dark-on-eat.svg || FAILED=1
 
           if [ $FAILED -eq 0 ]; then
             echo "✅ All snake output files generated successfully"
@@ -494,6 +570,70 @@ jobs:
             echo "✅ with-spacing-control.svg: Image embedded as data URI"
           else
             echo "❌ with-spacing-control.svg: Image NOT embedded"
+            FAILED=1
+          fi
+          echo ""
+
+          # color-shift-light-every-step.svg - Color shift light theme every-step mode
+          echo "Verifying color-shift-light-every-step.svg..."
+          if grep -q "snake-color-" dist/snake/color-shift-light-every-step.svg; then
+            echo "✅ color-shift-light-every-step.svg: Color shift animation keyframes found"
+          else
+            echo "❌ color-shift-light-every-step.svg: Color shift animation NOT found"
+            FAILED=1
+          fi
+          if grep -q "animation:.*snake-color-" dist/snake/color-shift-light-every-step.svg; then
+            echo "✅ color-shift-light-every-step.svg: Color shift animation applied to snake segments"
+          else
+            echo "❌ color-shift-light-every-step.svg: Color shift animation NOT applied"
+            FAILED=1
+          fi
+          echo ""
+
+          # color-shift-light-on-eat.svg - Color shift light theme on-eat mode
+          echo "Verifying color-shift-light-on-eat.svg..."
+          if grep -q "snake-color-" dist/snake/color-shift-light-on-eat.svg; then
+            echo "✅ color-shift-light-on-eat.svg: Color shift animation keyframes found"
+          else
+            echo "❌ color-shift-light-on-eat.svg: Color shift animation NOT found"
+            FAILED=1
+          fi
+          if grep -q "animation:.*snake-color-" dist/snake/color-shift-light-on-eat.svg; then
+            echo "✅ color-shift-light-on-eat.svg: Color shift animation applied to snake segments"
+          else
+            echo "❌ color-shift-light-on-eat.svg: Color shift animation NOT applied"
+            FAILED=1
+          fi
+          echo ""
+
+          # color-shift-dark-every-step.svg - Color shift dark theme every-step mode
+          echo "Verifying color-shift-dark-every-step.svg..."
+          if grep -q "snake-color-" dist/snake/color-shift-dark-every-step.svg; then
+            echo "✅ color-shift-dark-every-step.svg: Color shift animation keyframes found"
+          else
+            echo "❌ color-shift-dark-every-step.svg: Color shift animation NOT found"
+            FAILED=1
+          fi
+          if grep -q "animation:.*snake-color-" dist/snake/color-shift-dark-every-step.svg; then
+            echo "✅ color-shift-dark-every-step.svg: Color shift animation applied to snake segments"
+          else
+            echo "❌ color-shift-dark-every-step.svg: Color shift animation NOT applied"
+            FAILED=1
+          fi
+          echo ""
+
+          # color-shift-dark-on-eat.svg - Color shift dark theme on-eat mode
+          echo "Verifying color-shift-dark-on-eat.svg..."
+          if grep -q "snake-color-" dist/snake/color-shift-dark-on-eat.svg; then
+            echo "✅ color-shift-dark-on-eat.svg: Color shift animation keyframes found"
+          else
+            echo "❌ color-shift-dark-on-eat.svg: Color shift animation NOT found"
+            FAILED=1
+          fi
+          if grep -q "animation:.*snake-color-" dist/snake/color-shift-dark-on-eat.svg; then
+            echo "✅ color-shift-dark-on-eat.svg: Color shift animation applied to snake segments"
+          else
+            echo "❌ color-shift-dark-on-eat.svg: Color shift animation NOT applied"
             FAILED=1
           fi
           echo ""

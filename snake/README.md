@@ -17,6 +17,58 @@ Generate an animated SVG showing a snake eating GitHub contributions inspired by
   />
 </picture>
 
+## Table of Contents
+
+- [Snake Contribution Grid](#snake-contribution-grid)
+  - [Table of Contents](#table-of-contents)
+  - [Usage](#usage)
+    - [Basic Usage](#basic-usage)
+    - [Advanced Configuration](#advanced-configuration)
+  - [Configuration Options](#configuration-options)
+    - [Basic Options](#basic-options)
+    - [Custom Snake Options (Emoji/Letters/Images)](#custom-snake-options-emojilettersimages)
+  - [Custom Snake Feature](#custom-snake-feature)
+    - [Quick Start](#quick-start)
+    - [Configuration Fields](#configuration-fields)
+    - [Supported Content Types](#supported-content-types)
+    - [Automatic Base64 Conversion](#automatic-base64-conversion)
+    - [Advanced Examples](#advanced-examples)
+    - [Complete Workflow Example](#complete-workflow-example)
+    - [Contribution Counter Options](#contribution-counter-options)
+    - [⚠️ Accessibility: Motion Preferences](#️-accessibility-motion-preferences)
+  - [Contribution Counter Feature](#contribution-counter-feature)
+    - [Position Modes](#position-modes)
+      - [Fixed Positions](#fixed-positions)
+      - [Follow Position](#follow-position)
+      - [Free Position](#free-position)
+    - [Quick Start](#quick-start-1)
+    - [Counter Display Configuration](#counter-display-configuration)
+      - [Position Options](#position-options)
+      - [Text Display Options](#text-display-options)
+      - [Image Display Options](#image-display-options)
+      - [Full Configuration Reference](#full-configuration-reference)
+      - [Image Configuration Fields](#image-configuration-fields)
+      - [Sprite Configuration Fields](#sprite-configuration-fields)
+    - [Animation Modes](#animation-modes)
+      - [Sync Mode (`mode: "sync"`)](#sync-mode-mode-sync)
+      - [Loop Mode (`mode: "loop"`)](#loop-mode-mode-loop)
+      - [Level Mode (`mode: "level"`)](#level-mode-mode-level)
+    - [Core Differences Summary](#core-differences-summary)
+    - [Mode Combinations](#mode-combinations)
+    - [Complete Examples](#complete-examples)
+  - [Outputs](#outputs)
+  - [Algorithm Details](#algorithm-details)
+    - [1. Two-Phase Clearing Strategy](#1-two-phase-clearing-strategy)
+    - [2. Tunnel-Based Pathfinding](#2-tunnel-based-pathfinding)
+    - [3. Advanced Data Structures](#3-advanced-data-structures)
+  - [Color Customization](#color-customization)
+    - [Pre-defined Color Themes](#pre-defined-color-themes)
+    - [Multi-Color Snake Segments](#multi-color-snake-segments)
+    - [Color Shift Modes](#color-shift-modes)
+  - [Display in Your README](#display-in-your-readme)
+  - [Complete Workflow Example](#complete-workflow-example-1)
+  - [Examples](#examples)
+
 ## Usage
 
 ### Basic Usage
@@ -36,7 +88,7 @@ jobs:
         uses: diverger/gh-magic-matrix/snake@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/snake/dark.svg
+          outputs: dist/snake/dark.svg
           snake_length: "6"                   # Length of the snake
           animation_duration: "20"            # Total animation time in seconds
 ```
@@ -48,8 +100,115 @@ jobs:
   uses: diverger/gh-magic-matrix/snake@main
   with:
     github_user_name: ${{ github.repository_owner }}
+    ## Custom Snake Content (Emoji, Images, Text)
+
+    You can render the snake using custom content for each segment: Unicode emoji, letters, numbers, or image URLs. This mode uses SVG `<text>` and `<image>` elements.
+
+    ⚠️ **Important Limitations for GitHub**
+
+    **Emoji rendering in SVG `<text>` is unreliable on GitHub** due to:
+    - GitHub's SVG sanitization policies
+    - Font availability and browser differences
+    - Emoji may appear as blank boxes or fallback characters
+
+    **Recommended Alternatives for GitHub README:**
+    1. **Use image URLs instead of emoji** - Link to external emoji images (e.g., Twemoji CDN, Noto Emoji)
+    2. **Server-side rendering** - Pre-render emoji as raster images and embed as data URIs
+    3. **SVG path conversion** - Convert emoji to SVG path elements (requires additional tooling)
+    4. **Traditional mode** - Use the standard colored rectangles (`useCustomSnake: false`)
+
+    **For local/browser use only**, emoji in `<text>` elements work well in modern browsers with proper font support.
+
+    ### How to Enable
+
+    **Query Parameters (for GitHub Actions):**
+    ```
+    output.svg?use_custom_snake=true&custom_snake_segments=🐍,🟢,🟡,🔵
+    ```
+
+    **Programmatic API:**
+    ```typescript
+    drawOptions: {
+      useCustomSnake: true,
+      customSnakeConfig: {
+        segments: ['🐍', '🟢', '🟡', '🔵'],  // Or use image URLs for GitHub
+        defaultContent: '🟢'
+      }
+    }
+    ```
+
+    ### Configuration Examples
+
+    **Emoji (local/browser use only):**
+
+    ```yaml
+    useCustomSnake: true
+    customSnakeConfig:
+      segments: ['🐍', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣']
+      defaultContent: '⚪'
+    ```
+
+    **Image URLs (GitHub-compatible):**
+
+    ```yaml
+    useCustomSnake: true
+    customSnakeConfig:
+      segments:
+        - 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f40d.svg'  # Snake emoji
+        - 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e2.svg'  # Green circle
+        - 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e1.svg'  # Yellow circle
+      defaultContent: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e2.svg'
+    ```
+
+    **Function-based (programmatic only):**
+
+    ```js
+    customSnakeConfig: {
+      segments: (index, total) => {
+        if (index === 0) return 'https://example.com/head.svg';
+        if (index === total - 1) return 'https://example.com/tail.svg';
+        // Use image URLs for GitHub compatibility
+        const images = [
+          'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e2.svg',
+          'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e1.svg',
+          'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e0.svg'
+        ];
+        return images[Math.floor((index / total) * images.length)];
+      },
+      defaultContent: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f7e2.svg'
+    }
+    ```
+
+    ### Quick Test Commands
+
+    ```bash
+    # Full mixed content test suite (emoji, letters, images)
+    bun scripts/snake/test-mixed-snake.ts
+
+    # Custom snake parsing test
+    bun scripts/snake/test-custom-snake-parsing.ts
+
+    # Emoji test (local browser preview recommended)
+    bun scripts/snake/test-emoji-snake.ts
+    ```
+
+    Outputs from the test scripts are written to `test-outputs/`.
+
+    ### Documentation & Examples
+
+    - `packages/snake/packages/svg-creator/svg-snake-renderer.ts` — implementation details
+    - `scripts/snake/test-mixed-snake.ts` — mixed content examples
+    - Query parameter parsing: `packages/snake/src/outputs-options.ts`
+
+    ### Technical Notes
+    - **Size calculation**: Content size is calculated from `cell_size` and adjusted to fit the cell
+    - **Image URLs**: Automatically converted to Base64 data URIs for GitHub compatibility
+    - **Content mixing**: Can mix emoji, text, and images in a single snake (programmatically)
+    - **Browser compatibility**: Emoji display varies; images provide consistent cross-platform rendering
+    - **Traditional mode**: Set `useCustomSnake: false` to use original colored rectangles
+
     github_token: ${{ secrets.GITHUB_TOKEN }}
-    output_path: snake.svg
+    outputs: snake.svg
     svg_width: "900"
     svg_height: "250"
     cell_size: "15"
@@ -68,7 +227,7 @@ jobs:
 |--------|-------------|---------|
 | `github_user_name` | GitHub username | (required) |
 | `github_token` | GitHub token for API access | `${{ github.token }}` |
-| `output_path` | Output SVG file path | `snake.svg` |
+| `outputs` | Output SVG file path(s). Supports multiple files (one per line) with query string options | `snake.svg` |
 | `svg_width` | SVG canvas width in pixels | `800` |
 | `svg_height` | SVG canvas height in pixels | `200` |
 | `cell_size` | Size of each contribution cell in pixels | `12` |
@@ -77,6 +236,170 @@ jobs:
 | `snake_length` | Length of the snake in segments | `6` |
 | `animation_duration` | Total animation duration in seconds | `20` |
 | `colors` | Comma-separated color levels (empty, L1, L2, L3, L4) | GitHub default colors |
+
+### Custom Snake Options (Emoji/Letters/Images)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `use_custom_snake` | Enable custom visual rendering for snake segments (emoji/letters/images) | `false` |
+| `custom_snake_config` | JSON configuration for custom snake visuals (see examples below) | - |
+
+**Note:** Supports Unicode emojis (🐍), letters (A-Z), numbers (0-9), and images (PNG/JPEG/GIF). External image URLs are automatically converted to Base64 for GitHub compatibility.
+
+## Custom Snake Feature
+
+Render snake segments as emojis, letters, numbers, or images instead of colored rectangles.
+
+### Quick Start
+
+**Basic Emoji Snake:**
+
+```yaml
+- uses: diverger/gh-magic-matrix/snake@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    outputs: emoji-snake.svg
+    use_custom_snake: true
+    custom_snake_config: |
+      {
+        "segments": ["🐍", "🟢", "🟡", "🔴"],
+        "defaultContent": "🟢"
+      }
+```
+
+**Letter Snake:**
+
+```yaml
+- uses: diverger/gh-magic-matrix/snake@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    outputs: letter-snake.svg
+    use_custom_snake: true
+    custom_snake_config: |
+      {
+        "segments": ["S", "N", "A", "K", "E"],
+        "defaultContent": "·"
+      }
+```
+
+**Image Snake (External URLs - Auto-converts to Base64):**
+
+```yaml
+- uses: diverger/gh-magic-matrix/snake@main
+  with:
+    github_user_name: ${{ github.repository_owner }}
+    outputs: avatar-snake.svg
+    use_custom_snake: true
+    custom_snake_config: |
+      {
+        "segments": [
+          "https://avatars.githubusercontent.com/u/1?s=16",
+          "https://avatars.githubusercontent.com/u/2?s=16",
+          "https://avatars.githubusercontent.com/u/3?s=16",
+          "https://avatars.githubusercontent.com/u/4?s=16"
+        ],
+        "defaultContent": "🟢"
+      }
+```
+
+### Configuration Fields
+
+- **`segments`**: Array of emoji/letters/image URLs. The snake cycles through this array for each segment.
+  - Emojis: `["🐍", "🟢", "🟡"]`
+  - Letters: `["A", "B", "C"]`
+  - Images: `["https://example.com/img.png", "data:image/png;base64,..."]`
+
+- **`defaultContent`**: Fallback character/image for segments not defined in the array (default: `"🟢"`)
+
+### Supported Content Types
+
+1. **Emojis**: Any Unicode emoji (🐍, 🟢, 🎨, etc.)
+2. **Letters**: A-Z, a-z, 0-9, special characters
+3. **Images**:
+   - External URLs (automatically converted to Base64)
+   - Data URIs (Base64 PNG/JPEG/GIF)
+   - Supports PNG, JPEG, GIF formats
+
+### Automatic Base64 Conversion
+
+External image URLs (starting with `http://` or `https://`) are **automatically converted to Base64 data URIs** during generation. This ensures:
+
+- ✅ **GitHub CSP compatibility** (Content Security Policy)
+- ✅ **No external dependencies** in README
+- ✅ **Images display correctly** on GitHub
+- ✅ **Self-contained SVG files**
+
+**Performance:**
+- External images are fetched and converted in parallel
+- Conversion results are cached during generation
+- Typical conversion time: ~1-2 seconds for 4 images
+- Final SVG file size increases by ~3-5KB per embedded image
+
+### Advanced Examples
+
+**Mixed Content (Emoji + Images):**
+
+```yaml
+custom_snake_config: |
+  {
+    "segments": [
+      "🐍",
+      "https://avatars.githubusercontent.com/u/123?s=16",
+      "🟢",
+      "data:image/png;base64,iVBORw0KGgo..."
+    ],
+    "defaultContent": "·"
+  }
+```
+
+**Gradient Pattern (Auto-cycles):**
+
+```yaml
+custom_snake_config: |
+  {
+    "segments": ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣"],
+    "defaultContent": "⚪"
+  }
+```
+
+The system will cycle through: `🔴, 🟠, 🟡, 🟢, 🔵, 🟣, 🔴, 🟠, ...`
+
+### Complete Workflow Example
+
+```yaml
+name: Generate Snake
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate custom snake
+        uses: diverger/gh-magic-matrix/snake@main
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/custom-snake.svg
+            dist/github-snake.svg?palette=github-dark&color_snake=blue
+          use_custom_snake: true
+          custom_snake_config: |
+            {
+              "segments": ["🐍", "🟢", "🟡", "🔴", "🔵"],
+              "defaultContent": "🟢"
+            }
+
+      - name: Publish to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v3
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
 
 ### Contribution Counter Options
 
@@ -153,7 +476,7 @@ Counter stays at a specific location on the canvas:
   uses: diverger/gh-magic-matrix/snake@main
   with:
     github_user_name: ${{ github.repository_owner }}
-    output_path: snake.svg
+    outputs: snake.svg
     show_contribution_counter: true
     counter_displays: |
       [
@@ -579,6 +902,62 @@ The colors represent:
 4. Level 3 (medium-high)
 5. Level 4 (high contributions)
 
+### Multi-Color Snake Segments
+
+Create rainbow or gradient snakes with different colors for each segment:
+
+**Rainbow Snake:**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6
+```
+
+**Two-Color Gradient:**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ff0000,#0000ff
+```
+
+**Query Parameters:**
+- `color_snake`: Single color or comma-separated list for multi-color segments
+  - Single color: `color_snake=blue` (all segments use same color)
+  - Multiple colors: `color_snake=#ff0000,#ff7700,#ffff00` (per-segment colors)
+
+The snake assigns colors to segments in order (head to tail). If the color array is shorter than the snake length, the last color repeats for remaining segments.
+
+### Color Shift Modes
+
+Animate color transitions as the snake moves:
+
+**Mode 1: Shift on Every Step**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6&color_shift_mode=every-step
+```
+- Colors shift forward by one segment with each grid movement
+- Creates a flowing, wave-like color animation
+- Perfect for rainbow effects
+
+**Mode 2: Shift When Eating Contributions**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e&color_shift_mode=on-eat
+```
+- Colors shift only when the snake eats a colored (non-empty) contribution cell
+- Links color changes to actual contribution consumption
+- More subtle and contribution-focused animation
+
+**Available Modes:**
+- `none` (default): Static colors - each segment keeps its assigned color
+- `every-step`: Shift colors on every grid movement
+- `on-eat`: Shift colors only when eating colored cells
+
+**Dark Mode Support:**
+```yaml
+outputs: |
+  dist/snake.svg?color_snake=#ef4444,#22c55e,#3b82f6&color_shift_mode=every-step&dark_color_snake=#8b5cf6,#ec4899,#f97316&dark_color_shift_mode=on-eat
+```
+
 ## Display in Your README
 
 Add the generated SVG to your profile README:
@@ -619,7 +998,7 @@ jobs:
         uses: diverger/gh-magic-matrix/snake@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/snake/light.svg
+          outputs: dist/snake/light.svg
           snake_length: "6"
           animation_duration: "20"
           colors: "#ebedf0,#9be9a8,#40c463,#30a14e,#216e39"
@@ -629,7 +1008,7 @@ jobs:
         uses: diverger/gh-magic-matrix/snake@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_path: dist/snake/dark.svg
+          outputs: dist/snake/dark.svg
           snake_length: "6"
           animation_duration: "20"
           colors: "#161b22,#0e4429,#006d32,#26a641,#39d353"
