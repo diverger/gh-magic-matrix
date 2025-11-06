@@ -259,8 +259,9 @@ export const renderAnimatedSvgSnake = async (
         shiftOffset = -eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
       }
 
-      // Apply shift offset to get final color index (add colorSegments.length to handle negative offsets)
-      const colorIndex = (segmentIndex + shiftOffset + colorSegments.length * 1000) % colorSegments.length;
+      // Apply shift offset to get final color index (handle negative offsets with double modulo)
+      const rawIndex = (segmentIndex + shiftOffset) % colorSegments.length;
+      const colorIndex = (rawIndex + colorSegments.length) % colorSegments.length;
 
       // Get color at the calculated index
       return colorSegments[colorIndex];
@@ -455,12 +456,14 @@ export const renderAnimatedSvgSnake = async (
           }
         } else if (shiftMode === 'on-eat') {
           // Create keyframes at eat events
+          // Note: Uses iterative decrement approach for keyframe generation (vs. filter-based calculation in getColorForSegment)
+          // Both approaches produce the same head-to-tail flow, but iteration is more efficient when generating sequential keyframes
           let currentColorIndex = i % colorSegments.length;
           colorKeyframes.push({ t: 0, style: `fill: ${colorSegments[currentColorIndex]}` });
 
           eatEvents.forEach(eventFrame => {
             const t = eventFrame / snakeChain.length;
-            // Shift backward (from head to tail)
+            // Shift backward (from head to tail) - equivalent to negative offset approach in getColorForSegment
             currentColorIndex = (currentColorIndex - 1 + colorSegments.length) % colorSegments.length;
             colorKeyframes.push({ t, style: `fill: ${colorSegments[currentColorIndex]}` });
           });
