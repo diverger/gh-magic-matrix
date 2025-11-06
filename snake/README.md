@@ -927,15 +927,15 @@ The snake assigns colors to segments in order (head to tail). If the color array
 
 ### Color Shift Modes
 
-Animate color transitions as the snake moves:
+Animate color transitions as the snake moves. Colors flow from **head to tail**.
 
 **Mode 1: Shift on Every Step**
 ```yaml
 outputs: |
   dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#8b5cf6&color_shift_mode=every-step
 ```
-- Colors shift forward by one segment with each grid movement
-- Creates a flowing, wave-like color animation
+- Colors shift from head to tail with each grid movement
+- Creates a flowing, wave-like color animation traveling along the snake body
 - Perfect for rainbow effects
 
 **Mode 2: Shift When Eating Contributions**
@@ -943,14 +943,14 @@ outputs: |
 outputs: |
   dist/snake.svg?color_snake=#ef4444,#f97316,#eab308,#22c55e&color_shift_mode=on-eat
 ```
-- Colors shift only when the snake eats a colored (non-empty) contribution cell
+- Colors shift from head to tail only when the snake eats a colored (non-empty) contribution cell
 - Links color changes to actual contribution consumption
 - More subtle and contribution-focused animation
 
 **Available Modes:**
 - `none` (default): Static colors - each segment keeps its assigned color
-- `every-step`: Shift colors on every grid movement
-- `on-eat`: Shift colors only when eating colored cells
+- `every-step`: Shift colors from head to tail on every grid movement
+- `on-eat`: Shift colors from head to tail only when eating colored cells
 
 **Dark Mode Support:**
 ```yaml

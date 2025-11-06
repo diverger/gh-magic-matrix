@@ -252,15 +252,15 @@ export const renderAnimatedSvgSnake = async (
 
       // Calculate shift offset based on mode
       if (shiftMode === 'every-step') {
-        // Shift colors on every frame movement
-        shiftOffset = frameIndex;
+        // Shift colors on every frame movement (negative for head-to-tail flow)
+        shiftOffset = -frameIndex;
       } else if (shiftMode === 'on-eat') {
-        // Shift colors based on number of eat events up to this frame
-        shiftOffset = eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
+        // Shift colors based on number of eat events up to this frame (negative for head-to-tail flow)
+        shiftOffset = -eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
       }
 
-      // Apply shift offset to get final color index
-      const colorIndex = (segmentIndex + shiftOffset) % colorSegments.length;
+      // Apply shift offset to get final color index (add colorSegments.length to handle negative offsets)
+      const colorIndex = (segmentIndex + shiftOffset + colorSegments.length * 1000) % colorSegments.length;
 
       // Get color at the calculated index
       return colorSegments[colorIndex];
@@ -444,8 +444,8 @@ export const renderAnimatedSvgSnake = async (
           // Create keyframe for each frame in the animation
           const frameCount = snakeChain.length;
           for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-            const shiftOffset = frameIdx;
-            const colorIndex = (i + shiftOffset) % colorSegments.length;
+            const shiftOffset = -frameIdx; // Negative offset to shift from head to tail
+            const colorIndex = (i + shiftOffset + colorSegments.length * frameCount) % colorSegments.length;
             const color = colorSegments[colorIndex];
 
             colorKeyframes.push({
@@ -460,7 +460,8 @@ export const renderAnimatedSvgSnake = async (
 
           eatEvents.forEach(eventFrame => {
             const t = eventFrame / snakeChain.length;
-            currentColorIndex = (currentColorIndex + 1) % colorSegments.length;
+            // Shift backward (from head to tail)
+            currentColorIndex = (currentColorIndex - 1 + colorSegments.length) % colorSegments.length;
             colorKeyframes.push({ t, style: `fill: ${colorSegments[currentColorIndex]}` });
           });
 
