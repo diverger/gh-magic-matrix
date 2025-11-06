@@ -252,15 +252,16 @@ export const renderAnimatedSvgSnake = async (
 
       // Calculate shift offset based on mode
       if (shiftMode === 'every-step') {
-        // Shift colors on every frame movement
-        shiftOffset = frameIndex;
+        // Shift colors on every frame movement (negative for head-to-tail flow)
+        shiftOffset = -frameIndex;
       } else if (shiftMode === 'on-eat') {
-        // Shift colors based on number of eat events up to this frame
-        shiftOffset = eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
+        // Shift colors based on number of eat events up to this frame (negative for head-to-tail flow)
+        shiftOffset = -eatEvents.filter(eventFrame => eventFrame <= frameIndex).length;
       }
 
-      // Apply shift offset to get final color index
-      const colorIndex = (segmentIndex + shiftOffset) % colorSegments.length;
+      // Apply shift offset to get final color index (handle negative offsets with double modulo)
+      const rawIndex = (segmentIndex + shiftOffset) % colorSegments.length;
+      const colorIndex = (rawIndex + colorSegments.length) % colorSegments.length;
 
       // Get color at the calculated index
       return colorSegments[colorIndex];
@@ -444,8 +445,8 @@ export const renderAnimatedSvgSnake = async (
           // Create keyframe for each frame in the animation
           const frameCount = snakeChain.length;
           for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-            const shiftOffset = frameIdx;
-            const colorIndex = (i + shiftOffset) % colorSegments.length;
+            const shiftOffset = -frameIdx; // Negative offset to shift from head to tail
+            const colorIndex = (i + shiftOffset + colorSegments.length * frameCount) % colorSegments.length;
             const color = colorSegments[colorIndex];
 
             colorKeyframes.push({
@@ -455,12 +456,15 @@ export const renderAnimatedSvgSnake = async (
           }
         } else if (shiftMode === 'on-eat') {
           // Create keyframes at eat events
+          // Note: Uses iterative decrement approach for keyframe generation (vs. filter-based calculation in getColorForSegment)
+          // Both approaches produce the same head-to-tail flow, but iteration is more efficient when generating sequential keyframes
           let currentColorIndex = i % colorSegments.length;
           colorKeyframes.push({ t: 0, style: `fill: ${colorSegments[currentColorIndex]}` });
 
           eatEvents.forEach(eventFrame => {
             const t = eventFrame / snakeChain.length;
-            currentColorIndex = (currentColorIndex + 1) % colorSegments.length;
+            // Shift backward (from head to tail) - equivalent to negative offset approach in getColorForSegment
+            currentColorIndex = (currentColorIndex - 1 + colorSegments.length) % colorSegments.length;
             colorKeyframes.push({ t, style: `fill: ${colorSegments[currentColorIndex]}` });
           });
 
