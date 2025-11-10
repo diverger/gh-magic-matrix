@@ -97,7 +97,7 @@ jobs:
           echo "✅ All outputs generated successfully"
 
       - name: Publish to test-output branch
-        uses: crazy-max/ghaction-github-pages@v4.1.0
+        uses: crazy-max/ghaction-github-pages@v4.2.0
         with:
           target_branch: test-output
           build_dir: dist/test
