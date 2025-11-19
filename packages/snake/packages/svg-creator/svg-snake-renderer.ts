@@ -354,12 +354,10 @@ export const renderAnimatedSvgSnake = async (
           width: imageSize.toFixed(1),
           height: imageSize.toFixed(1),
           href: content,
-          // Add transform-origin to match rectangle behavior
-          style: "transform-box: fill-box; transform-origin: center center;",
         });
       } else {
         // Create text element for emoji/characters
-        // Use full segment size to make segments appear more connected
+        // Position at cell center with text-anchor and dominant-baseline for proper centering
         const fontSize = s;
 
         segmentElement = createTextElement({
@@ -370,8 +368,6 @@ export const renderAnimatedSvgSnake = async (
           "text-anchor": "middle",
           "dominant-baseline": "central",
           "user-select": "none",
-          // Add transform-origin to match rectangle behavior
-          style: "transform-box: fill-box; transform-origin: center center;",
         }, content);
       }
     } else {
@@ -505,7 +501,6 @@ export const renderAnimatedSvgSnake = async (
   animationStyles.unshift(`
     .snake-segment {
       shape-rendering: geometricPrecision;
-      transform-box: fill-box;
     }
   `);
 
