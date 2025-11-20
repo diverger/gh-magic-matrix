@@ -328,7 +328,6 @@ export const renderAnimatedSvgSnake = async (
     const u = (1 - Math.min(i, iMax) / iMax) ** 2; // SNK's quadratic falloff
     const s = dMin + (dMax - dMin) * u;     // SNK's linear interpolation (lerp)
 
-    const margin = (config.cellSize - s) / 2;
     const radius = Math.min(4.5, (4 * s) / dotSize); // SNK's radius formula
 
     // Round width to 1 decimal place, then calculate exact x for perfect centering
@@ -361,7 +360,8 @@ export const renderAnimatedSvgSnake = async (
         // Create text element for emoji/characters
         // Position at cell center with text-anchor and dominant-baseline for proper centering
         const fontSize = sRounded;
-        const centerPos = Math.round(config.cellSize * 10 / 2) / 10;
+        const half = config.cellSize / 2;
+        const centerPos = Math.round(half * 10) / 10;
 
         segmentElement = createTextElement({
           class: `snake-segment snake-segment-${i}`,
