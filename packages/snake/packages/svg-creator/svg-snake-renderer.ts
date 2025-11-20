@@ -328,8 +328,12 @@ export const renderAnimatedSvgSnake = async (
     const u = (1 - Math.min(i, iMax) / iMax) ** 2; // SNK's quadratic falloff
     const s = dMin + (dMax - dMin) * u;     // SNK's linear interpolation (lerp)
 
-    const margin = (config.cellSize - s) / 2;
     const radius = Math.min(4.5, (4 * s) / dotSize); // SNK's radius formula
+
+    // Round width to 1 decimal place, then calculate exact x for perfect centering
+    // Round the final x value to avoid floating point artifacts while maintaining perfect alignment
+    const sRounded = Math.round(s * 10) / 10;
+    const xRounded = Math.round(((config.cellSize - sRounded) / 2) * 100) / 100;
 
     let segmentElement: string;
 
@@ -344,27 +348,26 @@ export const renderAnimatedSvgSnake = async (
       if (isImage) {
         // Create image element for images
         // Use full segment size to make segments appear more connected
-        const imageSize = s;
-        const imageOffset = (config.cellSize - imageSize) / 2;
-
         segmentElement = createElement("image", {
           class: `snake-segment snake-segment-${i}`,
-          x: imageOffset.toFixed(1),
-          y: imageOffset.toFixed(1),
-          width: imageSize.toFixed(1),
-          height: imageSize.toFixed(1),
+          x: xRounded.toString(),
+          y: xRounded.toString(),
+          width: sRounded.toString(),
+          height: sRounded.toString(),
           href: content,
         });
       } else {
         // Create text element for emoji/characters
         // Position at cell center with text-anchor and dominant-baseline for proper centering
-        const fontSize = s;
+        const fontSize = sRounded;
+        const half = config.cellSize / 2;
+        const centerPos = Math.round(half * 10) / 10;
 
         segmentElement = createTextElement({
           class: `snake-segment snake-segment-${i}`,
-          x: (config.cellSize / 2).toFixed(1),
-          y: (config.cellSize / 2).toFixed(1),
-          "font-size": fontSize.toFixed(1),
+          x: centerPos.toString(),
+          y: centerPos.toString(),
+          "font-size": fontSize.toString(),
           "text-anchor": "middle",
           "dominant-baseline": "central",
           "user-select": "none",
@@ -375,10 +378,10 @@ export const renderAnimatedSvgSnake = async (
       // Only set inline fill if NOT using color shift mode (CSS will handle it)
       const rectAttributes: Record<string, string> = {
         class: `snake-segment snake-segment-${i}`,
-        x: margin.toFixed(1),
-        y: margin.toFixed(1),
-        width: s.toFixed(1),
-        height: s.toFixed(1),
+        x: xRounded.toString(),
+        y: xRounded.toString(),
+        width: sRounded.toString(),
+        height: sRounded.toString(),
         rx: radius.toFixed(1),
         ry: radius.toFixed(1),
         stroke: i === 0 ? "none" : (config.styling.bodyBorder ?? "none"),
