@@ -67,4 +67,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/diverger/gh-magic-matrix-blinking@sha256:91a539651409ec12b7ad7ac0f20121708125f652f05155b0b8ecd48631de2617'
+  image: 'docker://ghcr.io/diverger/gh-magic-matrix-blinking@sha256:3891fe25af6dd9557b8e8acd2b5df6e062f1a66cb0e2db8ec9b50e12ab1645a3'
